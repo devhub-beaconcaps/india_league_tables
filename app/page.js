@@ -1,14 +1,13 @@
-import ArticleProcessor from "../components/ArticleProcessor";
-import Image from "next/image";
+import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../lib/auth';
 
-export default function Home() {
+export default async function HomePage() {
+  const session = await getServerSession(authOptions);
 
-  console.log("what am i foing here");
-  return (
-    <div className="bg-blue-500 text-red-200">
-      This is my first next js APP
-
-      <ArticleProcessor/>
-    </div>
-  );
+  if (session) {
+    redirect('/dashboard');
+  } else {
+    redirect('/login');
+  }
 }
