@@ -17,11 +17,13 @@ import {
   Sun,
   Moon,
   LogOut,
+  fileUser
 } from 'lucide-react';
 import { useThemeStore } from '../../lib/store';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Analysis', href: '/analysis', icon: BarChart2 },
   { name: 'Issuer', href: '/issuers', icon: Building2 },
   { name: 'Arrangers', href: '/arrangers', icon: Handshake },
   { name: 'Trustee', href: '/trustees', icon: Shield },
@@ -45,18 +47,33 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }) {
 
       <aside
         className={cn(
-          'fixed top-0 left-0 z-50 h-full flex flex-col',
+          'fixed relative top-0 left-0 z-50 h-full flex flex-col',
           'bg-white dark:bg-[#1a1a2e]',
           'border-r border-gray-200 dark:border-gray-700',
           'transition-all duration-300 ease-in-out',
+          'overflow-x-hidden', // ADDED: Prevent horizontal scrollbar
           collapsed ? 'w-[72px]' : 'w-[176px]',
           'lg:static lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
 
+        {/* Collapse Button (desktop only) */}
+        <div className="absolute top-0 right-0 hidden lg:flex justify-center">
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          >
+            {collapsed ? (
+              <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            ) : (
+              <ChevronLeft className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            )}
+          </button>
+        </div>
+
         {/* Navigation */}
-        <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto bg-white dark:bg-[#1a1a2e]">
+        <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden bg-white dark:bg-[#1a1a2e]">
           {navigation.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -150,20 +167,6 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }) {
               </button>
             </div>
           )}
-
-          {/* Collapse Button (desktop only) */}
-          <div className="hidden lg:flex justify-center">
-            <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-            >
-              {collapsed ? (
-                <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-              ) : (
-                <ChevronLeft className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-              )}
-            </button>
-          </div>
 
           {/* Logout */}
           {!collapsed && (
