@@ -5,37 +5,54 @@ import { useThemeStore } from '../../lib/store';
 import { Sidebar } from '../../components/layout/Sidebar';
 import { Header } from '../../components/layout/Header';
 
+const HEADER_HEIGHT = 55;
+
 export default function DashboardLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { theme, setTheme } = useThemeStore();
+  const [collapsed, setCollapsed] = useState(false);
+  const { theme } = useThemeStore();
 
   useEffect(() => {
-    // Initialize theme on client side
-    const savedTheme = localStorage.getItem('theme-storage');
-    if (savedTheme) {
-      const parsed = JSON.parse(savedTheme);
-      setTheme(parsed.state?.theme || 'light');
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
     }
-  }, [setTheme]);
+  }, [theme]);
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)]">
-      <div className="flex h-screen overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-        />
+    <div className="h-screen bg-[#EEF2F7] dark:bg-[var(--color-background)] overflow-hidden">
+      
+      {/* ✅ Fixed Header */}
+      <div
+        className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-[var(--color-background)] shadow-sm"
+        style={{ height: HEADER_HEIGHT }}
+      >
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
+      </div>
 
-        {/* Main content */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <Header onMenuClick={() => setIsSidebarOpen(true)} />
-          <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-            <div className="animate-fade-in">
-              {children}
-            </div>
-          </main>
+      {/* ✅ Content Below Header */}
+      <div
+        className="flex"
+        style={{
+          paddingTop: HEADER_HEIGHT,
+          height: `calc(100vh)`
+        }}
+      >
+        {/* ✅ Sidebar (NOT fixed) */}
+        <div className="h-full">
+          <Sidebar
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            collapsed={collapsed}
+            setCollapsed={setCollapsed}
+          />
         </div>
+
+        {/* ✅ Main Content (only this scrolls) */}
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
       </div>
     </div>
   );

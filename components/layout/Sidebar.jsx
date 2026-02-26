@@ -5,77 +5,62 @@ import { usePathname } from 'next/navigation';
 import { cn } from '../../lib/utils';
 import {
   LayoutDashboard,
+  BarChart2,
   Building2,
   Handshake,
   Shield,
   ClipboardList,
   Award,
   X,
-  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  Sun,
+  Moon,
+  LogOut,
 } from 'lucide-react';
+import { useThemeStore } from '../../lib/store';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Issuers', href: '/issuers', icon: Building2 },
+  { name: 'Issuer', href: '/issuers', icon: Building2 },
   { name: 'Arrangers', href: '/arrangers', icon: Handshake },
-  { name: 'Trustees', href: '/trustees', icon: Shield },
-  { name: 'Registrars', href: '/registrars', icon: ClipboardList },
-  { name: 'Agencies', href: '/agencies', icon: Award },
+  { name: 'Trustee', href: '/trustees', icon: Shield },
+  { name: 'Registrar', href: '/registrars', icon: ClipboardList },
+  { name: 'Rating Agency', href: '/agencies', icon: Award },
 ];
 
-export function Sidebar({ isOpen, onClose }) {
+export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }) {
   const pathname = usePathname();
+  const { theme, toggleTheme } = useThemeStore();
 
   return (
     <>
-      {/* Mobile overlay with blur */}
+      {/* Mobile Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={cn(
-          'fixed top-0 left-0 z-50 h-full w-72 bg-[var(--color-card)] border-r border-[var(--color-border)]',
-          'transition-all duration-300 ease-out lg:translate-x-0 lg:static',
-          isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+          'fixed top-0 left-0 z-50 h-full flex flex-col',
+          'bg-white dark:bg-[#1a1a2e]',
+          'border-r border-gray-200 dark:border-gray-700',
+          'transition-all duration-300 ease-in-out',
+          collapsed ? 'w-[72px]' : 'w-[176px]',
+          'lg:static lg:translate-x-0',
+          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
-        {/* Logo Section */}
-        <div className="flex items-center justify-between h-20 px-6 border-b border-[var(--color-border)]">
-          <Link 
-            href="/dashboard" 
-            className="flex items-center gap-3 group"
-          >
-            <div className="relative w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-shadow duration-300">
-              <span className="text-white font-bold text-lg">F</span>
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-[var(--color-card)]" />
-            </div>
-            <div>
-              <span className="font-bold text-xl text-[var(--color-foreground)] tracking-tight">
-                FinDash
-              </span>
-              <p className="text-[10px] text-[var(--color-muted)] -mt-0.5 tracking-wider uppercase">Pro</p>
-            </div>
-          </Link>
-          <button
-            onClick={onClose}
-            className="lg:hidden p-2 rounded-lg hover:bg-[var(--color-accent)] transition-colors duration-200"
-          >
-            <X className="w-5 h-5 text-[var(--color-muted)]" />
-          </button>
-        </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1">
-          <p className="px-4 text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider mb-3">
-            Main Menu
-          </p>
-          {navigation.map((item, index) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto bg-white dark:bg-[#1a1a2e]">
+          {navigation.map((item) => {
+            const isActive =
+              pathname === item.href ||
+              pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
 
             return (
@@ -84,45 +69,109 @@ export function Sidebar({ isOpen, onClose }) {
                 href={item.href}
                 onClick={() => onClose?.()}
                 className={cn(
-                  'sidebar-link',
-                  isActive && 'active',
-                  'animate-fade-in'
+                  'flex items-center gap-2.5 px-3 py-2 my-3 rounded-[19px] text-[11px] font-medium transition-all duration-150 group relative',
+                  isActive
+                    ? 'bg-[#423CAB] dark:bg-indigo-500 text-white shadow-sm dark:shadow-indigo-900/30'
+                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800/70 hover:text-gray-900 dark:hover:text-gray-200'
                 )}
-                style={{ animationDelay: `${index * 50}ms` }}
               >
-                <Icon className={cn(
-                  'w-5 h-5 transition-transform duration-200',
-                  isActive ? 'text-white' : 'text-[var(--color-muted)]',
-                  'group-hover:scale-110'
-                )} />
-                <span>{item.name}</span>
-                {isActive && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/80" />
+                <Icon
+                  className={cn(
+                    'w-4 h-4 shrink-0',
+                    isActive
+                      ? 'text-white'
+                      : 'text-gray-500 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'
+                  )}
+                />
+
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 truncate">{item.name}</span>
+                    {!isActive && (
+                      <ChevronRight
+                        className="w-3.5 h-3.5 text-gray-400 dark:text-gray-600 shrink-0"
+                      />
+                    )}
+                  </>
+                )}
+
+                {/* Tooltip when collapsed */}
+                {collapsed && (
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white dark:text-gray-100 text-xs rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity shadow-lg dark:shadow-black/30">
+                    {item.name}
+                  </div>
                 )}
               </Link>
             );
           })}
         </nav>
 
-        {/* Pro Banner */}
-        <div className="absolute bottom-0 left-0 right-0 p-4">
-          <div className="relative overflow-hidden rounded-xl gradient-primary p-4 text-white shadow-lg shadow-blue-500/30">
-            <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-white/20 rounded-full blur-xl" />
-            <div className="absolute bottom-0 left-0 -mb-2 -ml-2 w-12 h-12 bg-white/10 rounded-full blur-lg" />
-            
-            <div className="relative flex items-start gap-3">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-sm">Pro Plan</p>
-                <p className="text-xs text-white/80 mt-0.5">Advanced analytics & more</p>
-              </div>
+        {/* Bottom Section */}
+        <div className="px-3 pb-5 space-y-3 border-t border-gray-100 dark:border-gray-700 pt-3 bg-white dark:bg-[#1a1a2e]">
+          {/* Theme Toggle */}
+          {!collapsed ? (
+            <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full p-0.5 gap-0.5">
+              <button
+                onClick={() => theme !== 'light' && toggleTheme()}
+                className={cn(
+                  'flex items-center gap-1 flex-1 justify-center text-[11px] py-1.5 rounded-full transition-all duration-150',
+                  theme === 'light'
+                    ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                )}
+              >
+                <Sun className="w-3 h-3" />
+                <span>Light</span>
+              </button>
+              <button
+                onClick={() => theme !== 'dark' && toggleTheme()}
+                className={cn(
+                  'flex items-center gap-1 flex-1 justify-center text-[11px] py-1.5 rounded-full transition-all duration-150',
+                  theme === 'dark'
+                    ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                )}
+              >
+                <Moon className="w-3 h-3" />
+                <span>Dark</span>
+              </button>
             </div>
-            <button className="relative mt-3 w-full py-2 px-3 bg-white text-[var(--color-primary-600)] text-sm font-semibold rounded-lg hover:bg-white/90 transition-colors duration-200">
-              Upgrade Now
+          ) : (
+            <div className="flex justify-center">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-4 h-4 text-gray-400 dark:text-gray-300" />
+                ) : (
+                  <Moon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Collapse Button (desktop only) */}
+          <div className="hidden lg:flex justify-center">
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+            >
+              {collapsed ? (
+                <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+              ) : (
+                <ChevronLeft className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+              )}
             </button>
           </div>
+
+          {/* Logout */}
+          {!collapsed && (
+            <button className="flex items-center gap-2 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 text-[12px] font-medium hover:opacity-75 transition px-1">
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
+            </button>
+          )}
         </div>
       </aside>
     </>

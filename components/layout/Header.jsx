@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useThemeStore } from '../../lib/store';
+import ILTLogo from '../../public/img/ILTLogo.png';
 import { cn } from '../../lib/utils';
 import {
   Menu,
@@ -16,6 +17,7 @@ import {
   Settings,
   Check,
 } from 'lucide-react';
+import Image from 'next/image';
 
 export function Header({ onMenuClick }) {
   const { data: session } = useSession();
@@ -30,7 +32,7 @@ export function Header({ onMenuClick }) {
   ];
 
   return (
-    <header className="h-20 bg-[var(--color-card)] border-b border-[var(--color-border)] flex items-center justify-between px-6 lg:px-8 sticky top-0 z-30">
+    <header className="h-full bg-[var(--color-card)] border-[var(--color-border)] flex items-center justify-between px-6 lg:px-8 sticky top-0 z-30">
       {/* Left section */}
       <div className="flex items-center gap-4">
         <button
@@ -41,13 +43,10 @@ export function Header({ onMenuClick }) {
         </button>
 
         {/* Search */}
-        <div className="hidden md:flex items-center gap-3 bg-[var(--color-accent)] rounded-xl px-4 py-2.5 border border-[var(--color-border)] focus-within:border-[var(--color-primary-500)] focus-within:ring-2 focus-within:ring-[var(--color-primary-500)]/10 transition-all duration-200 w-72">
-          <Search className="w-4 h-4 text-[var(--color-muted)]" />
-          <input
-            type="text"
-            placeholder="Search anything..."
-            className="bg-transparent border-none outline-none text-sm text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] w-full"
-          />
+        <div className="">
+          <div>
+            <Image src={ILTLogo} alt="ILT Logo" className="w-15 h-8" />
+          </div>
         </div>
       </div>
 

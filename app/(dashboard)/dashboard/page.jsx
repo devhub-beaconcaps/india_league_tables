@@ -1,364 +1,376 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card';
-import { LineChart } from '../../../components/charts/LineChart';
-import { AreaChart } from '../../../components/charts/AreaChart';
-import { BarChart } from '../../../components/charts/BarChart';
-import { RadarChart } from '../../../components/charts/RadarChart';
-import { DoughnutChart } from '../../../components/charts/DoughnutChart';
-import { StatCard, MiniChart } from '../../../components/charts/StatCard';
+import { useState } from 'react';
 import {
-  lineChartData,
-  areaChartData,
-  barChartData,
-  radarChartData,
-  doughnutChartData,
-  horizontalBarData,
-  miniChartData,
-  statsData,
-  walletData,
-  percentileData,
-  circularStats,
-} from '../../../lib/data';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Wallet, 
-  Plus, 
-  MoreVertical,
-  ArrowUpRight,
-  ArrowDownRight,
-  DollarSign,
-  Users,
-  Activity,
-  Target
-} from 'lucide-react';
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, PieChart, Pie, Cell, Legend
+} from 'recharts';
 
-// Stat Card Component
-function DashboardStatCard({ title, value, change, trend, icon: Icon, color }) {
-  const colorClasses = {
-    blue: 'from-blue-500 to-blue-600 shadow-blue-500/30',
-    green: 'from-emerald-500 to-emerald-600 shadow-emerald-500/30',
-    purple: 'from-purple-500 to-purple-600 shadow-purple-500/30',
-    orange: 'from-orange-500 to-orange-600 shadow-orange-500/30',
-  };
+// ─── Mock Data ────────────────────────────────────────────────────────────────
 
+const statsCards = [
+  { label: 'Total Volume', value: '₹955,950Cr', change: '+8%', color: '#7C3AED', icon: '📊' },
+  { label: 'Total Issues', value: '5337', change: '+5%', color: '#7C3AED', icon: '📋' },
+  { label: 'Avg Issue Size', value: '₹955,950Cr', change: '+8%', color: '#EC4899', icon: '📈' },
+  { label: 'Total Volume', value: '₹955,950Cr', change: '+8%', color: '#06B6D4', icon: '💰' },
+  { label: 'Total Volume', value: '₹955,950Cr', change: '+8%', color: '#F97316', icon: '🏦' },
+  { label: 'Total Volume', value: '₹955,950Cr', change: '+8%', color: '#10B981', icon: '📦' },
+];
+
+const issuerData = [
+  { name: 'BAJAJ FINANCE LIMITED', issues: 41, size: '₹87,210.00CR.' },
+  { name: 'JIO DIGITAL FIBRE PRIVATE LIMITED', issues: 24, size: '₹67,000.00CR.' },
+  { name: 'L&T FINANCE LIMITED', issues: 136, size: '₹55,269.00CR.', active: true },
+  { name: 'SMALL INDUSTRIES DEVELOPMENT BANK OF INDIA', issues: 25, size: '₹27,526.00CR.' },
+  { name: 'STATE BANK OF INDIA', issues: 26, size: '₹27,276.00CR.' },
+  { name: 'HDFC BANK LIMITED', issues: 61, size: '₹23,819.00CR.' },
+  { name: 'PORTEAST INVESTMENT PRIVATE LIMITED', issues: 17, size: '₹22,568.00CR.' },
+  { name: 'INDIAN RAILWAY FINANCE CORPORATION LIMITED', issues: 17, size: '₹22,568.00CR.' },
+  { name: 'NATIONAL BANK FOR AGRICULTURE AND RURAL DEVELOPMENT', issues: 17, size: '₹22,568.00CR.' },
+  { name: 'HOUSING DEVELOPMENT FINANCE CORPORATION LTD', issues: 17, size: '₹22,568.00CR.' },
+];
+
+const volumeTrendData = [
+  { year: '1988-89', issueSize: 2199680, noOfIssue: 400 },
+  { year: '1989-90', issueSize: 2399680, noOfIssue: 800 },
+  { year: '1990-91', issueSize: 2799680, noOfIssue: 1200 },
+  { year: '1991-92', issueSize: 2599680, noOfIssue: 1600 },
+  { year: '1993-94', issueSize: 2999680, noOfIssue: 2400 },
+  { year: '1995-96', issueSize: 3199680, noOfIssue: 5600 },
+];
+
+const barData = [
+  { month: 'April', py: 700, cy: 900 },
+  { month: 'May', py: 600, cy: 1000 },
+  { month: 'June', py: 500, cy: 750 },
+  { month: 'July', py: 800, cy: 1050 },
+  { month: 'August', py: 650, cy: 900 },
+  { month: 'September', py: 550, cy: 750 },
+  { month: 'October', py: 700, cy: 600 },
+];
+
+const sectorPieData = [
+  { name: 'India Rating', value: 22.5, color: '#EC4899' },
+  { name: 'CRISIL', value: 17.5, color: '#F59E0B' },
+  { name: 'ACUITE RATINGS', value: 30, color: '#06B6D4' },
+  { name: 'BRICKWORK RATINGS', value: 30, color: '#7C3AED' },
+];
+
+const creditPieData = [
+  { name: 'India Rating', value: 25, color: '#3B82F6' },
+  { name: 'CRISIL', value: 25, color: '#06B6D4' },
+  { name: 'ACUITE RATINGS', value: 25, color: '#7C3AED' },
+  { name: 'BRICKWORK RATINGS', value: 25, color: '#F59E0B' },
+];
+
+const tabs = ['ISSUERS', 'ARRANGERS', 'TRUSTEES', 'REGISTRARS', 'RATING AGENCIES'];
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function StatCard({ label, value, change, color, icon }) {
   return (
-    <Card className="relative overflow-hidden">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-[var(--color-muted)] uppercase tracking-wider">
-              {title}
-            </p>
-            <h3 className="text-3xl font-bold text-[var(--color-foreground)] mt-2 tracking-tight">
-              {value}
-            </h3>
-            <div className={cn(
-              'inline-flex items-center gap-1 mt-3 px-2.5 py-1 rounded-lg text-sm font-semibold',
-              trend === 'up' 
-                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' 
-                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-            )}>
-              {trend === 'up' ? (
-                <ArrowUpRight className="w-4 h-4" />
-              ) : (
-                <ArrowDownRight className="w-4 h-4" />
-              )}
-              {change}
-            </div>
-          </div>
-          <div className={cn(
-            'w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg',
-            colorClasses[color]
-          )}>
-            <Icon className="w-7 h-7 text-white" />
-          </div>
+    <div
+      className="bg-white dark:bg-[var(--color-surface)] border-l-4 rounded-2xl px-4 py-2 flex items-start gap-3 flex-1 min-w-0 drop-shadow-md"
+      style={{ borderLeftColor: color }}
+    >
+      {/* Added border-solid to ensure it renders correctly on all elements */}
+
+      <div className="min-w-0">
+        <div
+          className="w-6 h-6 mb-2 rounded-full flex items-center justify-center text-white text-sm shrink-0"
+          style={{ background: color }}
+        >
+          {/* Using the icon prop instead of hardcoded SVG */}
+          <span>{icon}</span>
         </div>
-      </CardContent>
-    </Card>
+        <p className="text-[9px] mb-1 text-gray-400 dark:text-gray-500 font-medium truncate">{label}</p>
+        <p className="text-[14px] font-bold text-gray-800 dark:text-white leading-tight mt-0.5">{value}</p>
+        <p className="text-[9px] text-green-500 font-medium mt-0.5">{change}</p>
+      </div>
+    </div>
   );
 }
 
-import { cn } from '../../../lib/utils';
-
-export default function DashboardPage() {
+function SectionCard({ children, className = '' }) {
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[var(--color-foreground)] tracking-tight">
-            Dashboard
-          </h1>
-          <p className="text-[var(--color-muted)] mt-1">
-            Welcome back! Here&apos;s what&apos;s happening with your finances today.
-          </p>
+    <div className={`bg-white dark:bg-[var(--color-surface)] rounded-2xl drop-shadow-md ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
+
+export default function Dashboard() {
+  const [activeTab, setActiveTab] = useState('ISSUERS');
+  const [barView, setBarView] = useState('ISSUE SIZE');
+
+  return (
+    <div className="space-y-5">
+
+      {/* Page Title */}
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
+
+      {/* ── Stats Row ── */}
+      <div className="flex gap-3">
+        {statsCards.map((card, i) => (
+          <StatCard key={i} {...card} />
+        ))}
+      </div>
+
+      {/* ── Main Content Grid ── */}
+      <div className="grid grid-cols-[1fr_400px] gap-5">
+
+        {/* LEFT COLUMN */}
+        <div className="space-y-5">
+
+          {/* Financial Year Table */}
+          <SectionCard className="p-5">
+            <h2 className="text-md font-semibold text-gray-800 dark:text-white mb-4">
+              Financial Year: 2015-2016
+            </h2>
+
+            {/* Filters */}
+            <div className="flex justify-between gap-3 mb-4">
+              <div>
+                <label className="text-[9px] text-gray-400 block mb-1">Value Convention</label>
+                <select className="text-[9px] border border-gray-200 dark:border-gray-600 rounded-[12px] px-1 w-[7rem] py-1.5 bg-white dark:bg-[var(--color-surface)] text-gray-700 dark:text-gray-200">
+                  <option>Crores</option>
+                </select>
+              </div>
+              <div className='flex items-center gap-3 mb-4'>
+                <div>
+                  <label className="text-[9px] text-gray-400 block mb-1">Financial Year</label>
+                  <select className="text-[9px] border border-gray-200 dark:border-gray-600 rounded-[12px] w-[7rem] px-3 py-1.5 bg-white dark:bg-[var(--color-surface)] text-gray-700 dark:text-gray-200">
+                    <option>FY2024-25</option>
+                  </select>
+                </div>
+                <button className="mt-4 flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-[9px] font-medium px-4 py-1.5 rounded-[12px] transition-colors">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3.5" />
+                  </svg>
+                  Reset
+                </button>
+              </div>
+
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 mb-4 flex-wrap">
+              {tabs.map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`text-[9px] font-medium px-4 py-1.5 rounded-full border transition-all ${activeTab === tab
+                    ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                    : 'bg-white dark:bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-[#7C3AED] hover:text-[#7C3AED]'
+                    }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {/* Table */}
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-400 text-[9px] uppercase font-semibold border-b border-gray-100 dark:border-gray-700">
+                  <th className="pb-2 font-semibold">Issuers</th>
+                  <th className="pb-2 font-semibold text-right">No. of Issues</th>
+                  <th className="pb-2 font-semibold text-right">Issue Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                {issuerData.map((row, i) => (
+                  <tr
+                    key={i}
+                    className={`border-b border-gray-50 text-[9px] dark:border-gray-700/50 last:border-0 ${row.active
+                      ? 'bg-[#7C3AED] text-white rounded-lg'
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-800/40'
+                      }`}
+                  >
+                    <td className={`py-2.5 px-2 font-medium rounded-l-lg ${row.active ? 'text-white' : 'text-[#7C3AED]'}`}>
+                      {row.name}
+                    </td>
+                    <td className={`py-2.5 text-right  ${row.active ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                      {row.issues}
+                    </td>
+                    <td className={`py-2.5 text-right pr-2 rounded-r-lg ${row.active ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                      {row.size}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </SectionCard>
+
+          {/* Issue Volume Trends */}
+          <SectionCard className="p-5">
+            <h2 className="text-md font-semibold text-gray-800 dark:text-white mb-4">Issue Volume Trends</h2>
+            <div className="flex justify-between text-[9px] text-gray-400 mb-2">
+              <span>Issue Size</span>
+              <span>No of Issue</span>
+            </div>
+            <ResponsiveContainer width="100%" height={240}>
+              <AreaChart data={volumeTrendData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gradSize" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.05} />
+                  </linearGradient>
+                  <linearGradient id="gradIssue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#EC4899" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#EC4899" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="year" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                <Area yAxisId="left" type="monotone" dataKey="issueSize" stroke="#06B6D4" fill="url(#gradSize)" strokeWidth={2} />
+                <Area yAxisId="right" type="monotone" dataKey="noOfIssue" stroke="#EC4899" fill="url(#gradIssue)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+            <div className="flex justify-center gap-6 mt-3">
+              <span className="flex items-center gap-1.5 text-[9px] text-gray-500">
+                <span className="w-3 h-3 rounded-full bg-[#EC4899]" /> No of issue
+              </span>
+              <span className="flex items-center gap-1.5 text-[9px] text-gray-500">
+                <span className="w-3 h-3 rounded-full bg-[#06B6D4]" /> Issue Size
+              </span>
+            </div>
+          </SectionCard>
         </div>
-        <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all duration-200">
-          <Plus className="w-5 h-5" />
-          Add Widget
-        </button>
-      </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <DashboardStatCard
-          title="Total Revenue"
-          value="$48,250"
-          change="+12.5%"
-          trend="up"
-          icon={DollarSign}
-          color="blue"
-        />
-        <DashboardStatCard
-          title="Active Users"
-          value="2,420"
-          change="+8.2%"
-          trend="up"
-          icon={Users}
-          color="green"
-        />
-        <DashboardStatCard
-          title="Conversion Rate"
-          value="3.24%"
-          change="-2.1%"
-          trend="down"
-          icon={Target}
-          color="purple"
-        />
-        <DashboardStatCard
-          title="Avg. Order Value"
-          value="$85.40"
-          change="+5.7%"
-          trend="up"
-          icon={Activity}
-          color="orange"
-        />
-      </div>
-
-      {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Chart */}
-        <Card className="lg:col-span-2">
-          <CardHeader 
-            title="Revenue Overview" 
-            subtitle="Track your revenue growth over time"
-            action={
-              <button className="p-2 hover:bg-[var(--color-accent)] rounded-lg transition-colors">
-                <MoreVertical className="w-5 h-5 text-[var(--color-muted)]" />
-              </button>
-            }
-          />
-          <CardContent>
-            <LineChart data={lineChartData} height={280} />
-          </CardContent>
-        </Card>
-
-        {/* Performance Card */}
-        <Card>
-          <CardHeader 
-            title="Performance" 
-            subtitle="Last 3 months"
-          />
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-center">
-              <div className="w-32">
-                <DoughnutChart
-                  data={doughnutChartData}
-                  height={120}
-                  showCenterText
-                  centerText="82%"
-                />
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500" />
-                  <span className="text-sm text-[var(--color-muted)]">Completed</span>
+        {/* RIGHT COLUMN */}
+        <div className="space-y-5">
+          <SectionCard className='p-5'>
+            {/* L&T Finance Card */}
+            <div className="py-2 px-1 mb-2">
+              <div className='flex gap-4'>
+                <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                  L&T
                 </div>
-                <span className="text-sm font-semibold text-[var(--color-foreground)]">82%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600" />
-                  <span className="text-sm text-[var(--color-muted)]">Remaining</span>
-                </div>
-                <span className="text-sm font-semibold text-[var(--color-foreground)]">18%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Area Chart */}
-        <Card>
-          <CardHeader 
-            title="Live Information" 
-            subtitle="Income vs Expense"
-          />
-          <CardContent>
-            <AreaChart data={areaChartData} height={220} />
-            <div className="flex items-center justify-center gap-6 mt-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-cyan-500" />
-                <span className="text-sm text-[var(--color-muted)]">Income</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-blue-500" />
-                <span className="text-sm text-[var(--color-muted)]">Expense</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Radar Chart */}
-        <Card>
-          <CardHeader 
-            title="Spread Analysis" 
-            subtitle="Multi-metric comparison"
-          />
-          <CardContent>
-            <RadarChart data={radarChartData} height={240} />
-          </CardContent>
-        </Card>
-
-        {/* Percentile Stats */}
-        <Card>
-          <CardHeader 
-            title="Percentile Metrics" 
-            subtitle="Key performance indicators"
-          />
-          <CardContent className="space-y-5">
-            {percentileData.map((item, i) => (
-              <div key={i}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-[var(--color-foreground)]">
-                    Metric {String.fromCharCode(65 + i)}
-                  </span>
-                  <span className="text-sm font-bold text-[var(--color-foreground)]">
-                    {item.value}%
-                  </span>
-                </div>
-                <div className="h-2.5 bg-[var(--color-accent)] rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500 ease-out"
-                    style={{ 
-                      width: `${item.value}%`, 
-                      backgroundColor: item.color 
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-
-            {/* Circular Stats Grid */}
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[var(--color-border)]">
-              {circularStats.map((stat, i) => (
-                <div key={i} className="text-center p-3 rounded-xl bg-[var(--color-accent)]">
-                  <div className="relative w-14 h-14 mx-auto">
-                    <svg className="w-full h-full transform -rotate-90">
-                      <circle
-                        cx="28"
-                        cy="28"
-                        r="24"
-                        fill="none"
-                        stroke="var(--color-border)"
-                        strokeWidth="4"
-                      />
-                      <circle
-                        cx="28"
-                        cy="28"
-                        r="24"
-                        fill="none"
-                        stroke={stat.color}
-                        strokeWidth="4"
-                        strokeDasharray={`${stat.value * 1.51} 151`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-sm font-bold text-[var(--color-foreground)]">
-                        {stat.value}%
-                      </span>
+                <div className="flex flex-col items-start mb-4">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Issuers</p>
+                  <p className="font-bold text-gray-800 dark:text-white text-[14px] leading-tight mb-4" >L&T FINANCE LIMITED</p>
+                  <div className="flex gap-8">
+                    <div>
+                      <p className="text-[15px] font-bold text-[#7C3AED]">136</p>
+                      <p className="text-[10px] text-gray-400  uppercase">No. of Issues</p>
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#7C3AED]">₹55,269.00CR.</p>
+                      <p className="text-[10px] text-gray-400  uppercase">Issue Size</p>
                     </div>
                   </div>
-                  <p className="text-xs text-[var(--color-muted)] mt-1">{stat.label}</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              </div>
 
-      {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Wallet Card */}
-        <Card className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-0">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-white/20 rounded-xl">
-                <Wallet className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-white/80 text-sm">Total Balance</p>
-                <h3 className="text-2xl font-bold">
-                  ${walletData.total.toLocaleString()}
-                </h3>
-              </div>
             </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-white/10 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-emerald-200" />
-                  <span className="text-sm text-white/80">Income</span>
-                </div>
-                <span className="font-semibold">
-                  ${walletData.income.toLocaleString()}
-                </span>
+
+            {/* Top 10 Issuer Volume Bar Chart */}
+            <div className="p-5 mb-6 border-1 border-gray-200 dark:border-gray-700 rounded-2xl">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-gray-800 dark:text-white uppercase">Top 10 Issuer Volume (Crores)</h3>
               </div>
-              <div className="flex items-center justify-between p-3 bg-white/10 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <TrendingDown className="w-4 h-4 text-red-200" />
-                  <span className="text-sm text-white/80">Losses</span>
-                </div>
-                <span className="font-semibold">
-                  ${walletData.losses.toLocaleString()}
+              <div className="flex gap-2 justify-end mb-3">
+                {['ISSUE SIZE', 'NO. OF ISSUES'].map(v => (
+                  <button
+                    key={v}
+                    onClick={() => setBarView(v)}
+                    className={`text-[9px] font-semibold px-2.5 py-1 rounded-full border transition-all ${barView === v
+                      ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                      : 'text-gray-400 border-gray-200 dark:border-gray-600'
+                      }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={barData} barSize={10} barGap={2}>
+                  <XAxis dataKey="month" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                  <Bar dataKey="py" fill="#7C3AED" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="cy" fill="#06B6D4" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="flex justify-center gap-6 mt-2">
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#EC4899]" /> Previous Year (PY)
+                </span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#06B6D4]" /> Current Year (PY)
                 </span>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Bar Chart */}
-        <Card className="lg:col-span-2">
-          <CardHeader 
-            title="Monthly Distribution" 
-            subtitle="Revenue breakdown by category"
-          />
-          <CardContent>
-            <BarChart data={barChartData} height={200} />
-            <div className="flex items-center justify-center gap-6 mt-4">
-              {[
-                { label: 'Series A', color: '#3b82f6' },
-                { label: 'Series B', color: '#06b6d4' },
-                { label: 'Series C', color: '#8b5cf6' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-sm text-[var(--color-muted)]">{item.label}</span>
-                </div>
-              ))}
+            {/* Top 10 Issuers By Sector */}
+            <div className="p-5 mb-6 border-1 border-gray-200 dark:border-gray-700 rounded-2xl">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-white uppercase mb-3">Top 10 Issuers by Sector</h3>
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie
+                    data={sectorPieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={75}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {sectorPieData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1">
+                {sectorPieData.map((item, i) => (
+                  <span key={i} className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />
+                    {item.name}
+                  </span>
+                ))}
+              </div>
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Credit Rating Agencies */}
+            <div className="p-5 mb-6 border-1 border-gray-200 dark:border-gray-700 rounded-2xl">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-white uppercase mb-3">Credit Rating Agencies</h3>
+              <ResponsiveContainer width="100%" height={160}>
+                <PieChart>
+                  <Pie
+                    data={creditPieData}
+                    cx="50%"
+                    cy="50%"
+                    // innerRadius={45} <-- Removed this line
+                    outerRadius={70}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {creditPieData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1">
+                {creditPieData.map((item, i) => (
+                  <span key={i} className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />
+                    {item.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </SectionCard>
+
+        </div>
       </div>
     </div>
   );
