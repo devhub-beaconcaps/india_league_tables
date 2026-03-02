@@ -1,34 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
+import { fetchDashboardIssueVolumeTrendsData, fetchDashboardMonthlyVolumeData, fetchDashboardRatingAgencyData, fetchDashboardSectorsData, fetchDashboardStatsData, fetchDashboardTablesData } from '../../../features/dashboard/services';
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
-const statsCards = [
-  { label: 'Total Volume', value: '₹955,950Cr', change: '+8%', color: '#7C3AED', icon: '📊' },
-  { label: 'Total Issues', value: '5337', change: '+5%', color: '#7C3AED', icon: '📋' },
-  { label: 'Avg Issue Size', value: '₹955,950Cr', change: '+8%', color: '#EC4899', icon: '📈' },
-  { label: 'Total Volume', value: '₹955,950Cr', change: '+8%', color: '#06B6D4', icon: '💰' },
-  { label: 'Total Volume', value: '₹955,950Cr', change: '+8%', color: '#F97316', icon: '🏦' },
-  { label: 'Total Volume', value: '₹955,950Cr', change: '+8%', color: '#10B981', icon: '📦' },
-];
 
-const issuerData = [
-  { name: 'BAJAJ FINANCE LIMITED', issues: 41, size: '₹87,210.00CR.' },
-  { name: 'JIO DIGITAL FIBRE PRIVATE LIMITED', issues: 24, size: '₹67,000.00CR.' },
-  { name: 'L&T FINANCE LIMITED', issues: 136, size: '₹55,269.00CR.', active: true },
-  { name: 'SMALL INDUSTRIES DEVELOPMENT BANK OF INDIA', issues: 25, size: '₹27,526.00CR.' },
-  { name: 'STATE BANK OF INDIA', issues: 26, size: '₹27,276.00CR.' },
-  { name: 'HDFC BANK LIMITED', issues: 61, size: '₹23,819.00CR.' },
-  { name: 'PORTEAST INVESTMENT PRIVATE LIMITED', issues: 17, size: '₹22,568.00CR.' },
-  { name: 'INDIAN RAILWAY FINANCE CORPORATION LIMITED', issues: 17, size: '₹22,568.00CR.' },
-  { name: 'NATIONAL BANK FOR AGRICULTURE AND RURAL DEVELOPMENT', issues: 17, size: '₹22,568.00CR.' },
-  { name: 'HOUSING DEVELOPMENT FINANCE CORPORATION LTD', issues: 17, size: '₹22,568.00CR.' },
-];
+
 
 const volumeTrendData = [
   { year: '1988-89', issueSize: 2199680, noOfIssue: 400 },
@@ -39,31 +21,38 @@ const volumeTrendData = [
   { year: '1995-96', issueSize: 3199680, noOfIssue: 5600 },
 ];
 
-const barData = [
-  { month: 'April', py: 700, cy: 900 },
-  { month: 'May', py: 600, cy: 1000 },
-  { month: 'June', py: 500, cy: 750 },
-  { month: 'July', py: 800, cy: 1050 },
-  { month: 'August', py: 650, cy: 900 },
-  { month: 'September', py: 550, cy: 750 },
-  { month: 'October', py: 700, cy: 600 },
-];
 
-const sectorPieData = [
-  { name: 'India Rating', value: 22.5, color: '#EC4899' },
-  { name: 'CRISIL', value: 17.5, color: '#F59E0B' },
-  { name: 'ACUITE RATINGS', value: 30, color: '#06B6D4' },
-  { name: 'BRICKWORK RATINGS', value: 30, color: '#7C3AED' },
-];
 
-const creditPieData = [
-  { name: 'India Rating', value: 25, color: '#3B82F6' },
-  { name: 'CRISIL', value: 25, color: '#06B6D4' },
-  { name: 'ACUITE RATINGS', value: 25, color: '#7C3AED' },
-  { name: 'BRICKWORK RATINGS', value: 25, color: '#F59E0B' },
-];
 
-const tabs = ['ISSUERS', 'ARRANGERS', 'TRUSTEES', 'REGISTRARS', 'RATING AGENCIES'];
+const tabs = ['issuers', 'arrangers', 'trustees', 'registrars', 'rating agency'];
+
+// ─── Helper Functions ────────────────────────────────────────────────────────
+
+const getFinancialYears = () => {
+  const now = new Date();
+  const currentMonth = now.getMonth(); // 0-indexed (0 = Jan, 3 = April)
+  let currentYear = now.getFullYear();
+
+  // Financial year in India starts on April 1st.
+  // If current month is Jan (0), Feb (1), or March (2), we are in the FY that started last calendar year.
+  // Example: Feb 2025 is part of FY 2024-25.
+  if (currentMonth < 3) {
+    currentYear -= 1;
+  }
+
+  const years = [];
+  // Generate current FY and 4 previous years (total 5 items)
+  for (let i = 0; i < 5; i++) {
+    const startYear = currentYear - i;
+    const endYear = startYear + 1;
+    years.push({
+      label: `FY ${startYear}-${endYear.toString().slice(-2)}`,
+      value: `${startYear}-${endYear}`,
+      startYear: startYear
+    });
+  }
+  return years;
+};
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -73,18 +62,15 @@ function StatCard({ label, value, change, color, icon }) {
       className="bg-white dark:bg-[#1a1a2e] border-l-4 rounded-2xl px-4 py-2 flex items-start gap-3 flex-1 min-w-0 drop-shadow-md w-full sm:w-auto"
       style={{ borderLeftColor: color }}
     >
-      {/* Added border-solid to ensure it renders correctly on all elements */}
-
       <div className="min-w-0 w-full">
         <div
           className="w-6 h-6 mb-2 rounded-full flex items-center justify-center text-white text-sm shrink-0"
           style={{ background: color }}
         >
-          {/* Using the icon prop instead of hardcoded SVG */}
           <span>{icon}</span>
         </div>
         <p className="text-[9px] mb-1 text-gray-400 dark:text-gray-500 font-medium truncate">{label}</p>
-        <p className="text-[14px] font-bold text-gray-800 dark:text-white leading-tight mt-0.5">{value}</p>
+        <p title={value} className="text-[14px] font-bold text-gray-800 dark:text-white leading-tight mt-0.5">{label === 'Top Sector' ? truncateText(value, 7) : value}</p>
         <p className="text-[9px] text-green-500 font-medium mt-0.5">{change}</p>
       </div>
     </div>
@@ -99,11 +85,322 @@ function SectionCard({ children, className = '' }) {
   );
 }
 
+const handleFinancialYearSelection = (financialYear) => {
+  console.log("handleFinancialYearSelection called with FY:", financialYear);
+
+  // Extract the first year from the financial year string
+  const firstYear = parseInt(financialYear.split('-')[0]);
+
+  // Create start date: April 1st of the first year
+  const startDate = new Date(firstYear, 3, 1); // Month is 0-indexed, so 3 = April
+  startDate.setHours(0, 0, 0, 0);
+
+  // Create end date: March 31st of the next year
+  const endDate = new Date(firstYear + 1, 2, 31); // Month is 0-indexed, so 2 = March
+  endDate.setHours(0, 0, 0, 0);
+
+  // Check if end date is in the future
+  const now = new Date();
+  if (endDate > now) {
+    // Use current date and time instead
+    endDate.setTime(now.getTime());
+  }
+
+  // Format dates as strings
+  const formatDateTime = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
+  const startDateStr = formatDateTime(startDate);
+  const endDateStr = formatDateTime(endDate);
+
+  console.log(`startDate: ${startDateStr}, endDate: ${endDateStr}`);
+  // setSelectedYearsDateRange({ startDate: startDateStr, endDate: endDateStr });
+
+  return { startDate: startDateStr, endDate: endDateStr };
+};
+
+function truncateText(text, maxLength) {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + '...';
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('ISSUERS');
+  const fyOptions = useMemo(() => getFinancialYears(), []);
+  // console.log("fyOptions:", fyOptions);
+  const dateRange = useMemo(() => handleFinancialYearSelection(fyOptions[0]?.value || ''), [fyOptions]);
+
+
+  // Set the default selected year to the first option (Current Financial Year)
+  const [selectedFY, setSelectedFY] = useState(fyOptions[0]?.value || '');
+
+  const [activeTab, setActiveTab] = useState('issuers');
   const [barView, setBarView] = useState('ISSUE SIZE');
+  const [tableData, setTableData] = useState([]);
+  const [statsData, setStatsData] = useState(null);
+  const [SpecificSectorsData, setSpecificSectorsData] = useState(null);
+  const [SpecificAgencyData, setSpecificAgencyData] = useState(null);
+  const [monthlyVolumeData, setMonthlyVolumeData] = useState([]);
+  const [issueTrendsData, setIssueTrendsData] = useState([]);
+
+
+  const [selectedYearsDateRange, setSelectedYearsDateRange] = useState(dateRange || { startDate: '', endDate: '' });
+
+  const sanitizedAgencyData = useMemo(() => {
+    if (!SpecificAgencyData) return [];
+    return SpecificAgencyData.map(item => ({
+      ...item,
+      rating_no: parseFloat(item.rating_no) || 0, // Convert string to number
+      percentage: parseFloat(item.percentage) || 0
+    }));
+  }, [SpecificAgencyData]);
+
+  const sanitizedSectorsData = useMemo(() => {
+    if (!SpecificSectorsData) return [];
+    return SpecificSectorsData.map(item => ({
+      ...item,
+      issue_size: parseFloat(item.issue_size) || 0,
+      no_of_issue: parseFloat(item.no_of_issue) || 0,
+    }));
+  }, [SpecificSectorsData]);
+
+  const sanitizedIssuersVolumeData = useMemo(() => {
+    if (!monthlyVolumeData) return [];
+    return monthlyVolumeData?.map(item => ({
+      ...item,
+      current_year_issue_count: parseFloat(item?.current_year_issue_count) || 0,
+      current_year_issue_size: parseFloat(item?.current_year_issue_size) || 0,
+      previous_year_issue_count: parseFloat(item?.previous_year_issue_count) || 0,
+      previous_year_issue_size: parseFloat(item?.previous_year_issue_size) || 0,
+    }));
+  }, [monthlyVolumeData]);
+  const sanitizedIssuersTrendsData = useMemo(() => {
+    if (!issueTrendsData) return [];
+    return issueTrendsData?.map(item => ({
+      ...item,
+      total_issue_size_cr: parseFloat(item?.total_issue_size_cr) || 0,
+      total_no_of_issues: parseFloat(item?.total_no_of_issues) || 0,
+    }));
+  }, [issueTrendsData]);
+
+  const fetchTableData = async (tab) => {
+    if (!selectedFY) return;
+    try {
+      let endpoint = '';
+
+      switch (tab) {
+        case 'issuers':
+          endpoint = 'dashboard_issuer_table_data';
+          break;
+        case 'arrangers':
+          endpoint = 'dashboard_arranger_table_data';
+          break;
+        case 'trustees':
+          endpoint = 'dashboard_trustee_table_data';
+          break;
+        case 'registrars':
+          endpoint = 'dashboard_registrar_table_data';
+          break;
+        case 'rating agency':
+          endpoint = 'dashboard_agency_table_data';
+          break;
+        default:
+          endpoint = 'dashboard_issuer_table_data';
+      }
+
+      const query = {
+        startDate: selectedYearsDateRange.startDate,
+        endDate: selectedYearsDateRange.endDate
+      };
+
+      const data = await fetchDashboardTablesData(query, endpoint);
+      console.log(`Fetched ${tab} data:`, data);
+      setTableData(data || []);
+    } catch (error) {
+      console.error(`Error fetching ${tab} data:`, error.message);
+    }
+  };
+
+  const getDashboardStatsData = async () => {
+    if (!selectedYearsDateRange) return;
+
+    try {
+      const query = {
+        startDate: selectedYearsDateRange.startDate,
+        endDate: selectedYearsDateRange.endDate
+      };
+
+      const data = await fetchDashboardStatsData(query);
+      if (Array.isArray(data) && data.length > 0) {
+        const statsCards = [
+          { label: 'Largest Issue Size', value: data[0]?.largest_issue_size || 0, change: '+8%', color: '#7C3AED', icon: '📊' },
+          { label: 'Total Issues', value: data[0]?.total_issues || 0, change: '+5%', color: '#7C3AED', icon: '📋' },
+          { label: 'Avg Issue Size', value: data[0]?.avg_issue_size_in_cr || 0, change: '+8%', color: '#EC4899', icon: '📈' },
+          { label: 'Total Volume', value: data[0]?.total_volume_in_cr || 0, change: '+8%', color: '#06B6D4', icon: '💰' },
+          { label: 'Total Issue Size', value: data[0]?.total_issue_size_in_cr || 0, change: '+8%', color: '#F97316', icon: '🏦' },
+          { label: 'Top Sector', value: data[0]?.top_sector_by_volume || 'N/A', change: '+8%', color: '#10B981', icon: '📦' },
+        ];
+        setStatsData(statsCards);
+        console.log("Fetched stats data:", data[0]);
+        return data[0];
+      } else {
+        setStatsData(null);
+        console.log("Stats data is empty or not an array.");
+        return null;
+      }
+    } catch (error) {
+      console.error(`Error fetching stats data:`, error.message);
+    }
+  };
+
+  const getDashboardSectorsData = async (tab) => {
+    if (!selectedYearsDateRange) return;
+
+    try {
+      const query = {
+        startDate: selectedYearsDateRange.startDate,
+        endDate: selectedYearsDateRange.endDate
+      };
+
+      const res = await fetchDashboardSectorsData(query);
+      console.log("DASHBOARD SECTORS DATA.....", res);
+
+      let currentSectorsData = [];
+
+      switch (tab) {
+        case 'issuers':
+          currentSectorsData = res?.issuers || [];
+          break;
+        case 'arrangers':
+          currentSectorsData = res?.arrangers || [];
+          break;
+        case 'trustees':
+          currentSectorsData = res?.trustees || [];
+          break;
+        case 'registrars':
+          currentSectorsData = res?.registrars || [];
+          break;
+        case 'rating agency':
+          currentSectorsData = res?.ratingAgencies || [];
+          break;
+        default:
+          currentSectorsData = res?.issuers || [];
+      }
+      setSpecificSectorsData(currentSectorsData);
+      console.log("Current Sectors Data:", currentSectorsData);
+
+      return currentSectorsData;
+    } catch (error) {
+      console.log(`error of :${error.message} `)
+    }
+  }
+
+  const getDashboardAgencyData = async (tab) => {
+    console.log("Fetching agency data with date range:", selectedYearsDateRange);
+    if (!selectedYearsDateRange) return;
+
+    try {
+      const query = {
+        startDate: selectedYearsDateRange.startDate,
+        endDate: selectedYearsDateRange.endDate
+      };
+
+      const res = await fetchDashboardRatingAgencyData(query);
+      console.log("DASHBOARD AGENCY DATA.....", res);
+
+      let currentAgencyData = [];
+
+      switch (tab) {
+        case 'issuers':
+          currentAgencyData = res?.issuers || [];
+          break;
+        case 'arrangers':
+          currentAgencyData = res?.arrangers || [];
+          break;
+        case 'trustees':
+          currentAgencyData = res?.trustees || [];
+          break;
+        case 'registrars':
+          currentAgencyData = res?.registrars || [];
+          break;
+        case 'rating agency':
+          currentAgencyData = res?.ratingAgencies || [];
+          break;
+        default:
+          currentAgencyData = res?.issuers || [];
+      }
+      setSpecificAgencyData(currentAgencyData);
+      console.log("Current agency Data:", currentAgencyData);
+
+      return currentAgencyData;
+    } catch (error) {
+      console.log(`error of :${error.message} `)
+    }
+  }
+
+  const getDashboardMonthlyVolumeData = async (tab) => {
+    console.log("Fetching monthly volume data with date range:", selectedYearsDateRange);
+    if (!selectedYearsDateRange) return;
+
+    try {
+      const query = {
+        startDate: selectedYearsDateRange.startDate,
+        endDate: selectedYearsDateRange.endDate
+      };
+
+      const res = await fetchDashboardMonthlyVolumeData(query);
+      console.log("DASHBOARD MONTHLY VOLUME DATA.....", res);
+
+      setMonthlyVolumeData(res);
+      console.log("Current monthly volume Data:", res);
+
+      return res;
+    } catch (error) {
+      console.log(`error of :${error.message} `)
+    }
+  }
+  const getDashboardIssueTrendsData = async () => {
+    if (!selectedYearsDateRange) return;
+    try {
+
+      const res = await fetchDashboardIssueVolumeTrendsData();
+      console.log("DASHBOARD ISSUE TRENDS DATA.....", res);
+
+      setIssueTrendsData(res);
+      console.log("Current issue trends Data:", res);
+
+      return res;
+    } catch (error) {
+      console.log(`error of :${error.message} `)
+    }
+  }
+
+  useEffect(() => {
+    if (selectedFY) {
+      getDashboardIssueTrendsData();
+      fetchTableData(activeTab);
+      getDashboardStatsData(activeTab);
+      getDashboardSectorsData(activeTab);
+      getDashboardAgencyData(activeTab);
+      getDashboardMonthlyVolumeData(activeTab);
+    }
+  }, [activeTab, selectedFY]);
+
+
+  const handleSelectDate = (e) => {
+    setSelectedFY(e.target.value);
+    const dateRange = handleFinancialYearSelection(e.target.value);
+    setSelectedYearsDateRange(dateRange);
+  }
 
   return (
     <div className="space-y-5 px-4 sm:px-0">
@@ -113,7 +410,7 @@ export default function Dashboard() {
 
       {/* ── Stats Row ── */}
       <div className="flex flex-col sm:flex-row gap-3 overflow-x-auto pb-2 sm:pb-0">
-        {statsCards.map((card, i) => (
+        {statsData?.map((card, i) => (
           <StatCard key={i} {...card} />
         ))}
       </div>
@@ -126,23 +423,33 @@ export default function Dashboard() {
 
           {/* Financial Year Table */}
           <SectionCard className="p-5">
+            {/* Dynamic Title based on selected dropdown */}
             <h2 className="text-md font-semibold text-gray-800 dark:text-white mb-4">
-              Financial Year: 2015-2016
+              Financial Year: {selectedFY}
             </h2>
 
             {/* Filters */}
             <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
               <div className="w-full sm:w-auto">
                 <label className="text-[9px] text-gray-400 block mb-1">Value Convention</label>
-                <select className="text-[9px] border border-gray-200 dark:border-gray-600 rounded-[12px] px-1 w-full sm:w-[7rem] py-1.5 bg-white dark:bg-[var(--color-surface)] text-gray-700 dark:text-gray-200">
+                <select className="text-[9px] border border-gray-200 dark:border-gray-600 rounded-[12px] px-1 w-full sm:w-[7rem] py-1.5 bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200">
                   <option>Crores</option>
+                  <option>Lakhs</option>
                 </select>
               </div>
               <div className='flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4'>
                 <div className="w-full sm:w-auto">
                   <label className="text-[9px] text-gray-400 block mb-1">Financial Year</label>
-                  <select className="text-[9px] border border-gray-200 dark:border-gray-600 rounded-[12px] w-full sm:w-[7rem] px-3 py-1.5 bg-white dark:bg-[var(--color-surface)] text-gray-700 dark:text-gray-200">
-                    <option>FY2024-25</option>
+                  <select
+                    value={selectedFY}
+                    onChange={handleSelectDate}
+                    className="text-[9px] border border-gray-200 dark:border-gray-600 rounded-[12px] w-full sm:w-[7rem] px-3 py-1.5 bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200"
+                  >
+                    {fyOptions.map((fy) => (
+                      <option className='bg-white dark:bg-[var(--color-surface)]' key={fy.value} value={fy.value}>
+                        {fy.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <button className="mt-0 sm:mt-4 flex items-center justify-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-[9px] font-medium px-4 py-1.5 rounded-[12px] transition-colors w-full sm:w-auto">
@@ -182,7 +489,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {issuerData.map((row, i) => (
+                  {tableData?.map((row, i) => (
                     <tr
                       key={i}
                       className={`border-b border-gray-50 text-[9px] dark:border-gray-700/50 last:border-0 ${row.active
@@ -191,13 +498,13 @@ export default function Dashboard() {
                         }`}
                     >
                       <td className={`py-2.5 px-2 font-medium rounded-l-lg ${row.active ? 'text-white' : 'text-[#7C3AED]'}`}>
-                        {row.name}
+                        {row?.name}
                       </td>
                       <td className={`py-2.5 text-right  ${row.active ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
-                        {row.issues}
+                        {row?.noIssuer}
                       </td>
                       <td className={`py-2.5 text-right pr-2 rounded-r-lg ${row.active ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
-                        {row.size}
+                        {row?.issueSize}
                       </td>
                     </tr>
                   ))}
@@ -214,7 +521,7 @@ export default function Dashboard() {
               <span>No of Issue</span>
             </div>
             <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={volumeTrendData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+              <AreaChart data={sanitizedIssuersTrendsData} margin={{ top: 5, right: 10, left: 10, bottom: 20 }}>
                 <defs>
                   <linearGradient id="gradSize" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.4} />
@@ -225,12 +532,12 @@ export default function Dashboard() {
                     <stop offset="95%" stopColor="#EC4899" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="year" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="years" angle={-30} tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
                 <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                <Area yAxisId="left" type="monotone" dataKey="issueSize" stroke="#06B6D4" fill="url(#gradSize)" strokeWidth={2} />
-                <Area yAxisId="right" type="monotone" dataKey="noOfIssue" stroke="#EC4899" fill="url(#gradIssue)" strokeWidth={2} />
+                <Area yAxisId="left" type="monotone" dataKey="total_issue_size_cr" stroke="#06B6D4" fill="url(#gradSize)" strokeWidth={2} />
+                <Area yAxisId="right" type="monotone" dataKey="total_no_of_issues" stroke="#EC4899" fill="url(#gradIssue)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
             <div className="flex justify-center gap-6 mt-3">
@@ -292,16 +599,59 @@ export default function Dashboard() {
               </div>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart
-                  data={barData}
+                  data={sanitizedIssuersVolumeData}
                   barSize={10}
                   barGap={2}
-                  margin={{ top: 5, right: 5, left: -20, bottom: 5 }} // Adjusted left margin to negative
+                  margin={{ top: 5, right: 5, left: -10, bottom: 5 }}
                 >
-                  <XAxis dataKey="month" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                  <Bar dataKey="py" fill="#7C3AED" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="cy" fill="#06B6D4" radius={[3, 3, 0, 0]} />
+                  <XAxis
+                    dataKey="month_name"
+                    angle={-30}
+                    textAnchor="end"
+                    interval={0}
+                    height={30}
+                    tick={{ fontSize: 8 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+
+                  <YAxis
+                    tick={{ fontSize: 9 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) =>
+                      barView === 'ISSUE SIZE' ? `₹${value}` : value
+                    }
+                  />
+
+                  <Tooltip
+                    contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                    formatter={(value) =>
+                      barView === 'ISSUE SIZE' ? `₹${value}` : value
+                    }
+                  />
+
+                  {/* Previous Year */}
+                  <Bar
+                    dataKey={
+                      barView === 'ISSUE SIZE'
+                        ? 'previous_year_issue_size'
+                        : 'previous_year_issue_count'
+                    }
+                    fill="#7C3AED"
+                    radius={[3, 3, 0, 0]}
+                  />
+
+                  {/* Current Year */}
+                  <Bar
+                    dataKey={
+                      barView === 'ISSUE SIZE'
+                        ? 'current_year_issue_size'
+                        : 'current_year_issue_count'
+                    }
+                    fill="#06B6D4"
+                    radius={[3, 3, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
               <div className="flex justify-center gap-6 mt-2">
@@ -309,7 +659,7 @@ export default function Dashboard() {
                   <span className="w-2.5 h-2.5 rounded-full bg-[#EC4899]" /> Previous Year (PY)
                 </span>
                 <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#06B6D4]" /> Current Year (PY)
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#06B6D4]" /> Current Year (CY)
                 </span>
               </div>
             </div>
@@ -320,26 +670,37 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
                   <Pie
-                    data={sectorPieData}
+                    data={sanitizedSectorsData}
                     cx="50%"
                     cy="50%"
                     innerRadius={50}
                     outerRadius={75}
                     paddingAngle={2}
-                    dataKey="value"
+                    dataKey={
+                      barView === 'ISSUE SIZE'
+                        ? 'issue_size'
+                        : 'no_of_issue'
+                    }
+                    nameKey="business_name"
                   >
-                    {sectorPieData.map((entry, i) => (
+                    {sanitizedSectorsData?.map((entry, i) => (
                       <Cell key={i} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+
+                  <Tooltip
+                    contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                    formatter={(value) =>
+                      barView === 'ISSUE SIZE' ? `₹${value}` : value
+                    }
+                  />
                 </PieChart>
               </ResponsiveContainer>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1">
-                {sectorPieData.map((item, i) => (
+                {sanitizedSectorsData?.map((item, i) => (
                   <span key={i} className="flex items-center gap-1.5 text-[10px] text-gray-500">
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />
-                    {item.name}
+                    {item?.business_name}
                   </span>
                 ))}
               </div>
@@ -351,15 +712,14 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height={160}>
                 <PieChart>
                   <Pie
-                    data={creditPieData}
+                    data={sanitizedAgencyData} // Use sanitized data
                     cx="50%"
                     cy="50%"
-                    // innerRadius={45} <-- Removed this line
                     outerRadius={70}
                     paddingAngle={2}
-                    dataKey="value"
+                    dataKey="rating_no" // This matches your API key
                   >
-                    {creditPieData.map((entry, i) => (
+                    {sanitizedAgencyData?.map((entry, i) => (
                       <Cell key={i} fill={entry.color} />
                     ))}
                   </Pie>
@@ -367,10 +727,10 @@ export default function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1">
-                {creditPieData.map((item, i) => (
+                {sanitizedAgencyData?.map((item, i) => (
                   <span key={i} className="flex items-center gap-1.5 text-[10px] text-gray-500">
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />
-                    {item.name}
+                    {item?.label}
                   </span>
                 ))}
               </div>
