@@ -151,6 +151,7 @@ export default function Dashboard() {
   const [SpecificAgencyData, setSpecificAgencyData] = useState(null);
   const [monthlyVolumeData, setMonthlyVolumeData] = useState([]);
   const [issueTrendsData, setIssueTrendsData] = useState([]);
+  const [valueConvention, setValueConvention] = useState('Crores'); // default
 
 
   const [selectedYearsDateRange, setSelectedYearsDateRange] = useState(dateRange || { startDate: '', endDate: '' });
@@ -242,11 +243,11 @@ export default function Dashboard() {
       const data = await fetchDashboardStatsData(query);
       if (Array.isArray(data) && data.length > 0) {
         const statsCards = [
-          { label: 'Largest Issue Size', value: data[0]?.largest_issue_size || 0, change: '+8%', color: '#7C3AED', icon: '📊' },
-          { label: 'Total Issues', value: data[0]?.total_issues || 0, change: '+5%', color: '#7C3AED', icon: '📋' },
-          { label: 'Avg Issue Size', value: data[0]?.avg_issue_size_in_cr || 0, change: '+8%', color: '#EC4899', icon: '📈' },
-          { label: 'Total Volume', value: data[0]?.total_volume_in_cr || 0, change: '+8%', color: '#06B6D4', icon: '💰' },
-          { label: 'Total Issue Size', value: data[0]?.total_issue_size_in_cr || 0, change: '+8%', color: '#F97316', icon: '🏦' },
+          { label: 'Largest Issue Size', value: Number(data[0]?.largest_issue_size || 0).toLocaleString('en-IN'), change: '+8%', color: '#7C3AED', icon: '📊' },
+          { label: 'Total Issues', value: Number(data[0]?.total_issues || 0).toLocaleString('en-IN'), change: '+5%', color: '#7C3AED', icon: '📋' },
+          { label: 'Avg Issue Size', value: Number(data[0]?.avg_issue_size_in_cr || 0).toLocaleString('en-IN'), change: '+8%', color: '#EC4899', icon: '📈' },
+          { label: 'Total Volume', value: Number(data[0]?.total_volume_in_cr || 0).toLocaleString('en-IN'), change: '+8%', color: '#06B6D4', icon: '💰' },
+          { label: 'Total Issue Size', value: Number(data[0]?.total_issue_size_in_cr || 0).toLocaleString('en-IN'), change: '+8%', color: '#F97316', icon: '🏦' },
           { label: 'Top Sector', value: data[0]?.top_sector_by_volume || 'N/A', change: '+8%', color: '#10B981', icon: '📦' },
         ];
         setStatsData(statsCards);
@@ -432,9 +433,13 @@ export default function Dashboard() {
             <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
               <div className="w-full sm:w-auto">
                 <label className="text-[9px] text-gray-400 block mb-1">Value Convention</label>
-                <select className="text-[9px] border border-gray-200 dark:border-gray-600 rounded-[12px] px-1 w-full sm:w-[7rem] py-1.5 bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200">
-                  <option>Crores</option>
-                  <option>Lakhs</option>
+                <select
+                  value={valueConvention}
+                  onChange={(e) => setValueConvention(e.target.value)}
+                  className="text-[9px] border border-gray-200 dark:border-gray-600 rounded-[12px] px-1 w-full sm:w-[7rem] py-1.5 bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200"
+                >
+                  <option value="Crores">Crores</option>
+                  <option value="Lakhs">Lakhs</option>
                 </select>
               </div>
               <div className='flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4'>
@@ -452,9 +457,19 @@ export default function Dashboard() {
                     ))}
                   </select>
                 </div>
-                <button className="mt-0 sm:mt-4 flex items-center justify-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-[9px] font-medium px-4 py-1.5 rounded-[12px] transition-colors w-full sm:w-auto">
+                <button
+                  onClick={() => {
+                    const defaultFY = fyOptions[0]?.value || '';
+                    setSelectedFY(defaultFY);
+                    setSelectedYearsDateRange(handleFinancialYearSelection(defaultFY));
+                    setValueConvention('Crores'); // reset to default
+                    setActiveTab('issuers'); // reset to default tab
+                  }}
+                  className="mt-0 sm:mt-4 flex items-center justify-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-[9px] font-medium px-4 py-1.5 rounded-[12px] transition-colors w-full sm:w-auto"
+                >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3.5" />
+                    <polyline points="1 4 1 10 7 10" />
+                    <path d="M3.51 15a9 9 0 1 0 .49-3.5" />
                   </svg>
                   Reset
                 </button>
@@ -504,7 +519,9 @@ export default function Dashboard() {
                         {row?.noIssuer}
                       </td>
                       <td className={`py-2.5 text-right pr-2 rounded-r-lg ${row.active ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
-                        {row?.issueSize}
+                        {valueConvention === 'Lakhs'
+                          ? (parseFloat(row?.issueSize || 0) * 100).toLocaleString()
+                          : parseFloat(row?.issueSize || 0).toLocaleString()}
                       </td>
                     </tr>
                   ))}
@@ -554,29 +571,6 @@ export default function Dashboard() {
         {/* RIGHT COLUMN */}
         <div className="space-y-5 order-1 lg:order-2">
           <SectionCard className='p-5'>
-            {/* L&T Finance Card */}
-            <div className="py-2 px-1 mb-2">
-              <div className='flex flex-col sm:flex-row gap-4'>
-                <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
-                  L&T
-                </div>
-                <div className="flex flex-col items-start mb-4">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Issuers</p>
-                  <p className="font-bold text-gray-800 dark:text-white text-[14px] leading-tight mb-4" >L&T FINANCE LIMITED</p>
-                  <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
-                    <div>
-                      <p className="text-[15px] font-bold text-[#7C3AED]">136</p>
-                      <p className="text-[10px] text-gray-400  uppercase">No. of Issues</p>
-                    </div>
-                    <div>
-                      <p className="text-[15px] font-bold text-[#7C3AED]">₹55,269.00CR.</p>
-                      <p className="text-[10px] text-gray-400  uppercase">Issue Size</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
 
             {/* Top 10 Issuer Volume Bar Chart */}
             <div className="p-5 mb-6 border border-gray-200 dark:border-gray-700 rounded-2xl">
