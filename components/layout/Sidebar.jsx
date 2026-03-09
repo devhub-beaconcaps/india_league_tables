@@ -33,7 +33,7 @@ const navigation = [
       { name: 'Heatmap', href: '/heatmap' }
     ]
   },
-  { name: 'Issuer', href: '/issuers', icon: Building2 },
+  { name: 'Issuer', href: '/issuers', icon: Building2,children:[{ name: 'Details', href: '/issuers/details' }] },
   { name: 'Arrangers', href: '/arrangers', icon: Handshake },
   { name: 'Trustee', href: '/trustees', icon: Shield },
   { name: 'Registrar', href: '/registrars', icon: ClipboardList },

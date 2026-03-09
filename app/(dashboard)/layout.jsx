@@ -13,14 +13,13 @@ export default function DashboardLayout({ children }) {
   const { theme } = useThemeStore();
 
   useEffect(() => {
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
     } else {
-      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.remove('dark');
     }
   }, [theme]);
 
-  // Close sidebar when clicking outside on mobile
   const handleOverlayClick = () => {
     setIsSidebarOpen(false);
   };
@@ -28,48 +27,45 @@ export default function DashboardLayout({ children }) {
   return (
     <div className="h-screen bg-[#F0F7FF] dark:bg-[var(--color-background)] overflow-hidden">
       
-      {/* ✅ Fixed Header (Responsive) */}
+      {/* Fixed Header */}
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-[#1a1a2e] shadow-sm"
         style={{ height: HEADER_HEIGHT }}
       >
-        <Header onMenuClick={() => setIsSidebarOpen(true)} />
+        <Header onMenuClick={() => setIsSidebarOpen(prev => !prev)} />
       </div>
 
-      {/* ✅ Content Below Header */}
+      {/* Layout Below Header */}
       <div
         className="flex relative"
         style={{
           paddingTop: HEADER_HEIGHT,
-          height: `calc(100vh)`
+          height: `calc(100vh - ${HEADER_HEIGHT}px)`
         }}
       >
         
-        {/* ✅ Mobile Overlay (Visible only when sidebar is open on mobile) */}
+        {/* Mobile Overlay */}
         {isSidebarOpen && (
           <div 
-            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            className="fixed left-0 right-0 bottom-0 bg-black/50 z-30 md:hidden"
+            style={{ top: HEADER_HEIGHT }}
             onClick={handleOverlayClick}
           />
         )}
 
-        {/* ✅ Sidebar (Responsive) */}
+        {/* Sidebar */}
         <div 
           className={`
-            h-full 
-            /* Mobile: Fixed position overlay, hidden by default */
-            fixed 
-            inset-y-0 
-            left-0 
-            z-40 
+            fixed
+            left-0
+            z-40
             transform transition-transform duration-300 ease-in-out
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-            
-            /* Desktop: Static position, always visible */
-            md:relative 
-            md:translate-x-0 
-            md:flex
+            md:relative md:translate-x-0 md:flex
           `}
+          style={{
+            height: `calc(100vh - ${HEADER_HEIGHT}px)`
+          }}
         >
           <Sidebar
             isOpen={isSidebarOpen}
@@ -79,7 +75,7 @@ export default function DashboardLayout({ children }) {
           />
         </div>
 
-        {/* ✅ Main Content (Responsive) */}
+        {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </main>

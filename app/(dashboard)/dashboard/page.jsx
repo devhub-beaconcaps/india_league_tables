@@ -7,22 +7,6 @@ import {
 } from 'recharts';
 import { fetchDashboardIssueVolumeTrendsData, fetchDashboardMonthlyVolumeData, fetchDashboardRatingAgencyData, fetchDashboardSectorsData, fetchDashboardStatsData, fetchDashboardTablesData } from '../../../features/dashboard/services';
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-
-
-
-const volumeTrendData = [
-  { year: '1988-89', issueSize: 2199680, noOfIssue: 400 },
-  { year: '1989-90', issueSize: 2399680, noOfIssue: 800 },
-  { year: '1990-91', issueSize: 2799680, noOfIssue: 1200 },
-  { year: '1991-92', issueSize: 2599680, noOfIssue: 1600 },
-  { year: '1993-94', issueSize: 2999680, noOfIssue: 2400 },
-  { year: '1995-96', issueSize: 3199680, noOfIssue: 5600 },
-];
-
-
-
 
 const tabs = ['issuers', 'arrangers', 'trustees', 'registrars', 'rating agency'];
 
