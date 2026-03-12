@@ -78,3 +78,18 @@ export const fetchCreditRatingsData = async (query: unknown) => {
         console.error("Error fetching outstanding data:", err.message);
     }
 }
+
+
+export const fetchSpecificMonthDebtRedemptionData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/debt_redemption_specific_month_data`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching debt_redemption_specific_month_data:", err.message);
+    }
+};

@@ -6,7 +6,7 @@ export default function DetailedTable({ columns = [], data = [] }) {
     const [hoveredRow, setHoveredRow] = useState(null);
     return (
         <div className="overflow-x-auto rounded-xl bg-white dark:bg-gray-900">
-            <table className="w-full table-auto border-separate border-spacing-[4px] text-[10px]">
+            <table className="w-full table-auto border-separate border-spacing-[4px] text-[11px]">
 
                 {/* Table Header */}
                 <thead className="bg-gray-100">
@@ -14,7 +14,7 @@ export default function DetailedTable({ columns = [], data = [] }) {
                         {columns.map((col, index) => (
                             <th
                                 key={index}
-                                className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-br from-purple-700 to-purple-500"
+                                className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-[9px] text-center text-white font-semibold whitespace-nowrap bg-gradient-to-br from-purple-700 to-purple-500"
                             >
                                 {col.header}
                             </th>
@@ -37,7 +37,7 @@ export default function DetailedTable({ columns = [], data = [] }) {
                                 }`}
                         >
                             {columns.map((col, colIndex) => (
-                                <td key={colIndex} className="border border-gray-200 dark:border-gray-700 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                                <td key={colIndex} className="border border-gray-200 dark:border-gray-700 rounded-md text-center px-1 py-[9px] whitespace-nowrap text-gray-800 dark:text-gray-200">
                                     {row[col.accessor]}
                                 </td>
                             ))}

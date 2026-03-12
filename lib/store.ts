@@ -9,6 +9,18 @@ interface ThemeState {
   setTheme: (theme: Theme) => void;
 }
 
+
+interface YearsRange {
+  startDate: number | null;
+  endDate: number | null;
+}
+
+interface RedemptionMonthDateRangeState {
+  redemptionMonthDateRange: YearsRange;
+  setRedemptionMonthDateRange: (range: YearsRange) => void;
+}
+
+
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
@@ -31,6 +43,26 @@ export const useThemeStore = create<ThemeState>()(
           document.documentElement.classList.remove("dark");
         }
       },
+    }
+  )
+);
+
+
+export const useRedemptionMonthStore = create<RedemptionMonthDateRangeState>()(
+  persist(
+    (set) => ({
+      redemptionMonthDateRange: {
+        startDate: null,
+        endDate: null,
+      },
+
+      setRedemptionMonthDateRange: (range) =>
+        set({
+          redemptionMonthDateRange: range,
+        }),
+    }),
+    {
+      name: "redemption-month-range-storage", // localStorage key
     }
   )
 );

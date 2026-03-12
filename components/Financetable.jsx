@@ -43,18 +43,25 @@ function getFinancialYearRanges(rangeStr) {
   };
 }
 
-export default function FinanceTable({ data, selectedFY, valueConvention }) {
+export default function FinanceTable({ totalsData, data, selectedFY, valueConvention }) {
   const [hoveredRow, setHoveredRow] = useState(null);
 
   console.log('selectedFY: ', selectedFY);
   const result = getFinancialYearRanges(selectedFY);
+
+  const totalCurrentIssueSize = data.reduce((acc, row) => acc + parseFloat(row?.issueSize || 0), 0);
+  const totalPreviousIssueSize = data.reduce((acc, row) => acc + parseFloat(row?.prevSize || 0), 0);
+  const totalCurrentMktShare = data.reduce((acc, row) => acc + parseFloat(row?.mktShare || 0), 0);
+  const totalPreviousMktShare = data.reduce((acc, row) => acc + parseFloat(row?.prevMkt || 0), 0);
+  const changeInMktShare = (totalPreviousMktShare - totalCurrentMktShare)/totalPreviousMktShare * 100;
+  
 
   return (
     <div>
       <div className="w-full mx-auto">
         <div className="rounded-xl bg-white dark:bg-gray-900 overflow-hidden">
 
-          <table className="w-full table-auto border-separate border-spacing-[4px] text-[10px]">
+          <table className="w-full table-auto border-separate border-spacing-[4px] text-[12px]">
 
             <thead>
               <tr>
@@ -64,7 +71,7 @@ export default function FinanceTable({ data, selectedFY, valueConvention }) {
                   colSpan={4}
                   className="border border-gray-200 dark:border-gray-700 rounded-md py-2 text-center bg-gradient-to-br from-purple-900 to-purple-700"
                 >
-                  <span className="text-white font-semibold text-xs">
+                  <span className="text-white font-semibold text-[12px]">
                     FY {result?.currentYearRange} <InfoIcon />
                   </span>
                 </th>
@@ -73,7 +80,7 @@ export default function FinanceTable({ data, selectedFY, valueConvention }) {
                   colSpan={4}
                   className="border border-gray-200 dark:border-gray-700 rounded-md py-2 text-center bg-gradient-to-br from-purple-900 to-purple-700"
                 >
-                  <span className="text-white font-semibold text-xs">
+                  <span className="text-white font-semibold text-[12px]">
                     FY {result?.previousYearRange} <InfoIcon />
                   </span>
                 </th>
@@ -82,7 +89,7 @@ export default function FinanceTable({ data, selectedFY, valueConvention }) {
               </tr>
 
               <tr>
-                <th className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-2 text-left font-semibold w-[30%]">
+                <th className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-br from-purple-700 to-purple-500 w-[30%]">
                   Issuer Name
                 </th>
 
@@ -104,7 +111,7 @@ export default function FinanceTable({ data, selectedFY, valueConvention }) {
                   </th>
                 ))}
 
-                <th className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-center font-semibold whitespace-nowrap">
+                <th className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-br from-purple-700 to-purple-500">
                   YoY Change (%)
                 </th>
               </tr>
@@ -148,6 +155,70 @@ export default function FinanceTable({ data, selectedFY, valueConvention }) {
                   </td>
                 </tr>
               ))}
+              <tr>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
+                  Top 10 Total
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  #
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  {totalCurrentIssueSize.toFixed(2).toLocaleString()}
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  {data.reduce((acc, row) => acc + parseFloat(row?.deals || 0), 0)}
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  {totalCurrentMktShare.toFixed(2).toLocaleString()}
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  #
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  {totalPreviousIssueSize.toFixed(2).toLocaleString()}
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  {data.reduce((acc, row) => acc + parseFloat(row?.prevDeals || 0), 0)}
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  {totalPreviousMktShare.toFixed(2).toLocaleString()}
+                </td>
+                <td className={`border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap font-medium ${changeInMktShare > 0 ? 'text-green-600' : changeInMktShare < 0 ? 'text-red-600' : 'text-gray-800 dark:text-gray-200'}`}>
+                  {changeInMktShare.toFixed(2).toLocaleString()}
+                </td>
+              </tr>
+              <tr>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
+                 Industry Total
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  #
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  {(totalsData?.currentSize || 0).toFixed(2).toLocaleString()}
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  {(totalsData?.currentDeals || 0)}
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  100
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  #
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  {(totalsData?.previousSize || 0).toFixed(2).toLocaleString()}
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  {(totalsData?.previousDeals || 0)}
+                </td>
+                <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                  100
+                </td>
+                <td className={`border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap font-medium ${changeInMktShare > 0 ? 'text-green-600' : changeInMktShare < 0 ? 'text-red-600' : 'text-gray-800 dark:text-gray-200'}`}>
+                  {changeInMktShare.toFixed(2).toLocaleString()}
+                </td>
+              </tr>
             </tbody>
 
           </table>

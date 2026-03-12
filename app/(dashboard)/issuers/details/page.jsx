@@ -1,6 +1,7 @@
 'use client';
 
 import DetailedTable from '@/components/DetailedTable';
+import { useRedemptionMonthStore } from '@/lib/store';
 import { useEffect, useMemo, useState } from 'react';
 
 
@@ -41,6 +42,9 @@ export default function IssuerDetails() {
 console.log("test");
     const [selectedFY, setSelectedFY] = useState('2025-26');
     const [valueConvention, setValueConvention] = useState('Crores');
+    const { redemptionMonthDateRange, setRedemptionMonthDateRange  } = useRedemptionMonthStore();
+
+    console.log("Current redemption month range from store: ", redemptionMonthDateRange);
 
     const selectClass =
         'text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer';

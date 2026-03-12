@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { fetchHeatmapEntityData } from "../../../features/analysis/services";
+import CustomDropdown from "@/components/CustomDropdown";
 
 const LEGEND_ITEMS = [
     { label: "ABOVE +25%", className: "bg-green-800 text-white dark:bg-green-900 dark:text-green-100" },
@@ -13,68 +14,7 @@ const LEGEND_ITEMS = [
     { label: "BELOW -25%", className: "bg-red-800 text-white dark:bg-red-900 dark:text-red-100" },
 ];
 
-const SAMPLE_DATA = [
-    {
-        id: 1,
-        name: "PORTEAST INVESTMENT PRIVATE LIMITED",
-        change: "+100.00%",
-        amount: "₹ 28,600 CR.",
-        cardClass: "bg-green-700 dark:bg-green-800",
-        nameClass: "text-green-200 dark:text-green-300",
-        changeClass: "text-white dark:text-green-50",
-        amountClass: "text-green-100 dark:text-green-200",
-    },
-    {
-        id: 2,
-        name: "PORTEAST INVESTMENT PRIVATE LIMITED",
-        change: "+100.00%",
-        amount: "₹ 28,600 CR.",
-        cardClass: "bg-green-700 dark:bg-green-800",
-        nameClass: "text-green-200 dark:text-green-300",
-        changeClass: "text-white dark:text-green-50",
-        amountClass: "text-green-100 dark:text-green-200",
-    },
-    {
-        id: 3,
-        name: "PORTEAST INVESTMENT PRIVATE LIMITED",
-        change: "+100.00%",
-        amount: "₹ 28,600 CR.",
-        cardClass: "bg-green-400 dark:bg-green-500",
-        nameClass: "text-green-900 dark:text-green-950",
-        changeClass: "text-white dark:text-green-100",
-        amountClass: "text-green-800 dark:text-green-900",
-    },
-    {
-        id: 4,
-        name: "PORTEAST INVESTMENT PRIVATE LIMITED",
-        change: "+100.00%",
-        amount: "₹ 28,600 CR.",
-        cardClass: "bg-orange-400 dark:bg-orange-500",
-        nameClass: "text-orange-100 dark:text-orange-200",
-        changeClass: "text-white dark:text-orange-50",
-        amountClass: "text-orange-100 dark:text-orange-200",
-    },
-    {
-        id: 5,
-        name: "PORTEAST INVESTMENT PRIVATE LIMITED",
-        change: "+100.00%",
-        amount: "₹ 28,600 CR.",
-        cardClass: "bg-red-400 dark:bg-red-500",
-        nameClass: "text-red-100 dark:text-red-200",
-        changeClass: "text-white dark:text-red-50",
-        amountClass: "text-red-100 dark:text-red-200",
-    },
-    {
-        id: 6,
-        name: "PORTEAST INVESTMENT PRIVATE LIMITED",
-        change: "+100.00%",
-        amount: "₹ 28,600 CR.",
-        cardClass: "bg-red-700 dark:bg-red-800",
-        nameClass: "text-red-200 dark:text-red-300",
-        changeClass: "text-white dark:text-red-100",
-        amountClass: "text-red-100 dark:text-red-200",
-    },
-];
+
 
 const TOUR_STEPS = [
     {
@@ -107,6 +47,41 @@ const TOUR_STEPS = [
         description: "Use this search bar to find specific issuers by name.",
         targetRef: "searchRef",
     },
+];
+
+const PARTICIPANT_OPTIONS = [
+    { label: "Issuer", value: "issuers" },
+    { label: "Arranger", value: "arrangers" },
+    { label: "Trustee", value: "trustees" },
+    { label: "Registrar", value: "registrars" },
+];
+
+const RANK_OPTIONS = [
+    { label: "Top 10", value: "10" },
+    { label: "Top 20", value: "20" },
+    { label: "Top 50", value: "50" },
+];
+
+const FREQUENCY_OPTIONS = [
+    { label: "Yearly", value: "Yearly" },
+    { label: "Half-Yearly", value: "Half-Yearly" },
+    { label: "Quarterly", value: "Quarterly" },
+    { label: "Monthly", value: "Monthly" },
+];
+
+const MONTH_OPTIONS = [
+    { label: "April", value: 3 },
+    { label: "May", value: 4 },
+    { label: "June", value: 5 },
+    { label: "July", value: 6 },
+    { label: "August", value: 7 },
+    { label: "September", value: 8 },
+    { label: "October", value: 9 },
+    { label: "November", value: 10 },
+    { label: "December", value: 11 },
+    { label: "January", value: 0 },
+    { label: "February", value: 1 },
+    { label: "March", value: 2 },
 ];
 
 function getCurrentFinancialYear() {
@@ -517,7 +492,7 @@ export default function HeatMap() {
             <div className="mb-6 flex items-center justify-between">
                 <div>
                     <h1 className="text-xl md:text-2xl font-medium text-gray-800 dark:text-gray-100">Heat Map</h1>
-                    <p className="text-xs md:text-[9px] text-gray-400 dark:text-gray-500 mt-1">Analysis - Heat Map</p>
+                    <p className="text-xs md:text-[10px] text-gray-400 dark:text-gray-500 mt-1">Analysis - Heat Map</p>
                 </div>
 
                 <div className="flex items-center gap-2 relative">
@@ -613,7 +588,7 @@ export default function HeatMap() {
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     placeholder="Search by Issuer Name"
-                                    className="border-none outline-none bg-transparent text-xs md:text-[9px] text-gray-700 dark:text-gray-200 w-full placeholder-gray-400 dark:placeholder-gray-500"
+                                    className="border-none outline-none bg-transparent text-xs md:text-[10px] text-gray-700 dark:text-gray-200 w-full placeholder-gray-400 dark:placeholder-gray-500"
                                 />
                                 <div className="shrink-0 flex items-center justify-center w-6 h-6 md:w-4 md:h-4 bg-[#423CAB]/80 dark:bg-indigo-500/90 rounded-full">
                                     <svg
@@ -633,7 +608,7 @@ export default function HeatMap() {
                         {/* Reset Button */}
                         <button
                             onClick={handleReset}
-                            className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-[12px] px-5 h-10 md:h-6 text-xs md:text-[9px] transition-colors duration-150 cursor-pointer w-full sm:w-auto"
+                            className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-[12px] px-5 h-10 md:h-6 text-xs md:text-[10px] transition-colors duration-150 cursor-pointer w-full sm:w-auto"
                         >
                             <svg
                                 className="w-4 h-4 md:w-3.5 md:h-3.5"
@@ -652,63 +627,43 @@ export default function HeatMap() {
                     {/* Right Group: Dropdowns - Pushed to right on desktop, stacked on mobile */}
                     <div className="flex flex-col sm:flex-row lg:ml-auto gap-4 w-full lg:w-auto">
                         {/* Participants */}
-                        <div ref={participantsRef} className="flex flex-col gap-1 w-full sm:w-auto">
-                            <label className="text-xs md:text-[9px] text-gray-400 dark:text-gray-500">Participants</label>
-                            <select
+                        <div ref={participantsRef}>
+                            <CustomDropdown
+                                label="Participants"
+                                options={PARTICIPANT_OPTIONS}
                                 value={participants}
-                                onChange={(e) => setParticipants(e.target.value)}
-                                className="border border-gray-200 dark:border-slate-600 rounded-[12px] px-3 h-10 md:h-6 text-xs md:text-[9px] text-gray-700 dark:text-gray-200 dark:bg-slate-700 outline-none cursor-pointer w-full sm:min-w-[120px]"
-                            >
-                                <option value="issuers" className="dark:bg-slate-700 dark:text-gray-200">Issuer</option>
-                                <option value="arrangers" className="dark:bg-slate-700 dark:text-gray-200">Arranger</option>
-                                <option value="trustees" className="dark:bg-slate-700 dark:text-gray-200">Trustee</option>
-                                <option value="registrars" className="dark:bg-slate-700 dark:text-gray-200">Registrar</option>
-                            </select>
+                                onChange={(val) => setParticipants(val)}
+                                width="min-w-[120px]"
+                            />
                         </div>
 
                         {/* Ranks */}
-                        <div ref={ranksRef} className="flex flex-col gap-1 w-full sm:w-auto">
-                            <label className="text-xs md:text-[9px] text-gray-400 dark:text-gray-500">Ranks</label>
-                            <select
+                        <div ref={ranksRef}>
+                            <CustomDropdown
+                                label="Ranks"
+                                options={RANK_OPTIONS}
                                 value={ranks}
-                                onChange={(e) => setRanks(e.target.value)}
-                                className="border border-gray-200 dark:border-slate-600 rounded-[12px] px-3 h-10 md:h-6 text-xs md:text-[9px] text-gray-700 dark:text-gray-200 dark:bg-slate-700 outline-none cursor-pointer w-full sm:min-w-[110px]"
-                            >
-                                <option value="10" className="dark:bg-slate-700 dark:text-gray-200">Top 10</option>
-                                <option value="20" className="dark:bg-slate-700 dark:text-gray-200">Top 20</option>
-                                <option value="50" className="dark:bg-slate-700 dark:text-gray-200">Top 50</option>
-                            </select>
+                                onChange={(val) => setRanks(val)}
+                                width="min-w-[110px]"
+                            />
                         </div>
 
                         {/* Frequency */}
-                        <div ref={frequencyRef} className="flex flex-col gap-1 w-full sm:w-auto">
-                            <label className="text-xs md:text-[9px] text-gray-400 dark:text-gray-500">Frequency</label>
-                            <select
+                        <div ref={frequencyRef}>
+                            <CustomDropdown
+                                label="Frequency"
+                                options={FREQUENCY_OPTIONS}
                                 value={frequency}
-                                onChange={(e) => {
-                                    const value = e.target.value;
+                                onChange={(value) => {
                                     setFrequency(value);
 
-                                    if (value === "Half-Yearly") {
-                                        setSelectedPeriod("H1");
-                                    }
-                                    else if (value === "Quarterly") {
-                                        setSelectedPeriod("Q1");
-                                    }
-                                    else if (value === "Monthly") {
-                                        setSelectedPeriod(3); // April (month index 3)
-                                    }
-                                    else {
-                                        setSelectedPeriod(null); // Yearly
-                                    }
+                                    if (value === "Half-Yearly") setSelectedPeriod("H1");
+                                    else if (value === "Quarterly") setSelectedPeriod("Q1");
+                                    else if (value === "Monthly") setSelectedPeriod(3);
+                                    else setSelectedPeriod(null);
                                 }}
-                                className="border border-gray-200 dark:border-slate-600 rounded-[12px] px-3 h-10 md:h-6 text-xs md:text-[9px] text-gray-700 dark:text-gray-200 dark:bg-slate-700 outline-none cursor-pointer w-full sm:min-w-[110px]"
-                            >
-                                <option className="dark:bg-slate-700 dark:text-gray-200">Yearly</option>
-                                <option className="dark:bg-slate-700 dark:text-gray-200">Half-Yearly</option>
-                                <option className="dark:bg-slate-700 dark:text-gray-200">Quarterly</option>
-                                <option className="dark:bg-slate-700 dark:text-gray-200">Monthly</option>
-                            </select>
+                                width="min-w-[120px]"
+                            />
                         </div>
 
                         {/* Dynamic Period Selector */}
@@ -745,29 +700,16 @@ export default function HeatMap() {
                                 ))}
                             </div>
                         )}
-
+                        
                         {frequency === "Monthly" && (
                             <div className="flex flex-col gap-1 w-full sm:w-auto">
-                                <label className="text-xs md:text-[9px] text-gray-400 dark:text-gray-500">Months</label>
-
-                                <select
-                                    value={selectedPeriod ?? ""}
-                                    onChange={(e) => setSelectedPeriod(e.target.value)}
-                                    className="border border-gray-200 dark:border-slate-600 rounded-[12px] px-3 h-10 md:h-6 text-xs md:text-[9px] text-gray-700 dark:text-gray-200 dark:bg-slate-700 outline-none cursor-pointer w-full sm:min-w-[110px]"
-                                >
-                                    <option value="">Select Month</option>
-                                    {[
-                                        "April", "May", "June", "July", "August", "September",
-                                        "October", "November", "December", "January", "February", "March"
-                                    ].map((month, index) => {
-                                        const actualIndex = index + 3 > 11 ? index - 9 : index + 3;
-                                        return (
-                                            <option key={month} value={actualIndex}>
-                                                {month}
-                                            </option>
-                                        );
-                                    })}
-                                </select>
+                                <CustomDropdown
+                                    label="Months"
+                                    options={MONTH_OPTIONS}
+                                    value={selectedPeriod}
+                                    onChange={(val) => setSelectedPeriod(val)}
+                                    width="min-w-[110px]"
+                                />
                             </div>
                         )}
                     </div>
@@ -787,7 +729,7 @@ export default function HeatMap() {
                                 whitespace-nowrap 
                                 rounded-full 
                                 px-4 py-1.5 
-                                text-[9px] 
+                                text-[10px] 
                                 font-medium 
                                 tracking-wide 
                                 cursor-pointer 
@@ -811,10 +753,10 @@ export default function HeatMap() {
                             style={{ backgroundColor: item.color }}
                             className={`rounded-2xl p-5 md:p-6 cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg dark:hover:shadow-slate-900/60 shadow-sm dark:shadow-slate-900/30`}
                         >
-                            <p className={`text-white text-[10px] md:text-[9px] font-medium uppercase tracking-wide mb-3`}>
+                            <p className={`text-white text-[10px] md:text-[10px] font-medium uppercase tracking-wide mb-3`}>
                                 {item.name}
                             </p>
-                            <p className={`text-white text-sm md:text-[12px] font-medium leading-none mb-2`}>
+                            <p className={`text-white text-sm md:text-[13px] font-medium leading-none mb-2`}>
                                 {item.change}
                             </p>
                             <p className={`text-white text-[10px] md:text-[8px] tracking-wide`}>

@@ -33,7 +33,7 @@ const navigation = [
       { name: 'Heatmap', href: '/heatmap' }
     ]
   },
-  { name: 'Issuer', href: '/issuers', icon: Building2,children:[{ name: 'Details', href: '/issuers/details' },{ name: 'Summary', href: '/issuers/summary' }] },
+  { name: 'Issuer', href: '/issuers', icon: Building2,children:[{ name: 'Summary', href: '/issuers/summary' },{ name: 'Details', href: '/issuers/details' }] },
   { name: 'Arrangers', href: '/arrangers', icon: Handshake },
   { name: 'Trustee', href: '/trustees', icon: Shield },
   { name: 'Registrar', href: '/registrars', icon: ClipboardList },
@@ -108,7 +108,7 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }) {
                     }
                   }}
                   className={cn(
-                    'flex items-center gap-2.5 px-3 py-2 my-3 rounded-[19px] text-[11px] font-medium transition-all duration-150 group relative cursor-pointer',
+                    'flex items-center gap-2.5 px-3 py-2 my-3 rounded-[19px] text-[13px] font-medium transition-all duration-150 group relative cursor-pointer',
                     isActive
                       ? 'bg-[#423CAB] dark:bg-indigo-500 text-white shadow-sm dark:shadow-indigo-900/30'
                       : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800/70 hover:text-gray-900 dark:hover:text-gray-200'
@@ -174,7 +174,7 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }) {
                           href={child.href}
                           onClick={() => onClose?.()}
                           className={cn(
-                            'flex items-center gap-2 px-3 py-2 rounded-[19px] text-[11px] font-medium transition-all duration-150',
+                            'flex items-center gap-2 px-3 py-2 rounded-[19px] text-[13px] font-medium transition-all duration-150',
                             isChildActive
                               ? 'bg-[#423CAB]/80 dark:bg-indigo-500/80 text-white'
                               : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800/70 hover:text-gray-900 dark:hover:text-gray-200'
@@ -199,7 +199,7 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }) {
               <button
                 onClick={() => theme !== 'light' && toggleTheme()}
                 className={cn(
-                  'flex items-center gap-1 flex-1 justify-center text-[11px] py-1.5 rounded-full transition-all duration-150',
+                  'flex items-center gap-1 flex-1 justify-center text-[13px] py-1.5 rounded-full transition-all duration-150',
                   theme === 'light'
                     ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-sm'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -211,7 +211,7 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }) {
               <button
                 onClick={() => theme !== 'dark' && toggleTheme()}
                 className={cn(
-                  'flex items-center gap-1 flex-1 justify-center text-[11px] py-1.5 rounded-full transition-all duration-150',
+                  'flex items-center gap-1 flex-1 justify-center text-[13px] py-1.5 rounded-full transition-all duration-150',
                   theme === 'dark'
                     ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-sm'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -238,7 +238,7 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }) {
 
           {/* Logout */}
           {!collapsed && (
-            <button className="flex items-center gap-2 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 text-[12px] font-medium hover:opacity-75 transition px-1">
+            <button className="flex items-center gap-2 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 text-[13px] font-medium hover:opacity-75 transition px-1">
               <LogOut className="w-3.5 h-3.5" />
               <span>Logout</span>
             </button>

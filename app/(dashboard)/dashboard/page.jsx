@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
 import { fetchDashboardIssueVolumeTrendsData, fetchDashboardMonthlyVolumeData, fetchDashboardRatingAgencyData, fetchDashboardSectorsData, fetchDashboardStatsData, fetchDashboardTablesData } from '../../../features/dashboard/services';
+import CustomDropdown from '@/components/CustomDropdown';
 
 
 const tabs = ['issuers', 'arrangers', 'trustees', 'registrars', 'rating agency'];
@@ -118,8 +119,15 @@ function truncateText(text, maxLength) {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
+
+
 export default function Dashboard() {
   const fyOptions = useMemo(() => getFinancialYears(), []);
+
+  const valueConventionOptions = [
+    { label: "Crores", value: "Crores" },
+    { label: "Lakhs", value: "Lakhs" }
+  ];
   // console.log("fyOptions:", fyOptions);
   const dateRange = useMemo(() => handleFinancialYearSelection(fyOptions[0]?.value || ''), [fyOptions]);
 
@@ -136,6 +144,9 @@ export default function Dashboard() {
   const [monthlyVolumeData, setMonthlyVolumeData] = useState([]);
   const [issueTrendsData, setIssueTrendsData] = useState([]);
   const [valueConvention, setValueConvention] = useState('Crores'); // default
+
+  const [yearDropdownopen, setYearDropdownopen] = useState(false);
+  const dropdownRef = useRef(null);
 
 
   const [selectedYearsDateRange, setSelectedYearsDateRange] = useState(dateRange || { startDate: '', endDate: '' });
@@ -380,6 +391,20 @@ export default function Dashboard() {
     }
   }, [activeTab, selectedFY]);
 
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setYearDropdownopen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
 
   const handleSelectDate = (e) => {
     setSelectedFY(e.target.value);
@@ -415,32 +440,22 @@ export default function Dashboard() {
 
             {/* Filters */}
             <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
-              <div className="w-full sm:w-auto">
-                <label className="text-[9px] text-gray-400 block mb-1">Value Convention</label>
-                <select
-                  value={valueConvention}
-                  onChange={(e) => setValueConvention(e.target.value)}
-                  className="text-[9px] border border-gray-200 dark:border-gray-600 rounded-[12px] px-1 w-full sm:w-[7rem] py-1.5 bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200"
-                >
-                  <option value="Crores">Crores</option>
-                  <option value="Lakhs">Lakhs</option>
-                </select>
-              </div>
+              <CustomDropdown
+                label="Value Convention"
+                options={valueConventionOptions}
+                value={valueConvention}
+                onChange={(val) => setValueConvention(val)}
+              />
               <div className='flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4'>
-                <div className="w-full sm:w-auto">
-                  <label className="text-[9px] text-gray-400 block mb-1">Financial Year</label>
-                  <select
-                    value={selectedFY}
-                    onChange={handleSelectDate}
-                    className="text-[9px] border border-gray-200 dark:border-gray-600 rounded-[12px] w-full sm:w-[7rem] px-3 py-1.5 bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200"
-                  >
-                    {fyOptions.map((fy) => (
-                      <option className='bg-white dark:bg-[var(--color-surface)]' key={fy.value} value={fy.value}>
-                        {fy.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <CustomDropdown
+                  label="Financial Year"
+                  options={fyOptions}
+                  value={selectedFY}
+                  onChange={(val) => {
+                    setSelectedFY(val);
+                    handleSelectDate({ target: { value: val } });
+                  }}
+                />
                 <button
                   onClick={() => {
                     const defaultFY = fyOptions[0]?.value || '';
@@ -720,3 +735,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
