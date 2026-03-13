@@ -41,6 +41,7 @@ const defaultColumns = [
 
 const formatRedemptionData = (data) => {
     return data?.map(item => ({
+        id:Number(item.id),
         Isin: item.isin || '-',
         IssuerName: item.issuerName || '-',
         SecurityName: item.securityName || '-',

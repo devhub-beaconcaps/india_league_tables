@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../lib/auth';
-import ThemeWrapper from './ThemeWrapper';
+import ThemeWrapper from '../../components/ThemeWrapper';
 
 export default async function AuthLayout({ children }) {
   const session = await getServerSession(authOptions);

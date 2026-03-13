@@ -1,9 +1,19 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function DetailedTable({ columns = [], data = [] }) {
     const [hoveredRow, setHoveredRow] = useState(null);
+    const router = useRouter();
+    
+
+    const isinHandler = (item) => {
+        // console.log("item id: ", item?.id);
+        router.push(`/specific-issuer/${item?.id}`);
+    }
+
+
     return (
         <div className="overflow-x-auto rounded-xl bg-white dark:bg-gray-900">
             <table className="w-full table-auto border-separate border-spacing-[4px] text-[11px]">
@@ -38,7 +48,11 @@ export default function DetailedTable({ columns = [], data = [] }) {
                         >
                             {columns.map((col, colIndex) => (
                                 <td key={colIndex} className="border border-gray-200 dark:border-gray-700 rounded-md text-center px-1 py-[9px] whitespace-nowrap text-gray-800 dark:text-gray-200">
-                                    {row[col.accessor]}
+                                    {col.accessor === 'Isin' ? (
+                                        <><div onClick={() => isinHandler(row)} className="underline text-blue-500 decoration-sky-500 cursor-pointer" >{row[col.accessor]}</div></>
+                                    ) : (
+                                        <>{row[col.accessor]}</>
+                                    )}
                                 </td>
                             ))}
                         </tr>
