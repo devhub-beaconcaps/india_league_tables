@@ -59,7 +59,7 @@ export default function FinanceTable({ totalsData, data, selectedFY, valueConven
   return (
     <div>
       <div className="w-full mx-auto">
-        <div className="rounded-xl bg-white dark:bg-gray-900 overflow-hidden">
+        <div className="rounded-xl bg-white dark:bg-gray-900 overflow-x-auto">
 
           <table className="w-full table-auto border-separate border-spacing-[4px] text-[12px]">
 
