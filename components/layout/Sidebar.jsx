@@ -110,7 +110,7 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }) {
                   className={cn(
                     'flex items-center gap-2.5 px-3 py-2 my-3 rounded-[19px] text-[13px] font-medium transition-all duration-150 group relative cursor-pointer',
                     isActive
-                      ? 'bg-[#423CAB] dark:bg-indigo-500 text-white shadow-sm dark:shadow-indigo-900/30'
+                      ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white shadow-sm dark:shadow-indigo-900/30'
                       : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800/70 hover:text-gray-900 dark:hover:text-gray-200'
                   )}
                 >
@@ -176,7 +176,7 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }) {
                           className={cn(
                             'flex items-center gap-2 px-3 py-2 rounded-[19px] text-[13px] font-medium transition-all duration-150',
                             isChildActive
-                              ? 'bg-[#423CAB]/80 dark:bg-indigo-500/80 text-white'
+                              ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
                               : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800/70 hover:text-gray-900 dark:hover:text-gray-200'
                           )}
                         >
@@ -201,7 +201,7 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }) {
                 className={cn(
                   'flex items-center gap-1 flex-1 justify-center text-[13px] py-1.5 rounded-full transition-all duration-150',
                   theme === 'light'
-                    ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-sm'
+                    ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white shadow-sm'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                 )}
               >
@@ -213,7 +213,7 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }) {
                 className={cn(
                   'flex items-center gap-1 flex-1 justify-center text-[13px] py-1.5 rounded-full transition-all duration-150',
                   theme === 'dark'
-                    ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-sm'
+                    ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white shadow-sm'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                 )}
               >

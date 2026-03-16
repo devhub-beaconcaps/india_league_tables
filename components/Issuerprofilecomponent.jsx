@@ -82,7 +82,7 @@ export default function IssuerProfileCard({ issuerData }) {
 
         {/* Header Badge */}
         <div className="absolute -top-[1px] -left-[1px]">
-          <span className="inline-block bg-[#5b4fcf] text-white text-[13px] sm:text-[15px] font-semibold px-3 sm:px-4 py-2.5 sm:py-3 rounded-br-[25px] tracking-wide">
+          <span className="inline-block bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white text-[13px] sm:text-[15px] font-semibold px-3 sm:px-4 py-2.5 sm:py-3 rounded-br-[25px] tracking-wide">
             {ISINName}
           </span>
         </div>
@@ -115,7 +115,7 @@ export default function IssuerProfileCard({ issuerData }) {
                     onClick={() => setActiveSection(item.id)}
                     className={`flex-shrink-0 lg:w-full rounded-[10px] cursor-pointer flex items-center gap-2.5 px-3 lg:px-4 py-2.5 my-0 lg:my-2 text-left transition-colors whitespace-nowrap
                     ${isActive
-                        ? "bg-[#5b4fcf] text-white"
+                        ? "bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white"
                         : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                       }`}
                   >

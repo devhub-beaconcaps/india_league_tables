@@ -24,7 +24,7 @@ export default function DetailedTable({ columns = [], data = [] }) {
                         {columns.map((col, index) => (
                             <th
                                 key={index}
-                                className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-[9px] text-center text-white font-semibold whitespace-nowrap bg-gradient-to-br from-purple-700 to-purple-500"
+                                className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-[9px] text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8]"
                             >
                                 {col.header}
                             </th>
@@ -40,7 +40,7 @@ export default function DetailedTable({ columns = [], data = [] }) {
                             onMouseEnter={() => setHoveredRow(rowIndex)}
                             onMouseLeave={() => setHoveredRow(null)}
                             className={`transition-colors ${hoveredRow === rowIndex
-                                ? "bg-purple-50 dark:bg-purple-900/30"
+                                ? "bg-gradient-to-r from-[#423CAB] to-[#653FD8]"
                                 : rowIndex % 2 === 0
                                     ? "bg-white dark:bg-gray-900"
                                     : "bg-gray-50 dark:bg-gray-800"

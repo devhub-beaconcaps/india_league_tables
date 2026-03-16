@@ -41,6 +41,31 @@ const formatSectorData = (data) => {
     })
 }
 
+function getShortForm(text) {
+    if (!text) return "";
+
+    // Split by spaces, hyphen, comma etc.
+    const words = text.split(/[\s\-_/]+/);
+
+    let result = "";
+
+    words.forEach(word => {
+        if (!word) return;
+
+        // First letter
+        result += word[0].toUpperCase();
+
+        // Capture internal capital letters
+        for (let i = 1; i < word.length; i++) {
+            if (word[i] === word[i].toUpperCase() && /[A-Z]/.test(word[i])) {
+                result += word[i];
+            }
+        }
+    });
+
+    return result;
+}
+
 const formatOutstandingData = (data) => {
     return data?.map(item => {
         return {
@@ -387,7 +412,8 @@ export default function IssuerSummary() {
                 const marketShare = await formatMarketShareData(table?.data, issueType);
                 const currentRedemptions = await fetchCurrentYearRedemptionData();
                 const nextRedemptions = await fetchNextYearRedemptionData();
-                console.log("table: ", table)
+                console.log("table: ", table);
+                console.log("sectors", sectors);
 
                 setIssueTableData(formatData(table?.data || []));
                 setTotalsData(table?.totals);
@@ -576,13 +602,13 @@ export default function IssuerSummary() {
                     <div className="flex flex-row justify-center mb-4 rounded-full border border-gray-300 dark:border-gray-600 p-2 bg-gray-100 dark:bg-gray-800 p-0.5 w-fit">
                         <button
                             onClick={() => setIssueType('size')}
-                            className={`px-5 py-1.5 text-xs font-medium rounded-full transition-all ${issueType === 'size' ? 'bg-[#5b21b6] text-white shadow' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
+                            className={`px-5 py-1.5 text-xs font-medium rounded-full transition-all ${issueType === 'size' ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white shadow' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
                         >
                             ISSUE SIZE
                         </button>
                         <button
                             onClick={() => setIssueType('count')}
-                            className={`px-5 py-1.5 text-xs font-medium rounded-full transition-all ${issueType === 'count' ? 'bg-[#5b21b6] text-white shadow' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
+                            className={`px-5 py-1.5 text-xs font-medium rounded-full transition-all ${issueType === 'count' ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white shadow' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
                         >
                             NO. OF ISSUES
                         </button>
@@ -604,8 +630,8 @@ export default function IssuerSummary() {
                         <AreaChart data={topSectorsData} margin={{ top: 5, right: 10, left: 10, bottom: 40 }}>
                             <defs>
                                 <linearGradient id="cyGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.02} />
+                                    <stop offset="5%" stopColor="#423CAB" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#423CAB" stopOpacity={0.02} />
                                 </linearGradient>
                                 <linearGradient id="pyGrad" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3} />
@@ -613,7 +639,7 @@ export default function IssuerSummary() {
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.6} vertical={false} />
-                            <XAxis dataKey="sector" tick={{ fontSize: 9, fill: '#9ca3af' }} interval={0} angle={-30} textAnchor="end" />
+                            <XAxis dataKey="sector" tick={{ fontSize: 9, fill: '#9ca3af' }} tickFormatter={getShortForm} tickMargin={12} interval={0} angle={-30} textAnchor="end" />
                             <YAxis tick={{ fontSize: 9, fill: '#9ca3af' }} tickFormatter={v => v >= 1000 ? `${v / 1000}k` : v} />
                             <Tooltip content={<CustomTooltip />} />
                             <Area type="monotone" dataKey="cy" name={issueType === 'count' ? 'CY Issue Count' : 'CY Issue Size'} stroke="#7c3aed" strokeWidth={2} fill="url(#cyGrad)" dot={{ r: 3, fill: '#7c3aed' }} />
@@ -710,7 +736,7 @@ export default function IssuerSummary() {
                                 yAxisId="left"
                                 dataKey="noOfIssues"
                                 name="No. of Issues"
-                                fill="#7c3aed"
+                                fill="#423CAB"
                                 radius={[2, 2, 0, 0]}
                                 onClick={handleBarClick}
                             />
@@ -764,7 +790,7 @@ export default function IssuerSummary() {
                                 yAxisId="left"
                                 dataKey="noOfIssues"
                                 name="No. of Issues"
-                                fill="#7c3aed"
+                                fill="#423CAB"
                                 radius={[2, 2, 0, 0]}
                                 onClick={handleBarClick}
                             />

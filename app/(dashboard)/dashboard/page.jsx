@@ -119,7 +119,33 @@ function truncateText(text, maxLength) {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
+const renderCustomizedLabel = ({
+  cx,
+  cy,
+  midAngle,
+  innerRadius,
+  outerRadius,
+  percent,
+}) => {
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="white"
+      textAnchor="middle"
+      dominantBaseline="central"
+      fontSize={10}
+      fontWeight={500}
+    >
+      {(percent * 100).toFixed(0)}%
+    </text>
+  );
+};
 
 export default function Dashboard() {
   const fyOptions = useMemo(() => getFinancialYears(), []);
@@ -483,7 +509,7 @@ export default function Dashboard() {
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`text-[9px] font-medium px-4 py-1.5 rounded-full border transition-all ${activeTab === tab
-                    ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                    ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white border-[#7C3AED]'
                     : 'bg-white dark:bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-[#7C3AED] hover:text-[#7C3AED]'
                     }`}
                 >
@@ -548,7 +574,7 @@ export default function Dashboard() {
                     <stop offset="95%" stopColor="#EC4899" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="years" angle={-30} tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="years" angle={-30} tick={{ fontSize: 9 }} tickMargin={12} axisLine={false} tickLine={false} />
                 <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
@@ -582,7 +608,7 @@ export default function Dashboard() {
                     key={v}
                     onClick={() => setBarView(v)}
                     className={`text-[9px] font-semibold px-2.5 py-1 rounded-full border transition-all ${barView === v
-                      ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                      ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white border-[#7C3AED]'
                       : 'text-gray-400 border-gray-200 dark:border-gray-600'
                       }`}
                   >
@@ -631,7 +657,7 @@ export default function Dashboard() {
                         ? 'previous_year_issue_size'
                         : 'previous_year_issue_count'
                     }
-                    fill="#7C3AED"
+                    fill="#423CAB"
                     radius={[3, 3, 0, 0]}
                   />
 
@@ -666,9 +692,11 @@ export default function Dashboard() {
                     data={sanitizedSectorsData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
+                    innerRadius={30}
                     outerRadius={75}
                     paddingAngle={2}
+                    label={renderCustomizedLabel}
+                    labelLine={false}
                     dataKey={
                       barView === 'ISSUE SIZE'
                         ? 'issue_size'
@@ -710,6 +738,8 @@ export default function Dashboard() {
                     cy="50%"
                     outerRadius={70}
                     paddingAngle={2}
+                    label={renderCustomizedLabel}
+                    labelLine={false}
                     dataKey="rating_no" // This matches your API key
                   >
                     {sanitizedAgencyData?.map((entry, i) => (

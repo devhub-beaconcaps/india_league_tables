@@ -69,7 +69,7 @@ export default function FinanceTable({ totalsData, data, selectedFY, valueConven
 
                 <th
                   colSpan={4}
-                  className="border border-gray-200 dark:border-gray-700 rounded-md py-2 text-center bg-gradient-to-br from-purple-900 to-purple-700"
+                  className="border border-gray-200 dark:border-gray-700 rounded-md py-2 text-center bg-gradient-to-r from-[#423CAB] to-[#653FD8]"
                 >
                   <span className="text-white font-semibold text-[12px]">
                     FY {result?.currentYearRange} <InfoIcon />
@@ -78,7 +78,7 @@ export default function FinanceTable({ totalsData, data, selectedFY, valueConven
 
                 <th
                   colSpan={4}
-                  className="border border-gray-200 dark:border-gray-700 rounded-md py-2 text-center bg-gradient-to-br from-purple-900 to-purple-700"
+                  className="border border-gray-200 dark:border-gray-700 rounded-md py-2 text-center bg-gradient-to-r from-[#423CAB] to-[#653FD8]"
                 >
                   <span className="text-white font-semibold text-[12px]">
                     FY {result?.previousYearRange} <InfoIcon />
@@ -89,14 +89,14 @@ export default function FinanceTable({ totalsData, data, selectedFY, valueConven
               </tr>
 
               <tr>
-                <th className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-br from-purple-700 to-purple-500 w-[30%]">
+                <th className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8] w-[30%]">
                   Issuer Name
                 </th>
 
                 {subHeaders.map((h) => (
                   <th
                     key={`fy26-${h}`}
-                    className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-br from-purple-700 to-purple-500"
+                    className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8]"
                   >
                     {h}
                   </th>
@@ -105,13 +105,13 @@ export default function FinanceTable({ totalsData, data, selectedFY, valueConven
                 {subHeaders.map((h) => (
                   <th
                     key={`fy25-${h}`}
-                    className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-br from-purple-700 to-purple-500"
+                    className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8]"
                   >
                     {h}
                   </th>
                 ))}
 
-                <th className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-br from-purple-700 to-purple-500">
+                <th className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8]">
                   YoY Change (%)
                 </th>
               </tr>
@@ -137,16 +137,16 @@ export default function FinanceTable({ totalsData, data, selectedFY, valueConven
                   {/* FY26 */}
                   <td className="border border-gray-200 dark:border-gray-700 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">{row.rank}</td>
                   <td className="border border-gray-200 dark:border-gray-700 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">{valueConvention === 'Lakhs'
-                          ? (parseFloat(row?.issueSize || 0) * 100).toFixed(2).toLocaleString()
-                          : parseFloat(row?.issueSize || 0).toFixed(2).toLocaleString()}</td>
+                          ? Number((parseFloat(row?.issueSize || 0) * 100).toFixed(2)).toLocaleString()
+                          : Number(parseFloat(row?.issueSize || 0).toFixed(2)).toLocaleString()}</td>
                   <td className="border border-gray-200 dark:border-gray-700 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">{row.deals}</td>
                   <td className="border border-gray-200 dark:border-gray-700 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">{row.mktShare}</td>
 
                   {/* FY25 */}
                   <td className="border border-gray-200 dark:border-gray-700 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">{row.prevRank}</td>
                   <td className="border border-gray-200 dark:border-gray-700 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">{valueConvention === 'Lakhs'
-                          ? (parseFloat(row?.prevSize || 0) * 100).toFixed(2).toLocaleString()
-                          : parseFloat(row?.prevSize || 0).toFixed(2).toLocaleString()}</td>
+                          ? Number((parseFloat(row?.prevSize || 0) * 100).toFixed(2)).toLocaleString()
+                          : Number(parseFloat(row?.prevSize || 0).toFixed(2)).toLocaleString()}</td>
                   <td className="border border-gray-200 dark:border-gray-700 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">{row.prevDeals}</td>
                   <td className="border border-gray-200 dark:border-gray-700 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">{row.prevMkt}</td>
 
@@ -163,28 +163,28 @@ export default function FinanceTable({ totalsData, data, selectedFY, valueConven
                   #
                 </td>
                 <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
-                  {totalCurrentIssueSize.toFixed(2).toLocaleString()}
+                  {Number(totalCurrentIssueSize.toFixed(2)).toLocaleString()}
                 </td>
                 <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
                   {data.reduce((acc, row) => acc + parseFloat(row?.deals || 0), 0)}
                 </td>
                 <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
-                  {totalCurrentMktShare.toFixed(2).toLocaleString()}
+                  {Number(totalCurrentMktShare.toFixed(2)).toLocaleString()}
                 </td>
                 <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
                   #
                 </td>
                 <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
-                  {totalPreviousIssueSize.toFixed(2).toLocaleString()}
+                  {Number(totalPreviousIssueSize.toFixed(2)).toLocaleString()}
                 </td>
                 <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
                   {data.reduce((acc, row) => acc + parseFloat(row?.prevDeals || 0), 0)}
                 </td>
                 <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
-                  {totalPreviousMktShare.toFixed(2).toLocaleString()}
+                  {Number(totalPreviousMktShare.toFixed(2)).toLocaleString()}
                 </td>
                 <td className={`border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap font-medium ${changeInMktShare > 0 ? 'text-green-600' : changeInMktShare < 0 ? 'text-red-600' : 'text-gray-800 dark:text-gray-200'}`}>
-                  {changeInMktShare.toFixed(2).toLocaleString()}
+                  {Number(changeInMktShare.toFixed(2)).toLocaleString()}
                 </td>
               </tr>
               <tr>
@@ -195,7 +195,7 @@ export default function FinanceTable({ totalsData, data, selectedFY, valueConven
                   #
                 </td>
                 <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
-                  {(totalsData?.currentSize || 0).toFixed(2).toLocaleString()}
+                  {Number((totalsData?.currentSize || 0).toFixed(2)).toLocaleString()}
                 </td>
                 <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
                   {(totalsData?.currentDeals || 0)}
@@ -207,7 +207,7 @@ export default function FinanceTable({ totalsData, data, selectedFY, valueConven
                   #
                 </td>
                 <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
-                  {(totalsData?.previousSize || 0).toFixed(2).toLocaleString()}
+                  {Number((totalsData?.previousSize || 0).toFixed(2)).toLocaleString()}
                 </td>
                 <td className="border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap text-gray-800 dark:text-gray-200">
                   {(totalsData?.previousDeals || 0)}
@@ -216,7 +216,7 @@ export default function FinanceTable({ totalsData, data, selectedFY, valueConven
                   100
                 </td>
                 <td className={`border-2 border-violet-400 dark:border-gray-300 rounded-md text-center px-1 whitespace-nowrap font-medium ${changeInMktShare > 0 ? 'text-green-600' : changeInMktShare < 0 ? 'text-red-600' : 'text-gray-800 dark:text-gray-200'}`}>
-                  {changeInMktShare.toFixed(2).toLocaleString()}
+                  {Number(changeInMktShare.toFixed(2)).toLocaleString()}
                 </td>
               </tr>
             </tbody>
