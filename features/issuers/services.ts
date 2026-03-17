@@ -45,7 +45,7 @@ export const fetchOutstandingData = async (query: unknown) => {
 };
 
 
-export const fetchCurrentYearRedemptionData = async (query: unknown) => {
+export const fetchCurrentYearRedemptionData = async () => {
     try {
         const response = await fetch(`${backendURL}/issuers_page_current_year_debt_redemption_data`);
         const data = await response.json();
@@ -55,7 +55,7 @@ export const fetchCurrentYearRedemptionData = async (query: unknown) => {
     }
 };
 
-export const fetchNextYearRedemptionData = async (query: unknown) => {
+export const fetchNextYearRedemptionData = async () => {
     try {
         const response = await fetch(`${backendURL}/issuers_page_next_year_redemption_data`);
         const data = await response.json();

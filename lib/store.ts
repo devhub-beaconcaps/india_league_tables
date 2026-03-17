@@ -11,8 +11,8 @@ interface ThemeState {
 
 
 interface YearsRange {
-  startDate: number | null;
-  endDate: number | null;
+  startDate: string | null;
+  endDate: string | null;
 }
 
 interface RedemptionMonthDateRangeState {
