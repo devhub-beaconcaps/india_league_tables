@@ -8,6 +8,9 @@ import {
 } from 'recharts';
 import { fetchDashboardIssueVolumeTrendsData, fetchDashboardMonthlyVolumeData, fetchDashboardRatingAgencyData, fetchDashboardSectorsData, fetchDashboardStatsData, fetchDashboardTablesData } from '../../../features/dashboard/services';
 import CustomDropdown from '@/components/CustomDropdown';
+import { useUser } from '@clerk/nextjs'
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+
 
 const tabs = ['issuers', 'arrangers', 'trustees', 'registrars', 'rating agency'] as const;
 type TabType = typeof tabs[number];
@@ -238,6 +241,9 @@ const renderCustomizedLabel = ({
 
 export default function Dashboard() {
   const fyOptions = useMemo(() => getFinancialYears(), []);
+  const { isSignedIn, user, isLoaded } = useUser();
+
+
 
   const valueConventionOptions = [
     { label: "Crores", value: "Crores" },
@@ -517,6 +523,31 @@ export default function Dashboard() {
     const dateRange = handleFinancialYearSelection(e.target.value);
     setSelectedYearsDateRange(dateRange);
   };
+
+  // Handle loading state
+  // Handle loading state
+  if (!isLoaded) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-white dark:bg-black">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-[120px] h-[120px]">
+            <DotLottieReact
+              src="https://lottie.host/22feb182-5b2a-45b8-91bd-ffc09a0de205/dn7Bz2NCSh.lottie"
+              loop
+              autoplay
+              style={{ width: '100%', height: '100%' }}
+            />
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Loading dashboard...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Protect the page from unauthenticated users
+  if (!isSignedIn) return <div>Sign in to view this page</div>
 
   return (
     <div className="space-y-5 px-4 sm:px-0">

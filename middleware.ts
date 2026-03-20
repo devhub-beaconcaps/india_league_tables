@@ -1,47 +1,22 @@
-import { withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export default withAuth(
-  function middleware(req: NextRequest) {
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized({ req, token }: { req: NextRequest; token: any }) {
-        const protectedPaths = [
-          "/dashboard",
-          "/issuers",
-          "/arrangers",
-          "/trustees",
-          "/registrars",
-          "/agencies",
-        ];
+const isPublicRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/forgot-password(.*)",
+  "/sso-callback(.*)",  // ← required for Google OAuth redirect
+  "/",
+]);
 
-        const isProtected = protectedPaths.some((path) =>
-          req.nextUrl.pathname.startsWith(path)
-        );
-
-        if (isProtected) {
-          return token !== null;
-        }
-
-        return true;
-      },
-    },
-    pages: {
-      signIn: "/login",
-    },
+export default clerkMiddleware(async (auth, request) => {
+  if (!isPublicRoute(request)) {
+    await auth.protect();
   }
-);
+});
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/issuers/:path*",
-    "/arrangers/:path*",
-    "/trustees/:path*",
-    "/registrars/:path*",
-    "/agencies/:path*",
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
   ],
 };

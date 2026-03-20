@@ -1,6 +1,4 @@
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../lib/auth';
 import ThemeWrapper from '../../components/ThemeWrapper';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -12,11 +10,6 @@ interface AuthLayoutProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default async function AuthLayout({ children }: AuthLayoutProps) {
-    const session = await getServerSession(authOptions);
-
-    if (session) {
-        redirect('/dashboard');
-    }
 
     return (
         <ThemeWrapper>

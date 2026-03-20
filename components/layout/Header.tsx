@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession, signOut } from 'next-auth/react';
 import { useThemeStore } from '../../lib/store';
 import ILTLogo from '../../public/img/ILTLogo.png';
 import { cn } from '../../lib/utils';
@@ -15,6 +14,8 @@ import {
     Settings,
 } from 'lucide-react';
 import Image from 'next/image';
+import { useClerk, useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,9 +33,17 @@ interface HeaderProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function Header({ onMenuClick }: HeaderProps) {
-    const { data: session } = useSession();
+    const { isSignedIn, user, isLoaded } = useUser();
+    const { signOut } = useClerk();
+    const router = useRouter();
     const { theme, toggleTheme } = useThemeStore();
     const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
+
+
+    const handleLogout = async () => {
+        await signOut(); // clears session cleanly first
+        router.push('/sign-in'); // then navigate — skip / entirely
+    };
 
     // Kept typed but unused — remove if notifications UI is not needed
     const _notifications: Notification[] = [
@@ -86,7 +95,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                         </div>
                         <div className="hidden md:block text-left">
                             <p className="text-sm font-semibold text-[var(--color-foreground)] dark:text-white leading-tight">
-                                {session?.user?.name ?? 'User'}
+                                {user.firstName ?? 'User'}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">Admin</p>
                         </div>
@@ -108,10 +117,10 @@ export function Header({ onMenuClick }: HeaderProps) {
                             <div className="absolute right-0 top-full mt-3 w-64 bg-white dark:bg-gray-900 border border-black dark:border-gray-700 rounded-2xl shadow-2xl z-50 animate-fade-in-scale overflow-hidden">
                                 <div className="p-4 border-b border-black dark:border-gray-700">
                                     <p className="font-semibold text-[var(--color-foreground)] dark:text-white">
-                                        {session?.user?.name ?? 'User'}
+                                        {user.firstName ?? 'User'}
                                     </p>
                                     <p className="text-sm text-[var(--color-muted)] dark:text-gray-400">
-                                        {session?.user?.email ?? 'user@example.com'}
+                                        {user.firstName ?? 'user@example.com'}
                                     </p>
                                 </div>
                                 <div className="p-2">
@@ -125,7 +134,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                                     </button>
                                     <div className="h-px bg-[var(--color-border)] dark:bg-gray-700 my-1" />
                                     <button
-                                        onClick={() => signOut({ callbackUrl: '/login' })}
+                                        onClick={handleLogout}
                                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 transition-colors duration-150"
                                     >
                                         <LogOut className="w-4 h-4" />

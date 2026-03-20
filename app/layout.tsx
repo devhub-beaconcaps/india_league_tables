@@ -1,33 +1,22 @@
-import { Inter } from 'next/font/google';
-import { SessionProvider } from '../components/SessionProvider';
-import type { Metadata } from 'next';
-import './globals.css';
-
-// ─── Font ─────────────────────────────────────────────────────────────────────
-
-const inter = Inter({ subsets: ['latin'] });
-
-// ─── Metadata ─────────────────────────────────────────────────────────────────
+import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
+import "./globals.css";
 
 export const metadata: Metadata = {
-    title: 'FinDash - Financial Dashboard',
-    description: 'A comprehensive financial dashboard with analytics and reporting',
+  title: "Your App",
+  description: "Your app description",
 };
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface RootLayoutProps {
-    children: React.ReactNode;
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
-
-export default function RootLayout({ children }: RootLayoutProps) {
-    return (
-        <html lang="en" suppressHydrationWarning>
-            <body className={inter.className}>
-                <SessionProvider>{children}</SessionProvider>
-            </body>
-        </html>
-    );
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <ClerkProvider>
+      <html lang="en">
+        <body>{children}</body>
+      </html>
+    </ClerkProvider>
+  );
 }

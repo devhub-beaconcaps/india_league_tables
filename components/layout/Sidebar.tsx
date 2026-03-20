@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { SignOutButton, useClerk, UserButton } from "@clerk/nextjs";
 import { cn } from '../../lib/utils';
 import {
     LayoutDashboard,
@@ -75,10 +76,17 @@ const navigation: NavItem[] = [
 export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }: SidebarProps) {
     const pathname = usePathname();
     const { theme, toggleTheme } = useThemeStore();
+    const { signOut } = useClerk();
+    const router = useRouter();
     const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
     const toggleExpand = (name: string): void => {
         setExpandedItem(expandedItem === name ? null : name);
+    };
+
+    const handleLogout = async () => {
+        await signOut(); // clears session cleanly first
+        router.push('/sign-in'); // then navigate — skip / entirely
     };
 
     return (
@@ -274,8 +282,9 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }: SidebarPro
 
                     {/* Logout */}
                     {!collapsed && (
-                        <button className="flex items-center gap-2 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 text-[13px] font-medium hover:opacity-75 transition px-1">
+                        <button onClick={handleLogout} className="flex items-center gap-2 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 text-[13px] font-medium hover:opacity-75 transition px-1">
                             <LogOut className="w-3.5 h-3.5" />
+
                             <span>Logout</span>
                         </button>
                     )}
