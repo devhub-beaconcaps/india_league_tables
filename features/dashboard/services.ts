@@ -1,4 +1,4 @@
-const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
 
 console.log("ENV VALUE:", process.env.NEXT_PUBLIC_BACKEND_URL);
 
