@@ -588,7 +588,7 @@ export default function Dashboard() {
   if (!isSignedIn) return <div>Sign in to view this page</div>
 
   return (
-    <SkeletonTheme baseColor="#e2e8f0" highlightColor="#f1f5f9" borderRadius="0.5rem">
+    <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#cbe1f2ff" borderRadius="0.5rem">
       <div className="space-y-5 px-4 sm:px-0">
         {/* Page Title */}
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>

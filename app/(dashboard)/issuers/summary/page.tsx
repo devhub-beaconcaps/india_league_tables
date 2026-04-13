@@ -351,7 +351,7 @@ export default function IssuerSummary() {
     };
 
     return (
-        <SkeletonTheme baseColor="#e2e8f0" highlightColor="#f1f5f9" borderRadius="0.5rem">
+        <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#90969bff" borderRadius="0.5rem">
             <div className="min-h-full space-y-4 font-sans text-gray-800 dark:text-gray-100">
 
                 {/* ── Page Title ── */}

@@ -291,7 +291,7 @@ export default function HeatMap() {
     const hasActiveFilters = activeLegend || debouncedSearch;
 
     return (
-        <SkeletonTheme baseColor="#e2e8f0" highlightColor="#f1f5f9" borderRadius="0.5rem">
+        <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#c8dcebff" borderRadius="0.5rem">
             <div className="min-h-full bg-slate-100 dark:bg-slate-900 p-4 md:p-2 relative">
                 {/* Tour Overlay */}
                 {isTourActive && (
