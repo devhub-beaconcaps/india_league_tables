@@ -314,7 +314,7 @@ export default function Dashboard() {
 
   const sanitizedIssuersTrendsData = useMemo((): IssueTrendData[] => {
     if (!issueTrendsData) return [];
-    return issueTrendsData.map(item => ({
+    return issueTrendsData?.map(item => ({
       ...item,
       total_issue_size_cr: parseFloat(String(item?.total_issue_size_cr)) || 0,
       total_no_of_issues: parseFloat(String(item?.total_no_of_issues)) || 0,

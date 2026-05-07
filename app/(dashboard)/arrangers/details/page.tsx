@@ -141,7 +141,7 @@ const TextInput = ({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function DetailedAnalysis() {
+export default function ArrangersDetailedAnalysis() {
     const router = useRouter();
 
     // Filter states

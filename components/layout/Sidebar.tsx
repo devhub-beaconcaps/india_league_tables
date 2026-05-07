@@ -65,10 +65,42 @@ const navigation: NavItem[] = [
             { name: 'Details', href: '/issuers/details' },
         ],
     },
-    { name: 'Arrangers', href: '/arrangers', icon: Handshake },
-    { name: 'Trustee', href: '/trustees', icon: Shield },
-    { name: 'Registrar', href: '/registrars', icon: ClipboardList },
-    { name: 'Rating Agency', href: '/agencies', icon: Award },
+    {
+        name: 'Arrangers',
+        href: '/arrangers',
+        icon: Handshake,
+        children: [
+            { name: 'Summary', href: '/arrangers/summary' },
+            { name: 'Details', href: '/arrangers/details' },
+        ],
+    },
+    {
+        name: 'Trustee',
+        href: '/trustees',
+        icon: Shield,
+        children: [
+            { name: 'Summary', href: '/trustees/summary' },
+            { name: 'Details', href: '/trustees/details' },
+        ],
+    },
+    {
+        name: 'Registrar',
+        href: '/registrars',
+        icon: ClipboardList,
+        children: [
+            { name: 'Summary', href: '/registrars/summary' },
+            { name: 'Details', href: '/registrars/details' },
+        ],
+    },
+    {
+        name: 'Rating Agency',
+        href: '/agencies',
+        icon: Award,
+        children: [
+            { name: 'Summary', href: '/agencies/summary' },
+            { name: 'Details', href: '/agencies/details' },
+        ],
+    }
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────

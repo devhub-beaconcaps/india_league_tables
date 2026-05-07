@@ -13,6 +13,7 @@ interface CustomDropdownProps {
   value: string | number;
   onChange: (value: string | number) => void;
   width?: string;
+  placeholder?: string; 
 }
 
 export default function CustomDropdown({
@@ -21,6 +22,7 @@ export default function CustomDropdown({
   value,
   onChange,
   width = "w-[7rem]",
+  placeholder = "Select",
 }: CustomDropdownProps) {
   const [open, setOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -48,7 +50,7 @@ export default function CustomDropdown({
         onClick={() => setOpen(!open)}
         className={`text-[9px] border border-gray-200 dark:border-gray-600 rounded-[12px] w-full sm:${width} px-3 py-1.5 bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200 cursor-pointer flex justify-between items-center`}
       >
-        {selectedOption?.label ?? "Select"}
+        {selectedOption?.label ?? placeholder ?? "Select"}
 
         <span className={`ml-2 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}>
           ▾
