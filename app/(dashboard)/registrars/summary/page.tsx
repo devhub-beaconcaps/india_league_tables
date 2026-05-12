@@ -1,22 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    PieChart, Pie, Cell, BarChart, Bar,
+    Tooltip, ResponsiveContainer,
+    PieChart, Pie, Cell,
 } from 'recharts';
 import FinanceTable from '@/components/Financetable';
-import DualAxisChart from '@/components/charts/DualAxisChart';
 import {
-    fetchCreditRatingsData,
-    fetchCurrentYearRedemptionData,
-    fetchissuePageTableData,
-    fetchNextYearRedemptionData,
     fetchOutstandingData,
-    fetchTopSectorsData,
 } from '@/features/issuers/services';
-import { useRedemptionMonthStore } from '@/lib/store';
-import { useRouter } from 'next/navigation';
 import CustomDropdown from '@/components/CustomDropdown';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -24,17 +16,12 @@ import 'react-loading-skeleton/dist/skeleton.css';
 // Import types
 import {
     FormattedIssuerItem,
-    FormattedSectorItem,
     FormattedOutstandingItem,
-    FormattedDebtItem,
     FormattedRatingItem,
     FormattedMarketShareItem,
     TotalsData,
     TableApiResponse,
-    RawIssuerItem,
-    RawSectorItem,
     RawOutstandingItem,
-    RawDebtItem,
     RawRatingItem,
     FYOption,
     DateRange,
@@ -47,9 +34,8 @@ import {
     CustomTooltipProps,
     TooltipPayloadEntry,
     PieLabelProps,
-    BarClickData,
-    BarClickHandler,
     SectionCardProps,
+    SectorItem,
 } from './types';
 
 // Import constants
@@ -63,16 +49,16 @@ import {
 // Import utils
 import {
     formatData,
-    formatSectorData,
-    getShortForm,
     formatOutstandingData,
-    formatDebtData,
     formatMarketShareData,
     getFinancialYears,
     getDateRange,
-    getMonthDates,
     formatRatingsData,
 } from './utils';
+import StackedChart from '@/components/charts/StackedChart';
+import ScrollableTable from '@/components/ScrollableTable';
+import { fetchTrusteePageCreditRatingsData, fetchTrusteePageTrusteesData } from '@/features/trustees/services';
+import { fetchRegistrarPageCreditRatingsData, fetchRegistrarPageData } from '@/features/registrars/services';
 
 // ─── Skeleton Components ─────────────────────────────────────────────────────
 
@@ -113,31 +99,23 @@ function PieChartSkeleton() {
 }
 
 
-function BarChartSkeleton() {
-    return (
-        <div className="h-[200px] w-full">
-            <Skeleton height="100%" width="100%" />
-        </div>
-    );
-}
-
 // ─── Empty State Component ───────────────────────────────────────────────────
 
 function NoDataState({ message = "No data available", subMessage }: { message?: string; subMessage?: string }) {
     return (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <div className="w-16 h-16 mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                <svg 
-                    className="w-8 h-8 text-gray-400 dark:text-gray-500" 
-                    fill="none" 
-                    stroke="currentColor" 
+                <svg
+                    className="w-8 h-8 text-gray-400 dark:text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                 >
-                    <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth={1.5} 
-                        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                 </svg>
             </div>
@@ -207,28 +185,21 @@ export default function Summary() {
     const [frequency, setFrequency] = useState<FrequencyValue>('Yearly');
     const [period, setPeriod] = useState<SelectedPeriod>(null);
     const [issueType, setIssueType] = useState<IssueType>('size');
-    const router = useRouter();
 
     const [valueConvention, setValueConvention] = useState<ValueConvention>('Crores');
     const [creditRatingAgency, setCreditRatingAgency] = useState<string | number>(0);
     const [issueTableData, setIssueTableData] = useState<FormattedIssuerItem[]>([]);
-    const [topSectorsData, setTopSectorsData] = useState<FormattedSectorItem[]>([]);
-    const [outstandingData, setOutstandingData] = useState<FormattedOutstandingItem[]>([]);
+    const [listTableData, setListTableData] = useState<FormattedIssuerItem[]>([]);
+    const [topSectorsData, setTopSectorsData] = useState<SectorItem[]>([]);
     const [marketShareData, setMarketShareData] = useState<FormattedMarketShareItem[]>([]);
-    const [debtScheduleCurrentData, setDebtScheduleCurrentData] = useState<FormattedDebtItem[]>([]);
-    const [debtScheduleNextData, setDebtScheduleNextData] = useState<FormattedDebtItem[]>([]);
     const [ratingData, setRatingData] = useState<FormattedRatingItem[]>([]);
     const [totalsData, setTotalsData] = useState<TotalsData | null>(null);
 
     // Loading states
     const [isTableLoading, setIsTableLoading] = useState(true);
     const [isSectorsLoading, setIsSectorsLoading] = useState(true);
-    const [isOutstandingLoading, setIsOutstandingLoading] = useState(true);
     const [isMarketShareLoading, setIsMarketShareLoading] = useState(true);
-    const [isDebtLoading, setIsDebtLoading] = useState(true);
     const [isRatingLoading, setIsRatingLoading] = useState(true);
-
-    const { setRedemptionMonthDateRange } = useRedemptionMonthStore();
 
     const selectedYearsDateRange = useMemo<DateRange | null>(
         () => getDateRange({ fy: selectedFY, frequency, period }),
@@ -263,50 +234,45 @@ export default function Summary() {
         const fetchData = async (): Promise<void> => {
             setIsTableLoading(true);
             setIsSectorsLoading(true);
-            setIsOutstandingLoading(true);
             setIsMarketShareLoading(true);
-            setIsDebtLoading(true);
 
             const query = {
                 startDate: selectedYearsDateRange.startDate,
                 endDate: selectedYearsDateRange.endDate,
                 issueType,
+                limit: 10
+            };
+            const Listquery = {
+                startDate: selectedYearsDateRange.startDate,
+                endDate: selectedYearsDateRange.endDate,
+                issueType
             };
 
             try {
                 console.log('Fetching data with date range:', selectedYearsDateRange);
 
-                const table: TableApiResponse = await fetchissuePageTableData(query);
-                const sectors: RawSectorItem[] = await fetchTopSectorsData(query);
-                const outstandings: RawOutstandingItem[] = await fetchOutstandingData(query);
-                const marketShare = formatMarketShareData(table?.data || [], issueType);
-                const currentRedemptions: RawDebtItem[] = await fetchCurrentYearRedemptionData();
-                const nextRedemptions: RawDebtItem[] = await fetchNextYearRedemptionData();
+                // const table: TableApiResponse = await fetchissuePageTableData(query);
+                const fetchedData: TableApiResponse = await fetchRegistrarPageData(query);
+                const lists: TableApiResponse = await fetchRegistrarPageData(Listquery);
+                console.log('registrars table data', fetchedData?.tableData);
+                console.log('registrars list data', lists?.tableData);
+                const marketShare = formatMarketShareData(fetchedData?.tableData || [], issueType);
 
-                console.log('table: ', table);
-                console.log('sectors', sectors);
-
-                setIssueTableData(formatData(table?.data || []));
-                setTotalsData(table?.totals);
-                setTopSectorsData(formatSectorData(sectors || []));
-                setOutstandingData(formatOutstandingData(outstandings || []));
+                setListTableData(formatData(lists?.tableData || []));
+                setIssueTableData(formatData(fetchedData?.tableData || []));
+                setTotalsData(fetchedData?.totals);
+                setTopSectorsData(fetchedData?.sectorData || []);
                 setMarketShareData(marketShare);
-                setDebtScheduleCurrentData(formatDebtData(currentRedemptions || []));
-                setDebtScheduleNextData(formatDebtData(nextRedemptions || []));
             } catch (err) {
                 console.error('API Error:', err);
                 setIssueTableData([]);
+                setListTableData([]);
                 setTopSectorsData([]);
-                setOutstandingData([]);
                 setMarketShareData([]);
-                setDebtScheduleCurrentData([]);
-                setDebtScheduleNextData([]);
             } finally {
                 setIsTableLoading(false);
                 setIsSectorsLoading(false);
-                setIsOutstandingLoading(false);
                 setIsMarketShareLoading(false);
-                setIsDebtLoading(false);
             }
         };
 
@@ -326,9 +292,10 @@ export default function Summary() {
             };
 
             try {
-                const Ratings: RawRatingItem[] = await fetchCreditRatingsData(query);
+                const Ratings: RawRatingItem[] = await fetchRegistrarPageCreditRatingsData(query);
                 console.log("rating data", Ratings, creditRatingAgency);
-                
+                // console.log("ratingData",ratingData);
+
                 setRatingData(formatRatingsData(Ratings || [], creditRatingAgency));
             } catch (err) {
                 console.error('API Error:', err);
@@ -341,23 +308,14 @@ export default function Summary() {
         fetchData();
     }, [selectedYearsDateRange, creditRatingAgency]);
 
-    const handleBarClick: BarClickHandler = (data): void => {
-        const item = data?.payload;
-        if (!item) return;
-        console.log('Bar data: ', item);
-        const { startDate, endDate } = getMonthDates(item.month, item.year);
-        setRedemptionMonthDateRange({ startDate, endDate });
-        router.push('/redemption');
-    };
-
     return (
         <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#90969bff" borderRadius="0.5rem">
             <div className="min-h-full space-y-4 font-sans text-gray-800 dark:text-gray-100">
 
                 {/* ── Page Title ── */}
                 <div>
-                    <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Issuer Summary</h1>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 mt-1">Issuer &gt; Summary</p>
+                    <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Registrar Summary</h1>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 mt-1">Registrar &gt; Summary</p>
                 </div>
 
                 {/* ── Financial Year Filter ── */}
@@ -511,70 +469,15 @@ export default function Summary() {
                 {/* ── Sector + Market Share Row ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
                     <SectionCard>
-                        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                            Top 10 Business Sectors by Issue Size
-                        </h2>
                         {isSectorsLoading ? (
                             <ChartSkeleton height={220} />
-                        ) : topSectorsData.length > 0 ? (
+                        ) : topSectorsData?.length > 0 ? (
                             <>
-                                <ResponsiveContainer width="100%" height={220}>
-                                    <AreaChart data={topSectorsData} margin={{ top: 5, right: 10, left: 10, bottom: 40 }}>
-                                        <defs>
-                                            <linearGradient id="cyGrad" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#423CAB" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="#423CAB" stopOpacity={0.02} />
-                                            </linearGradient>
-                                            <linearGradient id="pyGrad" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="#ec4899" stopOpacity={0.02} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.6} vertical={false} />
-                                        <XAxis
-                                            dataKey="sector"
-                                            tick={{ fontSize: 9, fill: '#9ca3af' }}
-                                            tickFormatter={getShortForm}
-                                            tickMargin={12}
-                                            interval={0}
-                                            angle={-30}
-                                            textAnchor="end"
-                                        />
-                                        <YAxis
-                                            tick={{ fontSize: 9, fill: '#9ca3af' }}
-                                            tickFormatter={(v: number) => (v >= 1000 ? `${v / 1000}k` : String(v))}
-                                        />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="cy"
-                                            name={issueType === 'count' ? 'CY Issue Count' : 'CY Issue Size'}
-                                            stroke="#7c3aed"
-                                            strokeWidth={2}
-                                            fill="url(#cyGrad)"
-                                            dot={{ r: 3, fill: '#7c3aed' }}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="py"
-                                            name={issueType === 'count' ? 'PY Issue Count' : 'PY Issue Size'}
-                                            stroke="#ec4899"
-                                            strokeWidth={2}
-                                            fill="url(#pyGrad)"
-                                            dot={{ r: 3, fill: '#ec4899' }}
-                                        />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                                <div className="flex items-center gap-4 justify-center mt-1">
-                                    <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                                        <span className="w-3 h-3 rounded-full bg-[#7c3aed] inline-block" />
-                                        CY Issue Size
-                                    </span>
-                                    <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                                        <span className="w-3 h-3 rounded-full bg-[#ec4899] inline-block" />
-                                        PY Issue Size
-                                    </span>
-                                </div>
+                                <StackedChart
+                                    data={topSectorsData}
+                                    height={300}
+                                    title="Top Arrangers by Sector"
+                                />
                             </>
                         ) : (
                             <NoDataState message="No sector data available" subMessage="Sector data will appear here once available." />
@@ -636,58 +539,10 @@ export default function Summary() {
                     <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
                         Corporate Bond Outstanding Trends Analysis : {selectedFY}
                     </h2>
-                    {isOutstandingLoading ? (
-                        <ChartSkeleton height={300} />
-                    ) : outstandingData.length > 0 ? (
-                        <DualAxisChart data={outstandingData} />
-                    ) : (
-                        <NoDataState message="No outstanding trend data available" />
-                    )}
+                    <div className="h-[250px]">  {/* Fixed height parent */}
+                        <ScrollableTable data={listTableData} />
+                    </div>
                 </SectionCard>
-
-                {/* ── Debt Redemption Schedules ── */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {[
-                        { title: 'Current Financial Year', data: debtScheduleCurrentData, loading: isDebtLoading },
-                        { title: 'Next Financial Year', data: debtScheduleNextData, loading: isDebtLoading },
-                    ].map(({ title, data, loading }) => (
-                        <SectionCard key={title}>
-                            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">
-                                Debt Redemption Schedule - {title}
-                            </h2>
-                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-3">
-                                Note: Click any bar in the graph to view the redemption list for that particular period.
-                            </p>
-                            {loading ? (
-                                <BarChartSkeleton />
-                            ) : data.length > 0 ? (
-                                <>
-                                    <ResponsiveContainer width="100%" height={200}>
-                                        <BarChart data={data} margin={{ top: 5, right: 10, left: 5, bottom: 5 }} barCategoryGap="30%">
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.6} vertical={false} />
-                                            <XAxis dataKey="month" tick={{ fontSize: 9, fill: '#9ca3af' }} />
-                                            <YAxis yAxisId="left" tick={{ fontSize: 9, fill: '#9ca3af' }} />
-                                            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9, fill: '#9ca3af' }} />
-                                            <Tooltip content={<CustomTooltip />} />
-                                            <Bar yAxisId="left" dataKey="noOfIssues" name="No. of Issues" fill="#423CAB" radius={[2, 2, 0, 0]} onClick={handleBarClick} />
-                                            <Bar yAxisId="right" dataKey="issueSize" name="Issue Size" fill="#a5b4fc" radius={[2, 2, 0, 0]} onClick={handleBarClick} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                    <div className="flex items-center gap-4 justify-center mt-1">
-                                        <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                                            <span className="w-3 h-3 rounded-full bg-[#7c3aed] inline-block" />No. of Issues
-                                        </span>
-                                        <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                                            <span className="w-3 h-3 rounded-full bg-[#a5b4fc] inline-block" />Issue Size
-                                        </span>
-                                    </div>
-                                </>
-                            ) : (
-                                <NoDataState message={`No redemption data available for ${title}`} />
-                            )}
-                        </SectionCard>
-                    ))}
-                </div>
 
                 {/* ── Credit Ratings ── */}
                 <SectionCard>

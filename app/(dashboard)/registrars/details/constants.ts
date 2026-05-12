@@ -102,7 +102,18 @@ export const TENURE_OPTIONS: FilterOption[] = [
 ];
 
 export const TABLE_COLUMNS = [
+    { key: 'isin', label: 'ISIN', width: 'w-[130px]'},
     { key: 'securityName', label: 'Security Name', width: 'w-[150px]' },
+    { key: 'nature', label: 'Nature Type', width: 'w-[150px]' },
+    { key: 'ownershipType', label: 'Ownership Type', width: 'w-[150px]' },
+    { key: 'sector', label: 'Sector', width: 'w-[150px]' },
+    { key: 'creditRatingAgency', label: 'Credit Rating Agency', width: 'w-[150px]' },
+    { key: 'creditRating', label: 'Ratings', width: 'w-[150px]' },
+    { key: 'seniority', label: 'Seniority', width: 'w-[150px]' },
+    { key: 'securedFlag', label: 'Secured Flag', width: 'w-[150px]' },
+    { key: 'listingStatus', label: 'Listing Status', width: 'w-[150px]' },
+    { key: 'taxFree', label: 'Tax Free', width: 'w-[130px]' },
+    { key: 'issueSize', label: 'Deals size', width: 'w-[130px]' },
     { key: 'securityType', label: 'Security Type', width: 'w-[130px]' },
     { key: 'modeOfIssue', label: 'Mode of Issue', width: 'w-[140px]' },
     { key: 'issueValue', label: 'Issue Value (₹)', width: 'w-[130px]' },

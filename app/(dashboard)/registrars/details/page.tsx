@@ -7,10 +7,56 @@ import 'react-loading-skeleton/dist/skeleton.css';
 import CustomDropdown from '@/components/CustomDropdown';
 import { Search, Download, X, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 
-import {FilterOption, DateRange, FilterState, TableDataItem} from './types';
+import { FilterOption, FilterState, TableDataItem } from './types';
+import { TABLE_COLUMNS } from './constants';
+import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
+import { fetchRegistrarPageDetailedData } from '@/features/registrars/services';
 
 
-import {ISSUER_NAME_OPTIONS, ISSUER_OWNERSHIP_OPTIONS, ISSUER_NATURE_OPTIONS, BUSINESS_SECTOR_OPTIONS, SECURITY_TYPE_OPTIONS, MODE_OF_ISSUE_OPTIONS, CREDIT_RATING_AGENCY_OPTIONS, CREDIT_RATING_OPTIONS, SENIORITY_OPTIONS, SERVICED_FLAG_OPTIONS, LISTING_STATUS_OPTIONS, TAX_FREE_OPTIONS, DEAL_SIZE_OPTIONS, TENURE_OPTIONS, TABLE_COLUMNS} from './constants';
+// Helper to get current financial year dates (India: April 1 - March 31)
+const getCurrentFinancialYearDates = () => {
+    const today = new Date('2026-05-07'); // Current date
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-indexed, April = 3
+
+    // Financial year starts April 1
+    // If current month is Jan-Mar, FY started previous year
+    const fyStartYear = currentMonth < 3 ? currentYear - 1 : currentYear;
+
+    const startDate = `${fyStartYear}-04-01`;
+    const endDate = today.toISOString().split('T')[0]; // 2026-05-07
+
+    return { startDate, endDate };
+};
+
+const DEFAULT_DATES = getCurrentFinancialYearDates();
+
+// ─── Types ─────────────────────────────────────────────────────────────────
+
+interface FilterInputsResponse {
+    taxFree: string[];
+    ownershipType: string[];
+    nature: string[];
+    sector: string[];
+    securityType: string[];
+    modeOfIssue: string[];
+    creditRatingAgency: string[];
+    creditRating: string[];
+    seniority: string[];
+    securedFlag: string[];
+    listingStatus: string[];
+}
+
+interface PaginatedResponse {
+    data: TableDataItem[];
+    pagination: {
+        total: number;
+        limit: number;
+        offset: number;
+        hasMore: boolean;
+    };
+}
+
 // ─── Skeleton Components ─────────────────────────────────────────────────────
 
 function TableSkeleton() {
@@ -123,7 +169,7 @@ const TextInput = ({
     placeholder,
     type = 'text'
 }: {
-    value: string;
+    value: string | number;
     onChange: (value: string) => void;
     placeholder?: string;
     type?: string;
@@ -144,14 +190,18 @@ const TextInput = ({
 export default function DetailedAnalysis() {
     const router = useRouter();
 
+    const isinHandler = (item: any): void => {
+        router.push(`/specific-issuer/${item?.id}`);
+    };
+
     // Filter states
     const [filters, setFilters] = useState<FilterState>({
-        issuerName: '',
+        registrar: '',
         issuerOwnershipType: '',
         issuerNatureType: '',
         businessSector: '',
-        fromAllotmentDate: '',
-        toAllotmentDate: '',
+        fromAllotmentDate: DEFAULT_DATES.startDate,  // 2026-04-01
+        toAllotmentDate: DEFAULT_DATES.endDate,        // 2026-05-07
         securityType: '',
         modeOfIssue: '',
         creditRatingAgency: '',
@@ -161,147 +211,140 @@ export default function DetailedAnalysis() {
         listingStatus: '',
         taxFree: '',
         dealSizeInCr: '',
-        tenure: '',
-        amountGreaterThanOrEqual: '',
-        dayMoreThanOrEqual: '',
+    });
+    // Filter options states
+    const [filterOptions, setFilterOptions] = useState<FilterInputsResponse>({
+        taxFree: [],
+        ownershipType: [],
+        nature: [],
+        sector: [],
+        securityType: [],
+        modeOfIssue: [],
+        creditRatingAgency: [],
+        creditRating: [],
+        seniority: [],
+        securedFlag: [],
+        listingStatus: [],
     });
 
     // Table states
     const [tableData, setTableData] = useState<TableDataItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isFiltersLoading, setIsFiltersLoading] = useState(false);
+    const [isFiltersLoading, setIsFiltersLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(25);
     const [totalCount, setTotalCount] = useState(0);
     const [sortColumn, setSortColumn] = useState<string>('issuerName');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [searchQuery, setSearchQuery] = useState('');
+    const [error, setError] = useState<string | null>(null);
 
     // Update filter helper
     const updateFilter = useCallback((key: keyof FilterState, value: string | number) => {
         setFilters(prev => ({ ...prev, [key]: value }));
     }, []);
 
-    // Fetch data
+    // ─── API Functions ─────────────────────────────────────────────────────
+
+    // Fetch filter inputs data
+    const fetchFilterInputs = useCallback(async () => {
+        setIsFiltersLoading(true);
+        try {
+            const query = {
+                startDate: filters.fromAllotmentDate || DEFAULT_DATES.startDate,
+                endDate: filters.toAllotmentDate || DEFAULT_DATES.endDate,
+            };
+
+            const data: FilterInputsResponse = await fetchIssueDetailsFilterInputsData(query);
+
+            console.log('Filter inputs data:', data);
+
+            setFilterOptions(data);
+            setError(null);
+        } catch (err) {
+            console.error('Error fetching filter inputs:', err);
+            setError('Failed to load filter options');
+        } finally {
+            setIsFiltersLoading(false);
+        }
+    }, [filters.fromAllotmentDate, filters.toAllotmentDate]);
+
+    // Fetch table data
     const fetchData = useCallback(async () => {
         setIsLoading(true);
+        setError(null);
         try {
-            // Simulate API call - replace with actual API
-            // const response = await fetchDetailedAnalysisData({
-            //     ...filters,
-            //     page: currentPage,
-            //     pageSize,
-            //     sortColumn,
-            //     sortDirection,
-            //     searchQuery,
-            // });
+            const offset = (currentPage - 1) * pageSize;
 
-            // Simulated data matching the image
-            const mockData: TableDataItem[] = [
-                {
-                    id: 1,
-                    issuerName: '360 ONE GROWTH FUND',
-                    securityName: '360 ONE',
-                    securityType: 'Equity',
-                    modeOfIssue: 'Public Offering',
-                    issueValue: 95000,
-                    faceValue: 95000,
-                    allotmentDate: '15-Apr-2024',
-                    dateOfMaturity: '15-Apr-2026',
-                },
-                {
-                    id: 2,
-                    issuerName: '360 ONE PRIME LIMITED',
-                    securityName: '360 ONE',
-                    securityType: 'Debentures',
-                    modeOfIssue: 'Private Placement',
-                    issueValue: 100000,
-                    faceValue: 100000,
-                    allotmentDate: '27-Mar-2024',
-                    dateOfMaturity: '27-Mar-2026',
-                },
-                {
-                    id: 3,
-                    issuerName: '360 ONE EMERGING MARKETS',
-                    securityName: '360 ONE',
-                    securityType: 'Mutual Fund',
-                    modeOfIssue: 'Public Offering',
-                    issueValue: 100000,
-                    faceValue: 100000,
-                    allotmentDate: '10-Jan-2024',
-                    dateOfMaturity: '10-Jan-2026',
-                },
-                {
-                    id: 4,
-                    issuerName: '360 ONE GROWTH FUND',
-                    securityName: '360 ONE',
-                    securityType: 'Equity',
-                    modeOfIssue: 'Public Offering',
-                    issueValue: 50000,
-                    faceValue: 50000,
-                    allotmentDate: '15-Apr-2024',
-                    dateOfMaturity: '15-Apr-2026',
-                },
-                {
-                    id: 5,
-                    issuerName: '360 ONE PRIME LIMITED',
-                    securityName: '360 ONE',
-                    securityType: 'Debentures',
-                    modeOfIssue: 'Private Placement',
-                    issueValue: 100000,
-                    faceValue: 100000,
-                    allotmentDate: '27-Mar-2024',
-                    dateOfMaturity: '27-Mar-2026',
-                },
-                {
-                    id: 6,
-                    issuerName: 'ADITYA BIRLA CAPITAL LIMITED',
-                    securityName: '360 ONE',
-                    securityType: 'Hybrid Fund',
-                    modeOfIssue: 'Private Placement',
-                    issueValue: 75000,
-                    faceValue: 75000,
-                    allotmentDate: '01-May-2024',
-                    dateOfMaturity: '01-May-2026',
-                },
-                {
-                    id: 7,
-                    issuerName: '360 ONE BALANCED FUND',
-                    securityName: '360 ONE',
-                    securityType: 'Hybrid Fund',
-                    modeOfIssue: 'Private Placement',
-                    issueValue: 75000,
-                    faceValue: 75000,
-                    allotmentDate: '01-May-2024',
-                    dateOfMaturity: '01-May-2026',
-                },
-                {
-                    id: 8,
-                    issuerName: '360 ONE BALANCED FUND',
-                    securityName: '360 ONE',
-                    securityType: 'Hybrid Fund',
-                    modeOfIssue: 'Private Placement',
-                    issueValue: 75000,
-                    faceValue: 75000,
-                    allotmentDate: '01-May-2024',
-                    dateOfMaturity: '01-May-2026',
-                },
-            ];
+            const requestBody = {
+                startDate: filters.fromAllotmentDate || DEFAULT_DATES.startDate,
+                endDate: filters.toAllotmentDate || DEFAULT_DATES.endDate,
+                limit: pageSize,
+                offset: offset,
+                registrar: filters.registrar,
+                rating: filters.creditRating,
+                seniority: filters.seniority,
+                securityType: filters.securityType,
+                taxFree: filters.taxFree,
+                securedFlag: filters.servicedFlag,
+                sector: filters.businessSector,
+                nature: filters.issuerNatureType,
+                ownershipType: filters.issuerOwnershipType,
+                creditRatingAgency: filters.creditRatingAgency,
+                dealSize: filters.dealSizeInCr,
+                listingStatus: filters.listingStatus,
+                modeOfIssue: filters.modeOfIssue
+            };
 
-            // Simulate network delay
-            await new Promise(resolve => setTimeout(resolve, 800));
+            const result: PaginatedResponse = await fetchRegistrarPageDetailedData(requestBody);
 
-            setTableData(mockData);
-            setTotalCount(100);
+            // Map backend data to frontend format
+            const mappedData: TableDataItem[] = result.data?.map((item: any) => ({
+                id: item.id,
+                isin: item.isin,
+                issuerName: item.issuerName || '-',
+                ownershipType: item.ownershipType || '-',
+                nature: item.nature || '-',
+                sector: item.sector || '-',
+                creditRatingAgency: item.creditRatingAgency || '-',
+                creditRating: item.creditRating || '-',
+                arranger: item.arranger || '-',
+                trustee: item.debentureTrustee || '-',
+                registrar: item.registrar || '-',
+                seniority: item.seniority || '-',
+                securedFlag: item.securedFlag || '-',
+                listingStatus: item.listingStatus || '-',
+                taxFree: item.taxFree || '-',
+                issueSize: item.issueSize || 0,
+                securityName: item.securityName || '-',
+                securityType: item.securityType || '-',
+                modeOfIssue: item.modeOfIssue || '-',
+                issueValue: item.issueSize || 0,
+                faceValue: item.faceValue || 0,
+                allotmentDate: item.allotmentDate || '-',
+                dateOfMaturity: item.maturityDate || '-',
+            }));
+
+            console.log("mappedData",mappedData)
+
+            setTableData(mappedData);
+            setTotalCount(result.pagination.total);
         } catch (err) {
             console.error('API Error:', err);
+            setError('Failed to fetch data');
             setTableData([]);
+            setTotalCount(0);
         } finally {
             setIsLoading(false);
         }
-    }, [filters, currentPage, pageSize, sortColumn, sortDirection, searchQuery]);
+    }, [filters, currentPage, pageSize]);
 
-    // Initial fetch
+    // Initial fetch for filter inputs
+    useEffect(() => {
+        fetchFilterInputs();
+    }, [fetchFilterInputs]);
+
+    // Fetch data when dependencies change
     useEffect(() => {
         fetchData();
     }, [fetchData]);
@@ -315,12 +358,12 @@ export default function DetailedAnalysis() {
     // Handle reset
     const handleReset = () => {
         setFilters({
-            issuerName: '',
+            registrar: '',
             issuerOwnershipType: '',
             issuerNatureType: '',
             businessSector: '',
-            fromAllotmentDate: '',
-            toAllotmentDate: '',
+            fromAllotmentDate: DEFAULT_DATES.startDate,
+            toAllotmentDate: DEFAULT_DATES.endDate,
             securityType: '',
             modeOfIssue: '',
             creditRatingAgency: '',
@@ -330,9 +373,6 @@ export default function DetailedAnalysis() {
             listingStatus: '',
             taxFree: '',
             dealSizeInCr: '',
-            tenure: '',
-            amountGreaterThanOrEqual: '',
-            dayMoreThanOrEqual: '',
         });
         setSearchQuery('');
         setCurrentPage(1);
@@ -365,15 +405,23 @@ export default function DetailedAnalysis() {
         }).format(value);
     };
 
+    // Convert array to dropdown options format
+    const toOptions = (items: string[]): FilterOption[] => {
+        return items.map(item => ({
+            value: item,
+            label: item,
+        }));
+    };
+
     return (
         <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#90969bff" borderRadius="0.5rem">
             <div className="min-h-full space-y-4 font-sans text-gray-800 dark:text-gray-100">
 
                 {/* ── Page Title & Breadcrumb ── */}
                 <div>
-                    <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Issuer Detailed Analysis</h1>
+                    <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Registrar Detailed Analysis</h1>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 mt-1">
-                        Reports <span className="mx-1">&gt;</span> Issuer <span className="mx-1">&gt;</span> Detailed Analysis
+                        Reports <span className="mx-1">&gt;</span> Registrar <span className="mx-1">&gt;</span> Detailed Analysis
                     </p>
                 </div>
 
@@ -385,18 +433,18 @@ export default function DetailedAnalysis() {
                         <>
                             {/* Filter Grid */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
-                                <FilterGroup label="Issuer Name">
-                                    <CustomDropdown
-                                        options={ISSUER_NAME_OPTIONS}
-                                        value={filters.issuerName}
-                                        onChange={(val) => updateFilter('issuerName', val)}
-                                        placeholder="Select Issuer"
+                                <FilterGroup label="Registrar Name">
+                                    <TextInput
+                                        value={filters.registrar}
+                                        onChange={(val) => updateFilter('registrar', val)}
+                                        placeholder="Enter Registrar Name"
+                                        type="text"
                                     />
                                 </FilterGroup>
 
                                 <FilterGroup label="Issuer Ownership Type">
                                     <CustomDropdown
-                                        options={ISSUER_OWNERSHIP_OPTIONS}
+                                        options={toOptions(filterOptions.ownershipType)}
                                         value={filters.issuerOwnershipType}
                                         onChange={(val) => updateFilter('issuerOwnershipType', val)}
                                         placeholder="Select Ownership"
@@ -405,7 +453,7 @@ export default function DetailedAnalysis() {
 
                                 <FilterGroup label="Issuer Nature Type">
                                     <CustomDropdown
-                                        options={ISSUER_NATURE_OPTIONS}
+                                        options={toOptions(filterOptions.nature)}
                                         value={filters.issuerNatureType}
                                         onChange={(val) => updateFilter('issuerNatureType', val)}
                                         placeholder="Select Nature"
@@ -414,7 +462,7 @@ export default function DetailedAnalysis() {
 
                                 <FilterGroup label="Business Sector">
                                     <CustomDropdown
-                                        options={BUSINESS_SECTOR_OPTIONS}
+                                        options={toOptions(filterOptions.sector)}
                                         value={filters.businessSector}
                                         onChange={(val) => updateFilter('businessSector', val)}
                                         placeholder="Select Sector"
@@ -437,7 +485,7 @@ export default function DetailedAnalysis() {
 
                                 <FilterGroup label="Security Type">
                                     <CustomDropdown
-                                        options={SECURITY_TYPE_OPTIONS}
+                                        options={toOptions(filterOptions.securityType)}
                                         value={filters.securityType}
                                         onChange={(val) => updateFilter('securityType', val)}
                                         placeholder="Select Security"
@@ -446,7 +494,7 @@ export default function DetailedAnalysis() {
 
                                 <FilterGroup label="Mode of Issue">
                                     <CustomDropdown
-                                        options={MODE_OF_ISSUE_OPTIONS}
+                                        options={toOptions(filterOptions.modeOfIssue)}
                                         value={filters.modeOfIssue}
                                         onChange={(val) => updateFilter('modeOfIssue', val)}
                                         placeholder="Select Mode"
@@ -455,7 +503,7 @@ export default function DetailedAnalysis() {
 
                                 <FilterGroup label="Credit Rating Agency">
                                     <CustomDropdown
-                                        options={CREDIT_RATING_AGENCY_OPTIONS}
+                                        options={toOptions(filterOptions.creditRatingAgency)}
                                         value={filters.creditRatingAgency}
                                         onChange={(val) => updateFilter('creditRatingAgency', val)}
                                         placeholder="Select Agency"
@@ -464,7 +512,7 @@ export default function DetailedAnalysis() {
 
                                 <FilterGroup label="Credit Rating">
                                     <CustomDropdown
-                                        options={CREDIT_RATING_OPTIONS}
+                                        options={toOptions(filterOptions.creditRating)}
                                         value={filters.creditRating}
                                         onChange={(val) => updateFilter('creditRating', val)}
                                         placeholder="Select Rating"
@@ -473,7 +521,7 @@ export default function DetailedAnalysis() {
 
                                 <FilterGroup label="Seniority">
                                     <CustomDropdown
-                                        options={SENIORITY_OPTIONS}
+                                        options={toOptions(filterOptions.seniority)}
                                         value={filters.seniority}
                                         onChange={(val) => updateFilter('seniority', val)}
                                         placeholder="Select Seniority"
@@ -482,7 +530,7 @@ export default function DetailedAnalysis() {
 
                                 <FilterGroup label="Serviced Flag">
                                     <CustomDropdown
-                                        options={SERVICED_FLAG_OPTIONS}
+                                        options={toOptions(filterOptions.securedFlag)}
                                         value={filters.servicedFlag}
                                         onChange={(val) => updateFilter('servicedFlag', val)}
                                         placeholder="Select Flag"
@@ -491,7 +539,7 @@ export default function DetailedAnalysis() {
 
                                 <FilterGroup label="Listing Status">
                                     <CustomDropdown
-                                        options={LISTING_STATUS_OPTIONS}
+                                        options={toOptions(filterOptions.listingStatus)}
                                         value={filters.listingStatus}
                                         onChange={(val) => updateFilter('listingStatus', val)}
                                         placeholder="Select Status"
@@ -500,7 +548,7 @@ export default function DetailedAnalysis() {
 
                                 <FilterGroup label="Tax Free">
                                     <CustomDropdown
-                                        options={TAX_FREE_OPTIONS}
+                                        options={toOptions(filterOptions.taxFree)}
                                         value={filters.taxFree}
                                         onChange={(val) => updateFilter('taxFree', val)}
                                         placeholder="Select Tax Status"
@@ -508,37 +556,10 @@ export default function DetailedAnalysis() {
                                 </FilterGroup>
 
                                 <FilterGroup label="Deal Size (in Cr)">
-                                    <CustomDropdown
-                                        options={DEAL_SIZE_OPTIONS}
+                                    <TextInput
                                         value={filters.dealSizeInCr}
                                         onChange={(val) => updateFilter('dealSizeInCr', val)}
-                                        placeholder="Select Size"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Tenure">
-                                    <CustomDropdown
-                                        options={TENURE_OPTIONS}
-                                        value={filters.tenure}
-                                        onChange={(val) => updateFilter('tenure', val)}
-                                        placeholder="Select Tenure"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Amount greater than or equal">
-                                    <TextInput
-                                        value={filters.amountGreaterThanOrEqual}
-                                        onChange={(val) => updateFilter('amountGreaterThanOrEqual', val)}
-                                        placeholder="Enter amount"
-                                        type="number"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Day more than or equal to">
-                                    <TextInput
-                                        value={filters.dayMoreThanOrEqual}
-                                        onChange={(val) => updateFilter('dayMoreThanOrEqual', val)}
-                                        placeholder="Enter days"
+                                        placeholder="Enter Size"
                                         type="number"
                                     />
                                 </FilterGroup>
@@ -603,15 +624,25 @@ export default function DetailedAnalysis() {
                         </div>
                     </div>
 
+                    {/* Error State */}
+                    {error && (
+                        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                            <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+                        </div>
+                    )}
+
                     {/* Table */}
                     <div className="overflow-x-auto">
                         {isLoading ? (
                             <TableSkeleton />
                         ) : tableData.length > 0 ? (
                             <div className="rounded-xl bg-white dark:bg-gray-900 overflow-x-auto">
-                                <table className="w-full table-auto border-separate border-spacing-[4px] text-[12px]">
+                                <table className="w-full table-auto overflow-x-auto border-separate border-spacing-[4px] text-[12px]">
                                     <thead>
                                         <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
+                                            <th className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8] w-[30%]">
+                                                Registrar
+                                            </th>
                                             <th className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8] w-[30%]">
                                                 Issuer Name
                                             </th>
@@ -621,7 +652,7 @@ export default function DetailedAnalysis() {
                                                     className={`border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8]`}
                                                     onClick={() => handleSort(column.key)}
                                                 >
-                                                    <div className="flex items-center gap-1">
+                                                    <div className="flex items-center gap-1 justify-center">
                                                         {column.label}
                                                         {sortColumn === column.key && (
                                                             sortDirection === 'asc'
@@ -634,7 +665,7 @@ export default function DetailedAnalysis() {
                                         </tr>
                                     </thead>
                                     <tbody className="">
-                                        {tableData.map((row, index) => (
+                                        {tableData?.map((row, index) => (
                                             <tr
                                                 key={row.id}
                                                 className={`
@@ -643,10 +674,46 @@ export default function DetailedAnalysis() {
                                                 `}
                                             >
                                                 <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
+                                                    {row.registrar}
+                                                </td>
+                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
                                                     {row.issuerName}
+                                                </td>
+                                                <td onClick={() => isinHandler(row)} className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] underline text-blue-500 decoration-sky-500 cursor-pointer">
+                                                    {row.isin}
                                                 </td>
                                                 <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
                                                     {row.securityName}
+                                                </td>
+                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
+                                                    {row.nature}
+                                                </td>
+                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
+                                                    {row.ownershipType}
+                                                </td>
+                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
+                                                    {row.sector}
+                                                </td>
+                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
+                                                    {row.creditRatingAgency}
+                                                </td>
+                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
+                                                    {row.creditRating}
+                                                </td>
+                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
+                                                    {row.seniority}
+                                                </td>
+                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
+                                                    {row.securedFlag}
+                                                </td>
+                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
+                                                    {row.listingStatus}
+                                                </td>
+                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
+                                                    {row.taxFree}
+                                                </td>
+                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
+                                                    {row.issueSize}
                                                 </td>
                                                 <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
                                                     <span className={`

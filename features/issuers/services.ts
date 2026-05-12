@@ -107,3 +107,33 @@ export const fetchSpecificISINData = async (query: unknown) => {
         console.error("Error fetching specific ISIN Data:", err.message);
     }
 };
+
+export const fetchIssueDetailsFilterInputsData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/issuepage_filterinputs_data`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching issue details filter inputs data:", err.message);
+    }
+};
+
+
+export const fetchIssueDetailsData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/issuePage_detailed_data`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching issue details data:", err.message);
+    }
+};
+

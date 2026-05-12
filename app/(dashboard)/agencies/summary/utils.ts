@@ -6,7 +6,6 @@ import {
     RawDebtItem,
     RawRatingItem,
     FormattedIssuerItem,
-    FormattedSectorItem,
     FormattedOutstandingItem,
     FormattedDebtItem,
     FormattedMarketShareItem,
@@ -52,7 +51,7 @@ export const formatData = (data: RawIssuerItem[]): FormattedIssuerItem[] => {
     }));
 };
 
-export const formatSectorData = (data: RawSectorItem[]): FormattedSectorItem[] => {
+export const formatSectorData = (data: RawSectorItem[]) => {
     return data?.map(item => ({
         sector: item.name,
         cy: Number(item.value) || 0,

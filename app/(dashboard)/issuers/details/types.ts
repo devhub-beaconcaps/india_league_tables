@@ -26,13 +26,11 @@ export interface FilterState {
     listingStatus: string | number;
     taxFree: string | number;
     dealSizeInCr: string | number;
-    tenure: string | number;
-    amountGreaterThanOrEqual: string;
-    dayMoreThanOrEqual: string;
 }
 
 export interface TableDataItem {
     id: string | number;
+    isin:string;
     issuerName: string;
     securityName: string;
     securityType: string;
@@ -41,4 +39,14 @@ export interface TableDataItem {
     faceValue: number;
     allotmentDate: string;
     dateOfMaturity: string;
+    nature: string;
+    sector: string;
+    creditRatingAgency: string;
+    creditRating: string;
+    seniority: string;
+    securedFlag: string;
+    listingStatus: string;
+    taxFree: string;
+    issueSize: number;
+    ownershipType: string;
 }

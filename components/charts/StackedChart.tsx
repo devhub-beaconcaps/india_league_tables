@@ -1,0 +1,245 @@
+'use client';
+
+import React, { useMemo } from 'react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
+
+// ─── Types ─────────────────────────────────────────────────────────────────
+
+export interface StackedChartDataItem {
+  id: number;
+  issuer_name: string;
+  arr_rank: string;
+  code: string;
+  description: string;
+  value: number;
+}
+
+interface StackedChartProps {
+  data: StackedChartDataItem[];
+  height?: number;
+  title?: string;
+}
+
+interface TransformedData {
+  issuer_name: string;
+  [sector: string]: string | number;
+}
+
+interface TooltipPayloadItem {
+  name: string;
+  value: number;
+  color: string;
+}
+
+// ─── Color Palette for Sectors ─────────────────────────────────────────────
+
+const SECTOR_COLORS = [
+  '#423CAB',   // Primary Purple
+  '#ec4899',   // Pink
+  '#7c3aed',   // Violet
+  '#06b6d4',   // Cyan
+  '#f59e0b',   // Amber
+  '#10b981',   // Emerald
+  '#ef4444',   // Red
+  '#8b5cf6',   // Purple
+  '#14b8a6',   // Teal
+  '#f97316',   // Orange
+  '#6366f1',   // Indigo
+  '#84cc16',   // Lime
+];
+
+// ─── Helper Functions ───────────────────────────────────────────────────────
+
+const getShortForm = (name: string, maxLength: number = 12): string => {
+  if (name.length <= maxLength) return name;
+  return name.substring(0, maxLength) + '...';
+};
+
+const formatValue = (value: number): string => {
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+  return String(value);
+};
+
+// ─── Custom Tooltip ──────────────────────────────────────────────────────────
+
+const CustomTooltip = ({ active, payload, label }: {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+}) => {
+  if (!active || !payload || !payload.length) return null;
+
+  // Filter out zero values
+  const validItems = payload.filter((p) => p.value > 0);
+
+  if (validItems.length === 0) return null;
+
+  return (
+    <div className="bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 min-w-[180px]">
+      <p className="text-[11px] font-semibold text-gray-800 dark:text-gray-100 mb-2 border-b border-gray-100 dark:border-gray-700 pb-1">
+        {label}
+      </p>
+      <div className="space-y-1">
+        {validItems.map((item, index) => (
+          <div key={index} className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="w-2.5 h-2.5 rounded-full inline-block"
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="text-[10px] text-gray-600 dark:text-gray-400 truncate max-w-[120px]">
+                {item.name}
+              </span>
+            </div>
+            <span className="text-[10px] font-semibold text-gray-800 dark:text-gray-200">
+              {formatValue(item.value)} Cr
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 pt-1 border-t border-gray-100 dark:border-gray-700 flex justify-between">
+        <span className="text-[10px] text-gray-500 dark:text-gray-400">Total</span>
+        <span className="text-[10px] font-bold text-gray-800 dark:text-gray-200">
+          {formatValue(validItems.reduce((sum, item) => sum + item.value, 0))} Cr
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export default function StackedChart({
+  data,
+  height = 280,
+  title = 'Issuer Sector Distribution',
+}: StackedChartProps) {
+  // Transform data for stacked bar chart
+  const { chartData, sectors, colors } = useMemo(() => {
+    if (!data || data.length === 0) {
+      return { chartData: [], sectors: [], colors: [] };
+    }
+
+    // Group by issuer_name
+    const grouped = new Map<string, Map<string, number>>();
+    const uniqueSectors = new Set<string>();
+
+    data.forEach((item) => {
+      if (!grouped.has(item.issuer_name)) {
+        grouped.set(item.issuer_name, new Map());
+      }
+      const issuerMap = grouped.get(item.issuer_name)!;
+      issuerMap.set(item.description, item.value);
+      uniqueSectors.add(item.description);
+    });
+
+    const sortedSectors = Array.from(uniqueSectors).sort();
+
+    // Transform to Recharts format
+    const transformed: TransformedData[] = [];
+    grouped.forEach((sectorMap, issuer_name) => {
+      const row: TransformedData = { issuer_name };
+      sortedSectors.forEach((sector) => {
+        row[sector] = sectorMap.get(sector) || 0;
+      });
+      transformed.push(row);
+    });
+
+    // Assign colors
+    const sectorColors = sortedSectors.map(
+      (_, i) => SECTOR_COLORS[i % SECTOR_COLORS.length]
+    );
+
+    return {
+      chartData: transformed,
+      sectors: sortedSectors,
+      colors: sectorColors,
+    };
+  }, [data]);
+
+  if (chartData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[200px] text-xs text-gray-500 dark:text-gray-400">
+        No data available
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full">
+      {title && (
+        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-3">
+          {title}
+        </h3>
+      )}
+
+      <ResponsiveContainer width="100%" height={height}>
+        <BarChart
+          data={chartData}
+          margin={{ top: 5, right: 10, left: 10, bottom: 60 }}
+          barCategoryGap="20%"
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="#e5e7eb"
+            strokeOpacity={0.6}
+            vertical={false}
+          />
+          <XAxis
+            dataKey="issuer_name"
+            tick={{ fontSize: 9, fill: '#9ca3af' }}
+            tickFormatter={(v: string) => getShortForm(v, 14)}
+            tickMargin={12}
+            interval={0}
+            angle={-35}
+            textAnchor="end"
+            height={60}
+          />
+          <YAxis
+            tick={{ fontSize: 9, fill: '#9ca3af' }}
+            tickFormatter={(v: number) => formatValue(v)}
+            width={50}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend
+            verticalAlign="bottom"
+            height={36}
+            iconType="circle"
+            iconSize={8}
+            wrapperStyle={{
+              fontSize: '10px',
+              paddingTop: '10px',
+            }}
+            formatter={(value: string) => (
+              <span className="text-[10px] text-gray-600 dark:text-gray-400 ml-1">
+                {getShortForm(value, 20)}
+              </span>
+            )}
+          />
+
+          {sectors.map((sector, index) => (
+            <Bar
+              key={sector}
+              dataKey={sector}
+              stackId="issuer"
+              fill={colors[index]}
+              stroke={colors[index]}
+              strokeWidth={1}
+              radius={index === sectors.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+              maxBarSize={50}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

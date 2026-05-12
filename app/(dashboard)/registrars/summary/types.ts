@@ -65,6 +65,7 @@ export interface RawRatingItem {
 
 // Formatted data shapes
 export interface FormattedIssuerItem {
+    id?: number;
     name: string;
     issueSize: number;
     deals: number;
@@ -75,12 +76,6 @@ export interface FormattedIssuerItem {
     prevMkt: number;
     prevRank: number;
     yoy: number;
-}
-
-export interface FormattedSectorItem {
-    sector: string;
-    cy: number;
-    py: number;
 }
 
 export interface FormattedOutstandingItem {
@@ -117,8 +112,18 @@ export interface TotalsData {
     previousDeals: number;
 }
 
+export interface SectorItem {
+    id:number;
+    issuer_name: string;
+    arr_rank:string;
+    code:string;
+    description:string;
+    value:number;
+}
+
 export interface TableApiResponse {
-    data: RawIssuerItem[];
+    tableData: RawIssuerItem[];
+    sectorData: SectorItem[];
     totals: TotalsData | null;
 }
 
