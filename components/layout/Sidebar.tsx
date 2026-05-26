@@ -62,6 +62,7 @@ const navigation: NavItem[] = [
         icon: Building2,
         children: [
             { name: 'Summary', href: '/issuers/summary' },
+            { name: 'Monthly', href: '/issuers/monthly' },
             { name: 'Details', href: '/issuers/details' },
         ],
     },
