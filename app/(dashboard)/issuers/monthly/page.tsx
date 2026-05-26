@@ -358,6 +358,10 @@ function convertApiData(data: MonthlyApiData[], unit: SizeUnit): MonthlyApiData[
 // TABLE COMPONENTS
 // ─────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────
+// TABLE COMPONENTS (UPDATED)
+// ─────────────────────────────────────────────────────────────
+
 function MonthWiseTable({
     data,
     enableCompare,
@@ -381,24 +385,61 @@ function MonthWiseTable({
         return <NoDataState message="No monthly data available" />;
     }
 
-    const colCount = enableCompare ? 6 : 3;
+    const colCount = enableCompare ? 7 : 3;
 
     return (
-        <div className="overflow-x-auto rounded-[12px] border border-gray-200 dark:border-gray-600">
+        <div className="overflow-x-auto overflow-y-auto max-h-[400px] rounded-[12px] border border-gray-200 dark:border-gray-600">
             <table className="w-full text-[10px]">
                 <thead>
+                    {/* Row 1: Time Period */}
                     <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
                         <th
                             colSpan={colCount}
                             className="text-left py-2 px-4 text-[10px] font-medium uppercase tracking-wide"
                         >
-                            Time Period
+                            {enableCompare
+                                ? `${primaryLabel} vs ${compareLabel}`
+                                : primaryLabel}
                         </th>
                     </tr>
+
+                    {/* Row 2: Year group labels (only when comparing) */}
+                    {enableCompare && (
+                        <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
+                            <th
+                                rowSpan={2}
+                                className="text-left py-3 px-4 text-[10px] font-semibold border-r border-white/20"
+                            >
+                                Month
+                            </th>
+                            <th
+                                colSpan={2}
+                                className="text-center py-2 px-4 text-[10px] font-semibold border-r border-white/20"
+                            >
+                                {primaryLabel}
+                            </th>
+                            <th
+                                colSpan={2}
+                                className="text-center py-2 px-4 text-[10px] font-semibold border-r border-white/20"
+                            >
+                                {compareLabel}
+                            </th>
+                            <th
+                                colSpan={2}
+                                className="text-center py-2 px-4 text-[10px] font-semibold"
+                            >
+                                Growth %
+                            </th>
+                        </tr>
+                    )}
+
+                    {/* Row 2/3: Field names */}
                     <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
-                        <th className="text-left py-3 px-4 text-[10px] font-semibold">
-                            Month
-                        </th>
+                        {!enableCompare && (
+                            <th className="text-left py-3 px-4 text-[10px] font-semibold">
+                                Month
+                            </th>
+                        )}
                         <th className="text-center py-3 px-4 text-[10px] font-semibold">
                             No. of Issues
                         </th>
@@ -414,7 +455,10 @@ function MonthWiseTable({
                                     Issue Size (₹ {sizeUnit})
                                 </th>
                                 <th className="text-center py-3 px-4 text-[10px] font-semibold">
-                                    Growth %
+                                    Count
+                                </th>
+                                <th className="text-center py-3 px-4 text-[10px] font-semibold">
+                                    Size
                                 </th>
                             </>
                         )}
@@ -422,9 +466,18 @@ function MonthWiseTable({
                 </thead>
                 <tbody>
                     {data.map((row, index) => {
+                        const countGrowth =
+                            enableCompare && row.compareIssueCount > 0
+                                ? ((row.primaryIssueCount - row.compareIssueCount) /
+                                    row.compareIssueCount) *
+                                100
+                                : 0;
+
                         const sizeGrowth =
                             enableCompare && row.compareIssueSize > 0
-                                ? ((row.primaryIssueSize - row.compareIssueSize) / row.compareIssueSize) * 100
+                                ? ((row.primaryIssueSize - row.compareIssueSize) /
+                                    row.compareIssueSize) *
+                                100
                                 : 0;
 
                         return (
@@ -452,7 +505,19 @@ function MonthWiseTable({
                                         <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                             {formatNumber(row.compareIssueSize)}
                                         </td>
-                                        <td className={`py-3 px-4 text-center font-semibold ${getGrowthColor(sizeGrowth)}`}>
+                                        <td
+                                            className={`py-3 px-4 text-center font-semibold ${getGrowthColor(
+                                                countGrowth
+                                            )}`}
+                                        >
+                                            {countGrowth > 0 ? '+' : ''}
+                                            {countGrowth.toFixed(1)}%
+                                        </td>
+                                        <td
+                                            className={`py-3 px-4 text-center font-semibold ${getGrowthColor(
+                                                sizeGrowth
+                                            )}`}
+                                        >
                                             {sizeGrowth > 0 ? '+' : ''}
                                             {sizeGrowth.toFixed(1)}%
                                         </td>
@@ -492,6 +557,9 @@ function MonthWiseTable({
                                 <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                     —
                                 </td>
+                                <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
+                                    —
+                                </td>
                             </>
                         )}
                     </tr>
@@ -524,24 +592,61 @@ function QuarterWiseTable({
         return <NoDataState message="No quarterly data available" />;
     }
 
-    const colCount = enableCompare ? 6 : 3;
+    const colCount = enableCompare ? 7 : 3;
 
     return (
         <div className="overflow-x-auto rounded-[12px] border border-gray-200 dark:border-gray-600">
             <table className="w-full text-[10px]">
                 <thead>
+                    {/* Row 1: Time Period */}
                     <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
                         <th
                             colSpan={colCount}
                             className="text-left py-2 px-4 text-[10px] font-medium uppercase tracking-wide"
                         >
-                            Time Period
+                            {enableCompare
+                                ? `${primaryLabel} vs ${compareLabel}`
+                                : primaryLabel}
                         </th>
                     </tr>
+
+                    {/* Row 2: Year group labels (only when comparing) */}
+                    {enableCompare && (
+                        <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
+                            <th
+                                rowSpan={2}
+                                className="text-left py-3 px-4 text-[10px] font-semibold border-r border-white/20"
+                            >
+                                Quarter
+                            </th>
+                            <th
+                                colSpan={2}
+                                className="text-center py-2 px-4 text-[10px] font-semibold border-r border-white/20"
+                            >
+                                {primaryLabel}
+                            </th>
+                            <th
+                                colSpan={2}
+                                className="text-center py-2 px-4 text-[10px] font-semibold border-r border-white/20"
+                            >
+                                {compareLabel}
+                            </th>
+                            <th
+                                colSpan={2}
+                                className="text-center py-2 px-4 text-[10px] font-semibold"
+                            >
+                                Growth %
+                            </th>
+                        </tr>
+                    )}
+
+                    {/* Row 2/3: Field names */}
                     <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
-                        <th className="text-left py-3 px-4 text-[10px] font-semibold">
-                            Quarter
-                        </th>
+                        {!enableCompare && (
+                            <th className="text-left py-3 px-4 text-[10px] font-semibold">
+                                Quarter
+                            </th>
+                        )}
                         <th className="text-center py-3 px-4 text-[10px] font-semibold">
                             No. of Issues
                         </th>
@@ -557,7 +662,10 @@ function QuarterWiseTable({
                                     Issue Size (₹ {sizeUnit})
                                 </th>
                                 <th className="text-center py-3 px-4 text-[10px] font-semibold">
-                                    Growth %
+                                    Count
+                                </th>
+                                <th className="text-center py-3 px-4 text-[10px] font-semibold">
+                                    Size
                                 </th>
                             </>
                         )}
@@ -565,9 +673,18 @@ function QuarterWiseTable({
                 </thead>
                 <tbody>
                     {data.map((row, index) => {
+                        const countGrowth =
+                            enableCompare && row.compareIssueCount > 0
+                                ? ((row.primaryIssueCount - row.compareIssueCount) /
+                                    row.compareIssueCount) *
+                                100
+                                : 0;
+
                         const sizeGrowth =
                             enableCompare && row.compareIssueSize > 0
-                                ? ((row.primaryIssueSize - row.compareIssueSize) / row.compareIssueSize) * 100
+                                ? ((row.primaryIssueSize - row.compareIssueSize) /
+                                    row.compareIssueSize) *
+                                100
                                 : 0;
 
                         return (
@@ -595,7 +712,19 @@ function QuarterWiseTable({
                                         <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                             {formatNumber(row.compareIssueSize)}
                                         </td>
-                                        <td className={`py-3 px-4 text-center font-semibold ${getGrowthColor(sizeGrowth)}`}>
+                                        <td
+                                            className={`py-3 px-4 text-center font-semibold ${getGrowthColor(
+                                                countGrowth
+                                            )}`}
+                                        >
+                                            {countGrowth > 0 ? '+' : ''}
+                                            {countGrowth.toFixed(1)}%
+                                        </td>
+                                        <td
+                                            className={`py-3 px-4 text-center font-semibold ${getGrowthColor(
+                                                sizeGrowth
+                                            )}`}
+                                        >
                                             {sizeGrowth > 0 ? '+' : ''}
                                             {sizeGrowth.toFixed(1)}%
                                         </td>
@@ -631,6 +760,9 @@ function QuarterWiseTable({
                                     {formatNumber(
                                         data.reduce((sum, r) => sum + r.compareIssueSize, 0)
                                     )}
+                                </td>
+                                <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
+                                    —
                                 </td>
                                 <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                     —
@@ -977,7 +1109,7 @@ export default function IssuerMonthWiseSummary() {
 
                                     <button
                                         onClick={handleResetFilters}
-                                        className="px-4 py-1.5 rounded-[12px] text-[9px] font-medium bg-white dark:bg-[#13131f] border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition-all hover:bg-gray-100 dark:hover:bg-[#1b1b2d]"
+                                        className="cursor-pointer px-4 py-1.5 rounded-[12px] text-[9px] font-medium bg-white dark:bg-[#13131f] border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition-all hover:bg-gray-100 dark:hover:bg-[#1b1b2d]"
                                     >
                                         Reset Filters
                                     </button>
@@ -988,7 +1120,7 @@ export default function IssuerMonthWiseSummary() {
                                                 !enableCompare,
                                             )
                                         }
-                                        className={`px-4 py-1.5 rounded-[12px] text-[9px] font-medium transition-all ${enableCompare
+                                        className={`cursor-pointer px-4 py-1.5 rounded-[12px] text-[9px] font-medium transition-all ${enableCompare
                                             ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
                                             : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'
                                             }`}
@@ -1536,7 +1668,7 @@ export default function IssuerMonthWiseSummary() {
 
                 {/* SUMMARY */}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className={`grid grid-cols-1 md:grid-cols-2  gap-4 ${enableCompare ? 'xl:grid-cols-4':'xl:grid-cols-3'}`}>
 
                     <SectionCard>
                         <p className="text-[9px] text-gray-400 mb-1">
@@ -1575,24 +1707,28 @@ export default function IssuerMonthWiseSummary() {
                         </p>
                     </SectionCard>
 
-                    <SectionCard>
-                        <p className="text-[9px] text-gray-400 mb-1">
-                            Compare Growth
-                        </p>
+                    {enableCompare && (
+                        <SectionCard>
+                            <p className="text-[9px] text-gray-400 mb-1">
+                                Compare Growth
+                            </p>
 
-                        <p
-                            className={`text-2xl font-bold ${growthPercentage >= 0
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : 'text-red-500 dark:text-red-400'
-                                }`}
-                        >
-                            {enableCompare
-                                ? `${growthPercentage.toFixed(
-                                    1,
-                                )}%`
-                                : '--'}
-                        </p>
-                    </SectionCard>
+                            <p
+                                className={`text-2xl font-bold ${growthPercentage >= 0
+                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                    : 'text-red-500 dark:text-red-400'
+                                    }`}
+                            >
+                                {enableCompare
+                                    ? `${growthPercentage.toFixed(
+                                        1,
+                                    )}%`
+                                    : '--'}
+                            </p>
+                        </SectionCard>
+                    )}
+
+
                 </div>
 
                 {/* CHARTS */}
