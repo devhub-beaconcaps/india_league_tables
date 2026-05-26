@@ -151,7 +151,7 @@ function SectionCard({
 }) {
     return (
         <div
-            className={`bg-white dark:bg-[#1a1a2e] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-5 ${className}`}
+            className={`bg-white dark:bg-[#1a1a2e] rounded-[12px] shadow-sm border border-gray-200 dark:border-gray-600 p-5 ${className}`}
         >
             {children}
         </div>
@@ -183,7 +183,7 @@ function NoDataState({
 }) {
     return (
         <div className="flex items-center justify-center py-20 bg-white dark:bg-[#1a1a2e]">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-[9px] text-gray-500 dark:text-gray-400">
                 {message}
             </p>
         </div>
@@ -203,19 +203,19 @@ function FilterSelect({
 }) {
     return (
         <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+            <label className="text-[9px] text-gray-400 block mb-1">
                 {label}
             </label>
 
             <select
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className="h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121220] px-3 text-sm text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-[#423CAB] dark:focus:ring-[#5a53d0]"
+                className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
             >
-                <option value="" className="text-gray-900 dark:text-gray-100">All</option>
+                <option value="" className="text-gray-700 dark:text-gray-200">All</option>
 
                 {options?.map((item) => (
-                    <option key={item} value={item} className="text-gray-900 dark:text-gray-100">
+                    <option key={item} value={item} className="text-gray-700 dark:text-gray-200">
                         {item}
                     </option>
                 ))}
@@ -381,29 +381,39 @@ function MonthWiseTable({
         return <NoDataState message="No monthly data available" />;
     }
 
+    const colCount = enableCompare ? 6 : 3;
+
     return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-[12px] border border-gray-200 dark:border-gray-600">
+            <table className="w-full text-[10px]">
                 <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-700">
-                        <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300">
+                    <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
+                        <th
+                            colSpan={colCount}
+                            className="text-left py-2 px-4 text-[10px] font-medium uppercase tracking-wide"
+                        >
+                            Time Period
+                        </th>
+                    </tr>
+                    <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
+                        <th className="text-left py-3 px-4 text-[10px] font-semibold">
                             Month
                         </th>
-                        <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300">
-                            {primaryLabel} — Issues
+                        <th className="text-center py-3 px-4 text-[10px] font-semibold">
+                            No. of Issues
                         </th>
-                        <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300">
-                            {primaryLabel} — Size (₹ {sizeUnit})
+                        <th className="text-center py-3 px-4 text-[10px] font-semibold">
+                            Issue Size (₹ {sizeUnit})
                         </th>
                         {enableCompare && (
                             <>
-                                <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300">
-                                    {compareLabel} — Issues
+                                <th className="text-center py-3 px-4 text-[10px] font-semibold">
+                                    No. of Issues
                                 </th>
-                                <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300">
-                                    {compareLabel} — Size (₹ {sizeUnit})
+                                <th className="text-center py-3 px-4 text-[10px] font-semibold">
+                                    Issue Size (₹ {sizeUnit})
                                 </th>
-                                <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300">
+                                <th className="text-center py-3 px-4 text-[10px] font-semibold">
                                     Growth %
                                 </th>
                             </>
@@ -420,30 +430,29 @@ function MonthWiseTable({
                         return (
                             <tr
                                 key={row.monthNumber}
-                                className={`border-b border-gray-100 dark:border-gray-800 ${
-                                    index % 2 === 0
+                                className={`border-b border-gray-100 dark:border-gray-800 ${index % 2 === 0
                                         ? 'bg-white dark:bg-[#1a1a2e]'
-                                        : 'bg-gray-50 dark:bg-[#151528]'
-                                }`}
+                                        : 'bg-gray-50/50 dark:bg-[#151528]'
+                                    }`}
                             >
-                                <td className="py-3 px-2 text-gray-900 dark:text-gray-100 font-medium">
+                                <td className="py-3 px-4 text-gray-700 dark:text-gray-200 font-medium">
                                     {row.monthName}
                                 </td>
-                                <td className="py-3 px-2 text-right text-gray-700 dark:text-gray-300">
+                                <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                     {formatNumber(row.primaryIssueCount)}
                                 </td>
-                                <td className="py-3 px-2 text-right text-gray-700 dark:text-gray-300">
+                                <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                     {formatNumber(row.primaryIssueSize)}
                                 </td>
                                 {enableCompare && (
                                     <>
-                                        <td className="py-3 px-2 text-right text-gray-700 dark:text-gray-300">
+                                        <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                             {formatNumber(row.compareIssueCount)}
                                         </td>
-                                        <td className="py-3 px-2 text-right text-gray-700 dark:text-gray-300">
+                                        <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                             {formatNumber(row.compareIssueSize)}
                                         </td>
-                                        <td className={`py-3 px-2 text-right font-semibold ${getGrowthColor(sizeGrowth)}`}>
+                                        <td className={`py-3 px-4 text-center font-semibold ${getGrowthColor(sizeGrowth)}`}>
                                             {sizeGrowth > 0 ? '+' : ''}
                                             {sizeGrowth.toFixed(1)}%
                                         </td>
@@ -454,33 +463,33 @@ function MonthWiseTable({
                     })}
                 </tbody>
                 <tfoot>
-                    <tr className="border-t-2 border-gray-200 dark:border-gray-700 font-semibold bg-gray-100 dark:bg-[#121220]">
-                        <td className="py-3 px-2 text-gray-900 dark:text-gray-100">
+                    <tr className="bg-gray-100 dark:bg-[#121220] border-t-2 border-gray-300 dark:border-gray-600 font-bold">
+                        <td className="py-3 px-4 text-gray-700 dark:text-gray-200">
                             Total
                         </td>
-                        <td className="py-3 px-2 text-right text-gray-900 dark:text-gray-100">
+                        <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                             {formatNumber(
                                 data.reduce((sum, r) => sum + r.primaryIssueCount, 0)
                             )}
                         </td>
-                        <td className="py-3 px-2 text-right text-gray-900 dark:text-gray-100">
+                        <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                             {formatNumber(
                                 data.reduce((sum, r) => sum + r.primaryIssueSize, 0)
                             )}
                         </td>
                         {enableCompare && (
                             <>
-                                <td className="py-3 px-2 text-right text-gray-900 dark:text-gray-100">
+                                <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                     {formatNumber(
                                         data.reduce((sum, r) => sum + r.compareIssueCount, 0)
                                     )}
                                 </td>
-                                <td className="py-3 px-2 text-right text-gray-900 dark:text-gray-100">
+                                <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                     {formatNumber(
                                         data.reduce((sum, r) => sum + r.compareIssueSize, 0)
                                     )}
                                 </td>
-                                <td className="py-3 px-2 text-right text-gray-900 dark:text-gray-100">
+                                <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                     —
                                 </td>
                             </>
@@ -515,29 +524,39 @@ function QuarterWiseTable({
         return <NoDataState message="No quarterly data available" />;
     }
 
+    const colCount = enableCompare ? 6 : 3;
+
     return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-[12px] border border-gray-200 dark:border-gray-600">
+            <table className="w-full text-[10px]">
                 <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-700">
-                        <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300">
+                    <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
+                        <th
+                            colSpan={colCount}
+                            className="text-left py-2 px-4 text-[10px] font-medium uppercase tracking-wide"
+                        >
+                            Time Period
+                        </th>
+                    </tr>
+                    <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
+                        <th className="text-left py-3 px-4 text-[10px] font-semibold">
                             Quarter
                         </th>
-                        <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300">
-                            {primaryLabel} — Issues
+                        <th className="text-center py-3 px-4 text-[10px] font-semibold">
+                            No. of Issues
                         </th>
-                        <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300">
-                            {primaryLabel} — Size (₹ {sizeUnit})
+                        <th className="text-center py-3 px-4 text-[10px] font-semibold">
+                            Issue Size (₹ {sizeUnit})
                         </th>
                         {enableCompare && (
                             <>
-                                <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300">
-                                    {compareLabel} — Issues
+                                <th className="text-center py-3 px-4 text-[10px] font-semibold">
+                                    No. of Issues
                                 </th>
-                                <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300">
-                                    {compareLabel} — Size (₹ {sizeUnit})
+                                <th className="text-center py-3 px-4 text-[10px] font-semibold">
+                                    Issue Size (₹ {sizeUnit})
                                 </th>
-                                <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300">
+                                <th className="text-center py-3 px-4 text-[10px] font-semibold">
                                     Growth %
                                 </th>
                             </>
@@ -554,30 +573,29 @@ function QuarterWiseTable({
                         return (
                             <tr
                                 key={row.quarter}
-                                className={`border-b border-gray-100 dark:border-gray-800 ${
-                                    index % 2 === 0
+                                className={`border-b border-gray-100 dark:border-gray-800 ${index % 2 === 0
                                         ? 'bg-white dark:bg-[#1a1a2e]'
-                                        : 'bg-gray-50 dark:bg-[#151528]'
-                                }`}
+                                        : 'bg-gray-50/50 dark:bg-[#151528]'
+                                    }`}
                             >
-                                <td className="py-3 px-2 text-gray-900 dark:text-gray-100 font-medium">
+                                <td className="py-3 px-4 text-gray-700 dark:text-gray-200 font-medium">
                                     {row.quarter}
                                 </td>
-                                <td className="py-3 px-2 text-right text-gray-700 dark:text-gray-300">
+                                <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                     {formatNumber(row.primaryIssueCount)}
                                 </td>
-                                <td className="py-3 px-2 text-right text-gray-700 dark:text-gray-300">
+                                <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                     {formatNumber(row.primaryIssueSize)}
                                 </td>
                                 {enableCompare && (
                                     <>
-                                        <td className="py-3 px-2 text-right text-gray-700 dark:text-gray-300">
+                                        <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                             {formatNumber(row.compareIssueCount)}
                                         </td>
-                                        <td className="py-3 px-2 text-right text-gray-700 dark:text-gray-300">
+                                        <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                             {formatNumber(row.compareIssueSize)}
                                         </td>
-                                        <td className={`py-3 px-2 text-right font-semibold ${getGrowthColor(sizeGrowth)}`}>
+                                        <td className={`py-3 px-4 text-center font-semibold ${getGrowthColor(sizeGrowth)}`}>
                                             {sizeGrowth > 0 ? '+' : ''}
                                             {sizeGrowth.toFixed(1)}%
                                         </td>
@@ -588,33 +606,33 @@ function QuarterWiseTable({
                     })}
                 </tbody>
                 <tfoot>
-                    <tr className="border-t-2 border-gray-200 dark:border-gray-700 font-semibold bg-gray-100 dark:bg-[#121220]">
-                        <td className="py-3 px-2 text-gray-900 dark:text-gray-100">
+                    <tr className="bg-gray-100 dark:bg-[#121220] border-t-2 border-gray-300 dark:border-gray-600 font-bold">
+                        <td className="py-3 px-4 text-gray-700 dark:text-gray-200">
                             Total
                         </td>
-                        <td className="py-3 px-2 text-right text-gray-900 dark:text-gray-100">
+                        <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                             {formatNumber(
                                 data.reduce((sum, r) => sum + r.primaryIssueCount, 0)
                             )}
                         </td>
-                        <td className="py-3 px-2 text-right text-gray-900 dark:text-gray-100">
+                        <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                             {formatNumber(
                                 data.reduce((sum, r) => sum + r.primaryIssueSize, 0)
                             )}
                         </td>
                         {enableCompare && (
                             <>
-                                <td className="py-3 px-2 text-right text-gray-900 dark:text-gray-100">
+                                <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                     {formatNumber(
                                         data.reduce((sum, r) => sum + r.compareIssueCount, 0)
                                     )}
                                 </td>
-                                <td className="py-3 px-2 text-right text-gray-900 dark:text-gray-100">
+                                <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                     {formatNumber(
                                         data.reduce((sum, r) => sum + r.compareIssueSize, 0)
                                     )}
                                 </td>
-                                <td className="py-3 px-2 text-right text-gray-900 dark:text-gray-100">
+                                <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-200">
                                     —
                                 </td>
                             </>
@@ -786,7 +804,7 @@ export default function IssuerMonthWiseSummary() {
     const quarterlyData = useMemo(() => {
         return getQuarterlyData(comparisonData);
     }, [comparisonData]);
-    
+
 
     // ─────────────────────────────────────────────────────────
     // TOTALS
@@ -841,14 +859,14 @@ export default function IssuerMonthWiseSummary() {
         return function TooltipComponent({ active, payload, label }: any) {
             if (active && payload && payload.length) {
                 return (
-                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 text-xs">
-                        <p className="font-semibold mb-2 text-gray-900 dark:text-gray-100">{label}</p>
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-[12px] shadow-lg p-3 text-[9px]">
+                        <p className="font-semibold mb-2 text-gray-700 dark:text-gray-200">{label}</p>
 
                         {payload.map((item: any, index: number) => (
                             <p
                                 key={index}
                                 style={{ color: item.color }}
-                                className="mb-1 text-gray-700 dark:text-gray-300"
+                                className="mb-1 text-gray-700 dark:text-gray-200"
                             >
                                 {item.name}: {formatNumber(item.value)} {sizeUnit}
                             </p>
@@ -916,22 +934,16 @@ export default function IssuerMonthWiseSummary() {
 
     return (
         <SkeletonTheme
-            enableAnimation
-            baseColor="#1F2937"
-            highlightColor="#374151"
+            enableAnimation={true} baseColor="#1F2937" highlightColor="#90969bff" borderRadius="0.5rem"
         >
-            <div className="space-y-4 bg-gray-50 dark:bg-[#0f0f1a] min-h-screen p-4">
+            <div className="min-h-full space-y-4 font-sans text-gray-700 dark:text-gray-200">
 
                 {/* HEADER */}
 
-                <div className="bg-white dark:bg-[#1a1a2e] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-5">
-                    <h1 className="text-xl font-bold text-gray-800 dark:text-white">
-                        Issuer Month-Wise Summary
-                    </h1>
-
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Issuer &gt; Monthly Summary
-                    </p>
+                {/* ── Page Title ── */}
+                <div>
+                    <h1 className="text-xl font-bold text-gray-700 dark:text-gray-200">Issuer Monthly Summary</h1>
+                    <p className="text-[9px] text-gray-400 mb-6 mt-1">Issuer &gt; Monthly Summary</p>
                 </div>
 
                 {/* FILTERS */}
@@ -943,19 +955,19 @@ export default function IssuerMonthWiseSummary() {
 
                         <div>
                             <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-                                <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                <h2 className="text-md font-semibold text-gray-700 dark:text-gray-200">
                                     Primary Filters
                                 </h2>
 
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center gap-2">
-                                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                        <label className="text-[9px] text-gray-400 block mb-1">
                                             Size Unit
                                         </label>
                                         <select
                                             value={sizeUnit}
                                             onChange={(e) => setSizeUnit(e.target.value as SizeUnit)}
-                                            className="h-9 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121220] px-3 text-sm text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-[#423CAB] dark:focus:ring-[#5a53d0]"
+                                            className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
                                         >
                                             <option value="Crores">Crores</option>
                                             <option value="Lakhs">Lakhs</option>
@@ -965,7 +977,7 @@ export default function IssuerMonthWiseSummary() {
 
                                     <button
                                         onClick={handleResetFilters}
-                                        className="px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-[#13131f] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 transition-all hover:bg-gray-100 dark:hover:bg-[#1b1b2d]"
+                                        className="px-4 py-1.5 rounded-[12px] text-[9px] font-medium bg-white dark:bg-[#13131f] border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition-all hover:bg-gray-100 dark:hover:bg-[#1b1b2d]"
                                     >
                                         Reset Filters
                                     </button>
@@ -976,9 +988,9 @@ export default function IssuerMonthWiseSummary() {
                                                 !enableCompare,
                                             )
                                         }
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${enableCompare
-                                            ? 'bg-[#423CAB] text-white'
-                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                        className={`px-4 py-1.5 rounded-[12px] text-[9px] font-medium transition-all ${enableCompare
+                                            ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
+                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'
                                             }`}
                                     >
                                         {enableCompare
@@ -993,7 +1005,7 @@ export default function IssuerMonthWiseSummary() {
                                 {/* FINANCIAL YEAR */}
 
                                 <div className="flex flex-col gap-1">
-                                    <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                                    <label className="text-[9px] text-gray-400 block mb-1">
                                         Financial Year
                                     </label>
 
@@ -1008,7 +1020,7 @@ export default function IssuerMonthWiseSummary() {
                                                 'primary',
                                             )
                                         }
-                                        className="h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121220] px-3 text-sm text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-[#423CAB] dark:focus:ring-[#5a53d0]"
+                                        className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
                                     >
                                         {FINANCIAL_YEAR_OPTIONS.map(
                                             (item) => (
@@ -1019,7 +1031,7 @@ export default function IssuerMonthWiseSummary() {
                                                     value={
                                                         item.label
                                                     }
-                                                    className="text-gray-900 dark:text-gray-100"
+                                                    className="text-gray-700 dark:text-gray-200"
                                                 >
                                                     {item.label}
                                                 </option>
@@ -1238,16 +1250,16 @@ export default function IssuerMonthWiseSummary() {
                         {/* COMPARE FILTERS */}
 
                         {enableCompare && (
-                            <div className="border-t border-gray-200 dark:border-gray-700 pt-8">
+                            <div className="border-t border-gray-200 dark:border-gray-600 pt-8">
 
-                                <h2 className="text-sm font-semibold mb-5 text-gray-800 dark:text-gray-100">
+                                <h2 className="text-sm font-semibold mb-5 text-gray-700 dark:text-gray-200">
                                     Compare Filters
                                 </h2>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
 
                                     <div className="flex flex-col gap-1">
-                                        <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                                        <label className="text-[9px] text-gray-400 block mb-1">
                                             Compare Financial Year
                                         </label>
 
@@ -1262,7 +1274,7 @@ export default function IssuerMonthWiseSummary() {
                                                     'compare',
                                                 )
                                             }
-                                            className="h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121220] px-3 text-sm text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-[#423CAB] dark:focus:ring-[#5a53d0]"
+                                            className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
                                         >
                                             {FINANCIAL_YEAR_OPTIONS.map(
                                                 (
@@ -1275,7 +1287,7 @@ export default function IssuerMonthWiseSummary() {
                                                         value={
                                                             item.label
                                                         }
-                                                        className="text-gray-900 dark:text-gray-100"
+                                                        className="text-gray-700 dark:text-gray-200"
                                                     >
                                                         {
                                                             item.label
@@ -1527,31 +1539,31 @@ export default function IssuerMonthWiseSummary() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
                     <SectionCard>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        <p className="text-[9px] text-gray-400 mb-1">
                             Total Issue Count
                         </p>
 
-                        <p className="text-2xl font-bold text-[#423CAB] dark:text-[#6b64d6]">
+                        <p className="text-2xl font-bold text-[#423CAB]">
                             {totalIssueCount.toLocaleString()}
                         </p>
                     </SectionCard>
 
                     <SectionCard>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        <p className="text-[9px] text-gray-400 mb-1">
                             Total Issue Size
                         </p>
 
-                        <p className="text-2xl font-bold text-[#423CAB] dark:text-[#6b64d6]">
+                        <p className="text-2xl font-bold text-[#423CAB]">
                             ₹ {formatNumber(totalIssueSize)} {sizeUnit}
                         </p>
                     </SectionCard>
 
                     <SectionCard>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        <p className="text-[9px] text-gray-400 mb-1">
                             Avg Monthly Issue Size
                         </p>
 
-                        <p className="text-2xl font-bold text-[#423CAB] dark:text-[#6b64d6]">
+                        <p className="text-2xl font-bold text-[#423CAB]">
                             ₹{' '}
                             {displayPrimaryData.length > 0
                                 ? formatNumber(
@@ -1564,7 +1576,7 @@ export default function IssuerMonthWiseSummary() {
                     </SectionCard>
 
                     <SectionCard>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        <p className="text-[9px] text-gray-400 mb-1">
                             Compare Growth
                         </p>
 
@@ -1590,7 +1602,7 @@ export default function IssuerMonthWiseSummary() {
                     {/* AREA CHART */}
 
                     <SectionCard>
-                        <h2 className="text-sm font-semibold mb-4 text-gray-800 dark:text-gray-100">
+                        <h2 className="text-sm font-semibold mb-4 text-gray-700 dark:text-gray-200">
                             Monthly Issue Size Trend (₹ {sizeUnit})
                         </h2>
 
@@ -1674,7 +1686,7 @@ export default function IssuerMonthWiseSummary() {
                                         }
                                     />
 
-                                    <Legend 
+                                    <Legend
                                         wrapperStyle={{ color: '#374151' }}
                                     />
 
@@ -1717,7 +1729,7 @@ export default function IssuerMonthWiseSummary() {
                     {/* BAR CHART */}
 
                     <SectionCard>
-                        <h2 className="text-sm font-semibold mb-4 text-gray-800 dark:text-gray-100">
+                        <h2 className="text-sm font-semibold mb-4 text-gray-700 dark:text-gray-200">
                             Quarterly Summary (₹ {sizeUnit})
                         </h2>
 
@@ -1737,8 +1749,8 @@ export default function IssuerMonthWiseSummary() {
                                         stroke="#e5e7eb"
                                     />
 
-                                    <XAxis 
-                                        dataKey="quarter" 
+                                    <XAxis
+                                        dataKey="quarter"
                                         tick={{ fill: '#6b7280', fontSize: 12 }}
                                         axisLine={{ stroke: '#e5e7eb' }}
                                     />
@@ -1755,7 +1767,7 @@ export default function IssuerMonthWiseSummary() {
                                         }
                                     />
 
-                                    <Legend 
+                                    <Legend
                                         wrapperStyle={{ color: '#374151' }}
                                     />
 
@@ -1792,34 +1804,70 @@ export default function IssuerMonthWiseSummary() {
 
                 {/* MONTH-WISE TABLE */}
 
-                <SectionCard>
-                    <h2 className="text-sm font-semibold mb-4 text-gray-800 dark:text-gray-100">
-                        Month-Wise Issue Details
-                    </h2>
-                    <MonthWiseTable
-                        data={comparisonData}
-                        enableCompare={enableCompare}
-                        primaryLabel={primaryYearLabel}
-                        compareLabel={compareYearLabel}
-                        isLoading={isLoading}
-                        sizeUnit={sizeUnit}
-                    />
+                <SectionCard className="!p-0 overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+                        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            Month-Wise Data (Rupees in {sizeUnit})
+                        </h2>
+                        <div className="flex items-center gap-2">
+                            <label className="text-[9px] text-gray-400 block mb-1">
+                                Value Convention
+                            </label>
+                            <select
+                                value={sizeUnit}
+                                onChange={(e) => setSizeUnit(e.target.value as SizeUnit)}
+                                className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
+                            >
+                                <option value="Crores">Crores</option>
+                                <option value="Lakhs">Lakhs</option>
+                                <option value="Billions">Billions</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="p-5 pt-0">
+                        <MonthWiseTable
+                            data={comparisonData}
+                            enableCompare={enableCompare}
+                            primaryLabel={primaryYearLabel}
+                            compareLabel={compareYearLabel}
+                            isLoading={isLoading}
+                            sizeUnit={sizeUnit}
+                        />
+                    </div>
                 </SectionCard>
 
                 {/* QUARTER-WISE TABLE */}
 
-                <SectionCard>
-                    <h2 className="text-sm font-semibold mb-4 text-gray-800 dark:text-gray-100">
-                        Quarter-Wise Issue Details
-                    </h2>
-                    <QuarterWiseTable
-                        data={quarterlyData}
-                        enableCompare={enableCompare}
-                        primaryLabel={primaryYearLabel}
-                        compareLabel={compareYearLabel}
-                        isLoading={isLoading}
-                        sizeUnit={sizeUnit}
-                    />
+                <SectionCard className="!p-0 overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+                        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            Quarter-Wise Data (Rupees in {sizeUnit})
+                        </h2>
+                        <div className="flex items-center gap-2">
+                            <label className="text-[9px] text-gray-400 block mb-1">
+                                Value Convention
+                            </label>
+                            <select
+                                value={sizeUnit}
+                                onChange={(e) => setSizeUnit(e.target.value as SizeUnit)}
+                                className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
+                            >
+                                <option value="Crores">Crores</option>
+                                <option value="Lakhs">Lakhs</option>
+                                <option value="Billions">Billions</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="p-5 pt-0">
+                        <QuarterWiseTable
+                            data={quarterlyData}
+                            enableCompare={enableCompare}
+                            primaryLabel={primaryYearLabel}
+                            compareLabel={compareYearLabel}
+                            isLoading={isLoading}
+                            sizeUnit={sizeUnit}
+                        />
+                    </div>
                 </SectionCard>
             </div>
         </SkeletonTheme>
