@@ -150,3 +150,17 @@ export const fetchIssuerMonthlySummaryData = async (query: unknown) => {
     }
 };
 
+export const fetchIssuerMonthlyDetailedData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/issuer_page_monthly_detailed_data`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching issuer page monthly detailed data:", err.message);
+    }
+};
+

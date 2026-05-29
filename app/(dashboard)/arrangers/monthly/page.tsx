@@ -18,8 +18,10 @@ import {
 
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
-import { fetchIssueDetailsFilterInputsData, fetchIssuerMonthlySummaryData } from '@/features/issuers/services';
+import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
+
 import { useRouter } from 'next/navigation';
+import { fetchArrangerMonthlySummaryData } from '@/features/arrangers/services';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -410,7 +412,7 @@ function MonthWiseTable({
         const fy = type === 'primary'
             ? getFYRange(primaryStartDate)
             : getFYRange(compareStartDate);
-        router.push(`/issuers/list?period=${encodeURIComponent(period)}&fy=${fy}`);
+        router.push(`/arrangers/list?period=${encodeURIComponent(period)}&fy=${fy}`);
     };
 
     const colCount = enableCompare ? 7 : 3;
@@ -661,7 +663,7 @@ function QuarterWiseTable({
         const fy = type === 'primary'
             ? getFYRange(primaryStartDate)
             : getFYRange(compareStartDate);
-        router.push(`/issuers/list?period=${encodeURIComponent(period)}&fy=${fy}`);
+        router.push(`/arrangers/list?period=${encodeURIComponent(period)}&fy=${fy}`);
     };
 
     const colCount = enableCompare ? 7 : 3;
@@ -882,7 +884,7 @@ function QuarterWiseTable({
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
 
-export default function IssuerMonthWiseSummary() {
+export default function MonthWiseSummary() {
     const [isLoading, setIsLoading] = useState(false);
     const [enableCompare, setEnableCompare] = useState(false);
     const [sizeUnit, setSizeUnit] = useState<SizeUnit>('Crores');
@@ -982,7 +984,7 @@ export default function IssuerMonthWiseSummary() {
         try {
             setIsLoading(true);
 
-            const res = await fetchIssuerMonthlySummaryData(primaryFilters);
+            const res = await fetchArrangerMonthlySummaryData(primaryFilters);
 
             console.log('primary data', res?.data);
 
@@ -1007,7 +1009,7 @@ export default function IssuerMonthWiseSummary() {
     const fetchCompareData = async () => {
         try {
 
-            const res = await fetchIssuerMonthlySummaryData(compareFilters);
+            const res = await fetchArrangerMonthlySummaryData(compareFilters);
 
             console.log('compare data', res?.data);
 
@@ -1176,8 +1178,8 @@ export default function IssuerMonthWiseSummary() {
 
                 {/* ── Page Title ── */}
                 <div>
-                    <h1 className="text-xl font-bold text-gray-700 dark:text-gray-200">Issuer Monthly Summary</h1>
-                    <p className="text-[9px] text-gray-400 mb-6 mt-1">Issuer &gt; Monthly Summary</p>
+                    <h1 className="text-xl font-bold text-gray-700 dark:text-gray-200">Arrangers Monthly Summary</h1>
+                    <p className="text-[9px] text-gray-400 mb-6 mt-1">Arrangers &gt; Monthly Summary</p>
                 </div>
 
                 {/* FILTERS */}

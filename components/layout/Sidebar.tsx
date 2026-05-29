@@ -72,6 +72,7 @@ const navigation: NavItem[] = [
         icon: Handshake,
         children: [
             { name: 'Summary', href: '/arrangers/summary' },
+            { name: 'Monthly', href: '/arrangers/monthly' },
             { name: 'Details', href: '/arrangers/details' },
         ],
     },
@@ -81,6 +82,7 @@ const navigation: NavItem[] = [
         icon: Shield,
         children: [
             { name: 'Summary', href: '/trustees/summary' },
+            { name: 'Monthly', href: '/trustees/monthly' },
             { name: 'Details', href: '/trustees/details' },
         ],
     },
@@ -90,6 +92,7 @@ const navigation: NavItem[] = [
         icon: ClipboardList,
         children: [
             { name: 'Summary', href: '/registrars/summary' },
+            { name: 'Monthly', href: '/registrars/monthly' },
             { name: 'Details', href: '/registrars/details' },
         ],
     },
@@ -99,6 +102,7 @@ const navigation: NavItem[] = [
         icon: Award,
         children: [
             { name: 'Summary', href: '/agencies/summary' },
+            { name: 'Monthly', href: '/agencies/monthly' },
             { name: 'Details', href: '/agencies/details' },
         ],
     }

@@ -44,4 +44,33 @@ export const fetchRegistrarPageDetailedData = async (query: unknown) => {
     }
 }
 
+export const fetchRegistrarMonthlySummaryData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/registrar_page_monthly_summary_data`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching registrar page monthly summary data:", err.message);
+    }
+};
+
+
+export const fetchRegistrarMonthlyDetailedData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/registrars_page_monthly_detailed_data`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching issuer page monthly detailed data:", err.message);
+    }
+};
+
 

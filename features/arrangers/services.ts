@@ -45,3 +45,31 @@ export const fetchArrangersDetailsData = async (query: unknown) => {
         console.error("Error fetching issue details data:", err.message);
     }
 };
+
+export const fetchArrangerMonthlySummaryData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/arranger_page_monthly_summary_data`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching arrangers page monthly summary data:", err.message);
+    }
+};
+
+export const fetchArrangerMonthlyDetailedData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/arrangers_page_monthly_detailed_data`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching issuer page monthly detailed data:", err.message);
+    }
+};

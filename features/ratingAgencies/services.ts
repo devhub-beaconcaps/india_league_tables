@@ -44,4 +44,30 @@ export const fetchRatingAgencyDetailedData = async (query: unknown) => {
     }
 }
 
+export const fetchRatingAgencyMonthlySummaryData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/rating_agencies_page_monthly_summary_data`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching rating agency page monthly summary data:", err.message);
+    }
+};
 
+export const fetchRatingAgencyMonthlyDetailedData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/rating_agencies_page_monthly_detailed_data`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching rating agency page monthly detailed data:", err.message);
+    }
+};
