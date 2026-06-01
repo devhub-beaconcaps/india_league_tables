@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 
 import {
@@ -957,11 +957,7 @@ export default function MonthWiseSummary() {
     // FETCH FILTER OPTIONS
     // ─────────────────────────────────────────────────────────
 
-    useEffect(() => {
-        fetchFilterOptions();
-    }, []);
-
-    const fetchFilterOptions = async () => {
+    const fetchFilterOptions = useCallback(async () => {
         try {
             const query = {
                 startDate: primaryFilters.startDate,
@@ -969,30 +965,26 @@ export default function MonthWiseSummary() {
             };
 
             const res = await fetchIssueDetailsFilterInputsData(query);
-
             console.log('filters data', res);
-
-
             setFilterOptions(res);
         } catch (error) {
             console.error(error);
         }
-    };
+    }, [primaryFilters.startDate, primaryFilters.endDate]);
+
+    useEffect(() => {
+        fetchFilterOptions();
+    }, [fetchFilterOptions]);
 
     // ─────────────────────────────────────────────────────────
     // FETCH PRIMARY DATA
     // ─────────────────────────────────────────────────────────
 
-    useEffect(() => {
-        fetchPrimaryData();
-    }, [primaryFilters]);
-
-    const fetchPrimaryData = async () => {
+    const fetchPrimaryData = useCallback(async () => {
         try {
             setIsLoading(true);
 
             const res = await fetchRatingAgencyMonthlySummaryData(primaryFilters);
-
             console.log('primary data', res?.data);
 
             setPrimaryData(res?.data || []);
@@ -1001,30 +993,32 @@ export default function MonthWiseSummary() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [primaryFilters]);
+
+    useEffect(() => {
+        fetchPrimaryData();
+    }, [fetchPrimaryData]);
 
     // ─────────────────────────────────────────────────────────
     // FETCH COMPARE DATA
     // ─────────────────────────────────────────────────────────
 
-    useEffect(() => {
-        if (enableCompare) {
-            fetchCompareData();
-        }
-    }, [compareFilters, enableCompare]);
-
-    const fetchCompareData = async () => {
+    const fetchCompareData = useCallback(async () => {
         try {
-
             const res = await fetchRatingAgencyMonthlySummaryData(compareFilters);
-
             console.log('compare data', res?.data);
 
             setCompareData(res?.data || []);
         } catch (error) {
             console.error(error);
         }
-    };
+    }, [compareFilters]);
+
+    useEffect(() => {
+        if (enableCompare) {
+            fetchCompareData();
+        }
+    }, [compareFilters, enableCompare, fetchCompareData]);
 
     // ─────────────────────────────────────────────────────────
     // CHART DATA
