@@ -97,23 +97,30 @@ type SizeUnit = 'Crores' | 'Lakhs' | 'Billions';
 function generateFinancialYearOptions(count: number = 3) {
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-indexed
-    // FY starts April 1. If month >= 3 (April), current FY started this year.
-    const currentFYStart = currentMonth >= 3 ? currentYear : currentYear - 1;
-    // Use the most recently completed/primary FY as the top option
-    const primaryFYStart = currentFYStart - 1;
+    const currentMonth = now.getMonth(); // Jan = 0, Apr = 3
+
+    // Current FY start year
+    const currentFYStart =
+        currentMonth >= 3 ? currentYear : currentYear - 1;
+
+    const today = now.toISOString().split('T')[0];
 
     const options = [];
+
     for (let i = 0; i < count; i++) {
-        const startYear = primaryFYStart - i;
+        const startYear = currentFYStart - i;
         const endYear = startYear + 1;
-        const fyEndShort = endYear.toString().slice(-2);
+
+        const fyRange = `${startYear}-${String(endYear).slice(-2)}`;
+        const fyEndDate = `${endYear}-03-31`;
+
         options.push({
-            label: `FY${fyEndShort} (${startYear}-${fyEndShort})`,
+            label: `${startYear} (${fyRange})`,
             startDate: `${startYear}-04-01`,
-            endDate: `${endYear}-03-31`,
+            endDate: fyEndDate > today ? today : fyEndDate,
         });
     }
+
     return options;
 }
 

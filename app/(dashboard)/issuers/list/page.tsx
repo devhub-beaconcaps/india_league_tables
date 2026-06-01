@@ -3,6 +3,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
+import * as XLSX from 'xlsx';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { Search, Download, X, ChevronDown, ChevronUp } from 'lucide-react';
@@ -326,8 +327,51 @@ export default function IssuerListPage() {
     };
 
     const handleExport = () => {
-        // TODO: wire up your export logic
-        console.log('Exporting data...');
+        if (!tableData || tableData.length === 0) {
+            alert('No data to export');
+            return;
+        }
+
+        try {
+            // Prepare headers: Issuer Name + ISIN + TABLE_COLUMNS
+            const headers = ['Issuer Name', 'ISIN', ...TABLE_COLUMNS.map(col => col.label)];
+
+            // Prepare data rows
+            const dataRows = tableData.map(row => [
+                row.issuerName,
+                row.isin,
+                ...TABLE_COLUMNS.map(col => {
+                    const value = (row as any)[col.key];
+                    // Format currency values if numeric
+                    if (col.key === 'issueSize' || col.key === 'faceValue') {
+                        return typeof value === 'number' ? formatCurrency(value) : value;
+                    }
+                    return value || '-';
+                })
+            ]);
+
+            // Create workbook and worksheet
+            const worksheetData = [headers, ...dataRows];
+            const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+
+            // Set column widths
+            const columnWidths = headers.map(header => ({ wch: 15 }));
+            worksheet['!cols'] = columnWidths;
+
+            // Create workbook
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Issuer List');
+
+            // Generate filename with current date
+            const now = new Date();
+            const filename = `issuer-list-${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}.xlsx`;
+
+            // Trigger download
+            XLSX.writeFile(workbook, filename);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Failed to export data');
+        }
     };
 
     // ── Client-side sort (optional polish) ──

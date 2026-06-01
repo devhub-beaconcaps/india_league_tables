@@ -156,9 +156,24 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     return null;
 };
 
-const renderLabel = ({ cx = 0, cy = 0, midAngle = 0, innerRadius = 0, outerRadius = 0, percent = 0 }: PieLabelProps) => {
+const renderLabel = ({
+    cx = 0,
+    cy = 0,
+    midAngle = 0,
+    innerRadius = 0,
+    outerRadius = 0,
+    percent = 0,
+}: PieLabelProps) => {
+    const percentage = percent * 100;
+
+    // Hide labels for slices <= 5%
+    if (percentage <= 5) {
+        return null;
+    }
+
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -172,10 +187,11 @@ const renderLabel = ({ cx = 0, cy = 0, midAngle = 0, innerRadius = 0, outerRadiu
             fontSize={10}
             fontWeight="600"
         >
-            {(percent * 100).toFixed(2)}%
+            {percentage.toFixed(2)}%
         </text>
     );
 };
+
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -416,7 +432,7 @@ export default function Summary() {
                 <SectionCard>
                     <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                         <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                            Top 10 Issuers by {issueType === 'size' ? 'Issue size' : 'No of Issues'} (Rupees in Crores)
+                            Top 10 Rating Agencies by {issueType === 'size' ? 'Issue size' : 'No of Issues'} (Rupees in Crores)
                         </h2>
                         <div className="w-full sm:w-auto">
                             <CustomDropdown
@@ -460,6 +476,7 @@ export default function Summary() {
                                 data={issueTableData}
                                 selectedFY={selectedFY}
                                 valueConvention={valueConvention}
+                                type="Rating Agency"
                             />
                         ) : (
                             <NoDataState message="No issuer data available" subMessage="Try adjusting your filters or selecting a different financial year." />
@@ -477,7 +494,7 @@ export default function Summary() {
                                 <StackedChart
                                     data={topSectorsData}
                                     height={300}
-                                    title="Top Arrangers by Sector"
+                                    title="Top Rating Agencies by Sector"
                                 />
                             </>
                         ) : (
@@ -487,7 +504,7 @@ export default function Summary() {
 
                     <SectionCard>
                         <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                            Market Share Among Top 10 Issuers<br />
+                            Market Share Among Top 10 Rating Agencies<br />
                             <span className="font-normal text-gray-500 dark:text-gray-400">(By Size)</span>
                         </h2>
                         {isMarketShareLoading ? (

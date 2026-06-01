@@ -7,6 +7,7 @@ import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { Search, Download, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { fetchRegistrarMonthlyDetailedData } from '@/features/registrars/services';
+import * as XLSX from 'xlsx';
 
 // ─────────────────────────────────────────────────────────────
 // UTILS
@@ -325,10 +326,7 @@ export default function IssuerListPage() {
         setTimeout(() => fetchData(), 0);
     };
 
-    const handleExport = () => {
-        // TODO: wire up your export logic
-        console.log('Exporting data...');
-    };
+
 
     // ── Client-side sort (optional polish) ──
     const sortedData = useMemo(() => {
@@ -343,6 +341,66 @@ export default function IssuerListPage() {
             return String(aVal).localeCompare(String(bVal)) * dir;
         });
     }, [tableData, sortColumn, sortDirection]);
+
+    const handleExport = useCallback(() => {
+        if (sortedData.length === 0) {
+            console.warn('No data to export');
+            return;
+        }
+
+        const exportData = sortedData.map((row) => ({
+            'Registrar': row.registrar,
+            'ISIN': row.isin,
+            'Security Name': row.securityName,
+            'Security Type': row.securityType,
+            'Mode of Issue': row.modeOfIssue,
+            'Allotment Date': row.allotmentDate,
+            'Maturity Date': row.maturityDate,
+            'Coupon Rate': row.couponRate,
+            'Issue Size': row.issueSize ?? '',
+            'Face Value': row.faceValue ?? '',
+            'Rating': row.rating,
+            'Credit Rating Agency': row.creditRatingAgency,
+            'Debenture Trustee': row.debentureTrustee,
+            'Arranger': row.arranger,
+            'Seniority': row.seniority,
+            'Tax Free': row.taxFree,
+            'Secured Flag': row.securedFlag,
+            'Listing Status': row.listingStatus,
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+        const colWidths = [
+            { wch: 20 }, // Registrar
+            { wch: 15 }, // ISIN
+            { wch: 20 }, // Security Name
+            { wch: 14 }, // Security Type
+            { wch: 14 }, // Mode of Issue
+            { wch: 14 }, // Allotment Date
+            { wch: 14 }, // Maturity Date
+            { wch: 12 }, // Coupon Rate
+            { wch: 14 }, // Issue Size
+            { wch: 14 }, // Face Value
+            { wch: 12 }, // Rating
+            { wch: 20 }, // Credit Rating Agency
+            { wch: 20 }, // Debenture Trustee
+            { wch: 18 }, // Arranger
+            { wch: 14 }, // Seniority
+            { wch: 10 }, // Tax Free
+            { wch: 12 }, // Secured Flag
+            { wch: 14 }, // Listing Status
+        ];
+        worksheet['!cols'] = colWidths;
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Registrar List');
+
+        const dateStr = new Date().toISOString().split('T')[0];
+        const filename = `registrar-list-${fy}-${period}-${dateStr}.xlsx`;
+
+        XLSX.writeFile(workbook, filename);
+    }, [sortedData, fy, period]);
 
     // ── Render ──
     return (

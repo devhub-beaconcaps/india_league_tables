@@ -13,8 +13,8 @@ interface ScrollableTableProps {
 // ─── Format Helpers ─────────────────────────────────────────────────────────
 
 const formatCurrency = (value: number): string => {
-  if (value >= 1000) return `${(value / 1000).toFixed(2)}k`;
-  return value.toFixed(2);
+  const formatted = value >= 1000 ? `${(value / 1000).toFixed(2)}k` : value.toFixed(2);
+  return `₹${formatted}`;
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────

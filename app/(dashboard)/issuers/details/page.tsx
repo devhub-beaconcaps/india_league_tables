@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import * as XLSX from 'xlsx';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import CustomDropdown from '@/components/CustomDropdown';
@@ -391,8 +392,50 @@ export default function DetailedAnalysis() {
 
     // Handle export
     const handleExport = () => {
-        // Implement export logic
-        console.log('Exporting data...');
+        if (!tableData || tableData.length === 0) {
+            alert('No data to export');
+            return;
+        }
+
+        try {
+            // Prepare headers
+            const headers = ['Issuer Name', ...TABLE_COLUMNS.map(col => col.label)];
+
+            // Prepare data rows
+            const dataRows = tableData.map(row => [
+                row.issuerName,
+                ...TABLE_COLUMNS.map(col => {
+                    const value = (row as any)[col.key];
+                    // Format currency values if numeric
+                    if (col.key === 'issueValue' || col.key === 'faceValue') {
+                        return typeof value === 'number' ? formatCurrency(value) : value;
+                    }
+                    return value || '-';
+                })
+            ]);
+
+            // Create workbook and worksheet
+            const worksheetData = [headers, ...dataRows];
+            const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+
+            // Set column widths
+            const columnWidths = headers.map(header => ({ wch: 15 }));
+            worksheet['!cols'] = columnWidths;
+
+            // Create workbook
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Issuer Details');
+
+            // Generate filename with current date
+            const now = new Date();
+            const filename = `issuer-details-${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}.xlsx`;
+
+            // Trigger download
+            XLSX.writeFile(workbook, filename);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Failed to export data');
+        }
     };
 
     // Format currency
@@ -421,7 +464,7 @@ export default function DetailedAnalysis() {
                 <div>
                     <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Issuer Detailed Analysis</h1>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 mt-1">
-                        Reports <span className="mx-1">&gt;</span> Issuer <span className="mx-1">&gt;</span> Detailed Analysis
+                        Issuer <span className="mx-1">&gt;</span> Detailed Analysis
                     </p>
                 </div>
 

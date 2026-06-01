@@ -6,6 +6,7 @@ import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import CustomDropdown from '@/components/CustomDropdown';
 import { Search, Download, X, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 import { FilterOption, FilterState, TableDataItem } from './types';
 import { TABLE_COLUMNS } from './constants';
@@ -325,7 +326,7 @@ export default function DetailedAnalysis() {
                 dateOfMaturity: item.maturityDate || '-',
             }));
 
-            console.log("mappedData",mappedData)
+            console.log("mappedData", mappedData)
 
             setTableData(mappedData);
             setTotalCount(result.pagination.total);
@@ -389,11 +390,69 @@ export default function DetailedAnalysis() {
         }
     };
 
-    // Handle export
-    const handleExport = () => {
-        // Implement export logic
-        console.log('Exporting data...');
-    };
+    const handleExport = useCallback(() => {
+        if (tableData.length === 0) {
+            console.warn('No data to export');
+            return;
+        }
+
+        const exportData = tableData.map((row) => ({
+            'Registrar': row.registrar,
+            'Issuer Name': row.issuerName,
+            'ISIN': row.isin,
+            'Security Name': row.securityName,
+            'Nature': row.nature,
+            'Ownership Type': row.ownershipType,
+            'Sector': row.sector,
+            'Credit Rating Agency': row.creditRatingAgency,
+            'Credit Rating': row.creditRating,
+            'Seniority': row.seniority,
+            'Secured Flag': row.securedFlag,
+            'Listing Status': row.listingStatus,
+            'Tax Free': row.taxFree,
+            'Issue Size': row.issueSize,
+            'Security Type': row.securityType,
+            'Mode of Issue': row.modeOfIssue,
+            'Issue Value (INR)': row.issueValue,
+            'Face Value (INR)': row.faceValue,
+            'Allotment Date': row.allotmentDate,
+            'Date of Maturity': row.dateOfMaturity,
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+        const colWidths = [
+            { wch: 22 }, // Registrar
+            { wch: 22 }, // Issuer Name
+            { wch: 15 }, // ISIN
+            { wch: 20 }, // Security Name
+            { wch: 14 }, // Nature
+            { wch: 16 }, // Ownership Type
+            { wch: 16 }, // Sector
+            { wch: 20 }, // Credit Rating Agency
+            { wch: 14 }, // Credit Rating
+            { wch: 12 }, // Seniority
+            { wch: 12 }, // Secured Flag
+            { wch: 14 }, // Listing Status
+            { wch: 10 }, // Tax Free
+            { wch: 12 }, // Issue Size
+            { wch: 14 }, // Security Type
+            { wch: 14 }, // Mode of Issue
+            { wch: 16 }, // Issue Value
+            { wch: 16 }, // Face Value
+            { wch: 14 }, // Allotment Date
+            { wch: 14 }, // Date of Maturity
+        ];
+        worksheet['!cols'] = colWidths;
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Registrar Analysis');
+
+        const dateStr = new Date().toISOString().split('T')[0];
+        const filename = `registrar-detailed-analysis-${dateStr}.xlsx`;
+
+        XLSX.writeFile(workbook, filename);
+    }, [tableData]);
 
     // Format currency
     const formatCurrency = (value: number): string => {
@@ -421,7 +480,7 @@ export default function DetailedAnalysis() {
                 <div>
                     <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Registrar Detailed Analysis</h1>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 mt-1">
-                        Reports <span className="mx-1">&gt;</span> Registrar <span className="mx-1">&gt;</span> Detailed Analysis
+                        Registrar <span className="mx-1">&gt;</span> Detailed Analysis
                     </p>
                 </div>
 

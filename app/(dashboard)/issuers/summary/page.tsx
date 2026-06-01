@@ -127,17 +127,17 @@ function NoDataState({ message = "No data available", subMessage }: { message?: 
     return (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <div className="w-16 h-16 mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                <svg 
-                    className="w-8 h-8 text-gray-400 dark:text-gray-500" 
-                    fill="none" 
-                    stroke="currentColor" 
+                <svg
+                    className="w-8 h-8 text-gray-400 dark:text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                 >
-                    <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth={1.5} 
-                        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                 </svg>
             </div>
@@ -177,9 +177,23 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     return null;
 };
 
-const renderLabel = ({ cx = 0, cy = 0, midAngle = 0, innerRadius = 0, outerRadius = 0, percent = 0 }: PieLabelProps) => {
+const renderLabel = ({
+    cx = 0,
+    cy = 0,
+    midAngle = 0,
+    innerRadius = 0,
+    outerRadius = 0,
+    percent = 0,
+}: PieLabelProps) => {
+
+    // Hide labels for slices below 5%
+    if (percent * 100 < 5) {
+        return null;
+    }
+
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -193,7 +207,7 @@ const renderLabel = ({ cx = 0, cy = 0, midAngle = 0, innerRadius = 0, outerRadiu
             fontSize={10}
             fontWeight="600"
         >
-            {(percent * 100).toFixed(2)}%
+            {(percent * 100).toFixed(0)}%
         </text>
     );
 };
@@ -328,7 +342,7 @@ export default function IssuerSummary() {
             try {
                 const Ratings: RawRatingItem[] = await fetchCreditRatingsData(query);
                 console.log("rating data", Ratings, creditRatingAgency);
-                
+
                 setRatingData(formatRatingsData(Ratings || [], creditRatingAgency));
             } catch (err) {
                 console.error('API Error:', err);
@@ -501,6 +515,7 @@ export default function IssuerSummary() {
                                 data={issueTableData}
                                 selectedFY={selectedFY}
                                 valueConvention={valueConvention}
+                                type="Issuer"
                             />
                         ) : (
                             <NoDataState message="No issuer data available" subMessage="Try adjusting your filters or selecting a different financial year." />

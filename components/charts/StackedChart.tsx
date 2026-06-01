@@ -116,6 +116,7 @@ const CustomTooltip = ({ active, payload, label }: {
   );
 };
 
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function StackedChart({
@@ -212,12 +213,14 @@ export default function StackedChart({
           <Tooltip content={<CustomTooltip />} />
           <Legend
             verticalAlign="bottom"
-            height={36}
+            height={96}
             iconType="circle"
             iconSize={8}
             wrapperStyle={{
               fontSize: '10px',
               paddingTop: '10px',
+              maxHeight: '96px',
+              overflowY: 'auto',
             }}
             formatter={(value: string) => (
               <span className="text-[10px] text-gray-600 dark:text-gray-400 ml-1">

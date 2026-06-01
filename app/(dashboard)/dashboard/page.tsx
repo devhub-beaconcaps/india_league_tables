@@ -103,17 +103,17 @@ function NoDataState({ message = "No data available", subMessage }: { message?: 
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
       <div className="w-16 h-16 mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-        <svg 
-          className="w-8 h-8 text-gray-400 dark:text-gray-500" 
-          fill="none" 
-          stroke="currentColor" 
+        <svg
+          className="w-8 h-8 text-gray-400 dark:text-gray-500"
+          fill="none"
+          stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            strokeWidth={1.5} 
-            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" 
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
           />
         </svg>
       </div>
@@ -201,7 +201,6 @@ function StatCard({ label, value, change, color, icon }: StatCardProps) {
         </div>
         <p className="text-[9px] mb-1 text-gray-400 dark:text-gray-500 font-medium truncate">{label}</p>
         <p title={value} className="text-[14px] font-bold text-gray-800 dark:text-white leading-tight mt-0.5">{label === 'Top Sector' ? truncateText(value, 7) : value}</p>
-        <p className="text-[9px] text-green-500 font-medium mt-0.5">{change}</p>
       </div>
     </div>
   );
@@ -223,13 +222,25 @@ const renderCustomizedLabel = ({
   outerRadius,
   percent,
 }: PieLabelRenderProps): ReactNode => {
-  if (typeof cx !== 'number' || typeof cy !== 'number' || typeof midAngle !== 'number' ||
-    typeof innerRadius !== 'number' || typeof outerRadius !== 'number' || typeof percent !== 'number') {
+  if (
+    typeof cx !== 'number' ||
+    typeof cy !== 'number' ||
+    typeof midAngle !== 'number' ||
+    typeof innerRadius !== 'number' ||
+    typeof outerRadius !== 'number' ||
+    typeof percent !== 'number'
+  ) {
+    return null;
+  }
+
+  // Hide labels for slices smaller than 5%
+  if (percent * 100 < 5) {
     return null;
   }
 
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -375,11 +386,10 @@ export default function Dashboard() {
       const data = await fetchDashboardStatsData(query) as StatsApiResponse[];
       if (Array.isArray(data) && data.length > 0) {
         const statsCards: StatCardData[] = [
-          { label: 'Largest Issue Size', value: Number(data[0]?.largest_issue_size || 0).toLocaleString('en-IN'), change: '+8%', color: '#7C3AED', icon: '📊' },
+          { label: 'Largest Issue Size', value: `₹${Number(data[0]?.largest_issue_size || 0).toLocaleString('en-IN')} Cr.`, change: '+8%', color: '#7C3AED', icon: '📊' },
           { label: 'Total Issues', value: Number(data[0]?.total_issues || 0).toLocaleString('en-IN'), change: '+5%', color: '#7C3AED', icon: '📋' },
-          { label: 'Avg Issue Size', value: Number(data[0]?.avg_issue_size_in_cr || 0).toLocaleString('en-IN'), change: '+8%', color: '#EC4899', icon: '📈' },
-          { label: 'Total Volume', value: Number(data[0]?.total_volume_in_cr || 0).toLocaleString('en-IN'), change: '+8%', color: '#06B6D4', icon: '💰' },
-          { label: 'Total Issue Size', value: Number(data[0]?.total_issue_size_in_cr || 0).toLocaleString('en-IN'), change: '+8%', color: '#F97316', icon: '🏦' },
+          { label: 'Avg Issue Size', value: `₹${Number(data[0]?.avg_issue_size_in_cr || 0).toLocaleString('en-IN')} Cr.`, change: '+8%', color: '#EC4899', icon: '📈' },
+          { label: 'Total Issue Size', value: `₹${Number(data[0]?.total_issue_size_in_cr || 0).toLocaleString('en-IN')} Cr.`, change: '+8%', color: '#F97316', icon: '🏦' },
           { label: 'Top Sector', value: data[0]?.top_sector_by_volume || 'N/A', change: '+8%', color: '#10B981', icon: '📦' },
         ];
         setStatsData(statsCards);
@@ -708,8 +718,8 @@ export default function Dashboard() {
                           </td>
                           <td className={`py-2.5 text-right pr-2 rounded-r-lg ${row.active ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
                             {valueConvention === 'Lakhs'
-                              ? (parseFloat(String(row?.issueSize || 0)) * 100).toLocaleString()
-                              : parseFloat(String(row?.issueSize || 0)).toLocaleString()}
+                              ? `₹${(parseFloat(String(row?.issueSize || 0)) * 100).toLocaleString()}`
+                              : `₹${parseFloat(String(row?.issueSize || 0)).toLocaleString()}`}
                           </td>
                         </tr>
                       ))

@@ -31,6 +31,7 @@ interface FinanceTableProps {
   data: TableRowData[];
   selectedFY: string;
   valueConvention: "Lakhs" | "Crores" | string;
+  type: string;
 }
 
 interface FinancialYearRanges {
@@ -80,12 +81,10 @@ function getFinancialYearRanges(rangeStr: string): FinancialYearRanges {
 
 function formatIssueSize(value: string | number | undefined, convention: string): string {
   const numValue: number = parseFloat(String(value || 0));
-  
-  if (convention === "Lakhs") {
-    return Number((numValue * 100).toFixed(2)).toLocaleString();
-  }
-  
-  return Number(numValue.toFixed(2)).toLocaleString();
+  const formatted = convention === "Lakhs"
+    ? Number((numValue * 100).toFixed(2)).toLocaleString()
+    : Number(numValue.toFixed(2)).toLocaleString();
+  return `₹${formatted}`;
 }
 
 function calculateTotalDeals(data: TableRowData[], key: "deals" | "prevDeals"): number {
@@ -103,6 +102,7 @@ export default function FinanceTable({
   data,
   selectedFY,
   valueConvention,
+  type,
 }: FinanceTableProps): JSX.Element {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
 
@@ -179,7 +179,7 @@ export default function FinanceTable({
 
               <tr>
                 <th className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8] w-[30%]">
-                  Issuer Name
+                  {type} Name
                 </th>
 
                 {SUB_HEADERS.map((h: string) => (
