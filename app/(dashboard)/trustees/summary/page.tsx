@@ -552,10 +552,10 @@ export default function Summary() {
                 {/* ── Corporate Bond Trend ── */}
                 <SectionCard>
                     <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                        Corporate Bond Outstanding Trends Analysis : {selectedFY}
+                        All Trustees List : {selectedFY}
                     </h2>
                     <div className="h-[250px]">  {/* Fixed height parent */}
-                        <ScrollableTable data={listTableData} />
+                        <ScrollableTable data={listTableData} selectedFY={selectedFY} pageType='trustees' />
                     </div>
                 </SectionCard>
 

@@ -1,12 +1,15 @@
 'use client';
 
 import { FormattedIssuerItem } from '@/app/(dashboard)/arrangers/summary/types';
+import { useRouter } from 'next/navigation';
 import React from 'react';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 
 interface ScrollableTableProps {
+  pageType: string;
+  selectedFY: string;
   data: FormattedIssuerItem[];
 }
 
@@ -17,9 +20,22 @@ const formatCurrency = (value: number): string => {
   return `₹${formatted}`;
 };
 
+function formatNumber(value: number): string {
+  return value.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ScrollableTable({ data }: ScrollableTableProps) {
+export default function ScrollableTable({ data, selectedFY, pageType }: ScrollableTableProps) {
+
+  const router = useRouter();
+
+  const handleClick = (id: number) => {
+    // URL params: ?id=8&fy=2026-2027
+    router.push(`/${pageType}/top-participants?id=${encodeURIComponent(id)}&fy=${selectedFY}`);
+  }
+
+
   return (
     <div className="flex flex-col h-full">
       {/* Fixed Header */}
@@ -60,7 +76,9 @@ export default function ScrollableTable({ data }: ScrollableTableProps) {
                   {formatCurrency(row?.issueSize)}
                 </td>
                 <td className="px-3 py-2.5 text-right w-[80px] text-gray-600 dark:text-gray-400">
-                  {row?.deals}
+                  <span onClick={() => handleClick(row.id)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline font-medium" >
+                    {formatNumber(row?.deals || 0)}
+                  </span>
                 </td>
               </tr>
             ))}

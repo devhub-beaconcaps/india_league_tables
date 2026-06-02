@@ -329,8 +329,8 @@ export default function Summary() {
 
                 {/* ── Page Title ── */}
                 <div>
-                    <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Issuer Summary</h1>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 mt-1">Issuer &gt; Summary</p>
+                    <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Arrangers Summary</h1>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 mt-1">Arranger &gt; Summary</p>
                 </div>
 
                 {/* ── Financial Year Filter ── */}
@@ -550,13 +550,13 @@ export default function Summary() {
                     </SectionCard>
                 </div>
 
-                {/* ── Corporate Bond Trend ── */}
+                {/* ── All Arrangers List ── */}
                 <SectionCard>
                     <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                        Corporate Bond Outstanding Trends Analysis : {selectedFY}
+                        All Arrangers List : {selectedFY}
                     </h2>
                     <div className="h-[250px]">  {/* Fixed height parent */}
-                        <ScrollableTable data={listTableData} />
+                        <ScrollableTable data={listTableData} selectedFY={selectedFY} pageType='arrangers' />
                     </div>
                 </SectionCard>
 

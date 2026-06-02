@@ -25,6 +25,7 @@ export interface DropdownOption {
 
 // Raw API shapes
 export interface RawIssuerItem {
+    id:number;
     name: string;
     currentSize: string | number;
     currentDeals: string | number;

@@ -71,3 +71,17 @@ export const fetchRatingAgencyMonthlyDetailedData = async (query: unknown) => {
         console.error("Error fetching rating agency page monthly detailed data:", err.message);
     }
 };
+
+export const fetchRatingAgencyTopParticipantsData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/rating_agency_top_participants_details`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching rating agency page top participants data:", err.message);
+    }
+};

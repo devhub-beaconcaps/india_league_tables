@@ -73,3 +73,17 @@ export const fetchArrangerMonthlyDetailedData = async (query: unknown) => {
         console.error("Error fetching issuer page monthly detailed data:", err.message);
     }
 };
+
+export const fetchArrangerTopParticipantsData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/arranger_top_participants_details`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching arrangers page top participants data:", err.message);
+    }
+};

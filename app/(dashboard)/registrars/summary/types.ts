@@ -25,6 +25,7 @@ export interface DropdownOption {
 
 // Raw API shapes
 export interface RawIssuerItem {
+    id: number;
     name: string;
     currentSize: string | number;
     currentDeals: string | number;
@@ -113,12 +114,12 @@ export interface TotalsData {
 }
 
 export interface SectorItem {
-    id:number;
+    id: number;
     issuer_name: string;
-    arr_rank:string;
-    code:string;
-    description:string;
-    value:number;
+    arr_rank: string;
+    code: string;
+    description: string;
+    value: number;
 }
 
 export interface TableApiResponse {

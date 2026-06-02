@@ -73,4 +73,18 @@ export const fetchRegistrarMonthlyDetailedData = async (query: unknown) => {
     }
 };
 
+export const fetchRegistrarTopParticipantsData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/registrar_top_participants_details`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching registrar page top participants data:", err.message);
+    }
+};
+
 

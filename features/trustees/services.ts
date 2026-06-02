@@ -72,4 +72,18 @@ export const fetchTrusteeMonthlyDetailedData = async (query: unknown) => {
     }
 };
 
+export const fetchTrusteeTopParticipantsData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/trustee_top_participants_details`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching trustees page top participants data:", err.message);
+    }
+};
+
 

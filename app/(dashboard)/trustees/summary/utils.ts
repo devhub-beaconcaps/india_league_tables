@@ -38,6 +38,7 @@ function capAtCurrentDate(dateStr: string): string {
 
 export const formatData = (data: RawIssuerItem[]): FormattedIssuerItem[] => {
     return data?.map(item => ({
+        id:item?.id,
         name: item.name,
         issueSize: Number(item.currentSize) || 0,
         deals: Number(item.currentDeals) || 0,
