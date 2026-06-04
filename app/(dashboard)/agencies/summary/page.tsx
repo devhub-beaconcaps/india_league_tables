@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell,
@@ -57,12 +57,31 @@ import {
 } from './utils';
 import StackedChart from '@/components/charts/StackedChart';
 import ScrollableTable from '@/components/ScrollableTable';
-import { fetchTrusteePageCreditRatingsData, fetchTrusteePageTrusteesData } from '@/features/trustees/services';
-import { fetchRegistrarPageCreditRatingsData, fetchRegistrarPageData } from '@/features/registrars/services';
 import { fetchRatingAgencyCreditRatingsData, fetchRatingAgencyPageData } from '@/features/ratingAgencies/services';
+import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
+
+// ─── Types ─────────────────────────────────────────────────────────────────
+
+interface FilterInputsResponse {
+    taxFree: string[];
+    ownershipType: string[];
+    nature: string[];
+    sector: string[];
+    securityType: string[];
+    modeOfIssue: string[];
+    creditRatingAgency: string[];
+    creditRating: string[];
+    seniority: string[];
+    securedFlag: string[];
+    listingStatus: string[];
+}
+
+interface FilterOption {
+    value: string;
+    label: string;
+}
 
 // ─── Skeleton Components ─────────────────────────────────────────────────────
-
 
 function TableSkeleton() {
     return (
@@ -99,6 +118,18 @@ function PieChartSkeleton() {
     );
 }
 
+function FilterSkeleton() {
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(12)].map((_, i) => (
+                <div key={i} className="space-y-1.5">
+                    <Skeleton height={12} width={80} />
+                    <Skeleton height={36} />
+                </div>
+            ))}
+        </div>
+    );
+}
 
 // ─── Empty State Component ───────────────────────────────────────────────────
 
@@ -138,6 +169,45 @@ const SectionCard = ({ children, className = '' }: SectionCardProps) => (
     <div className={`bg-white dark:bg-[#1a1a2e] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 px-5 py-3 ${className}`}>
         {children}
     </div>
+);
+
+const FilterGroup = ({
+    label,
+    children,
+    className = ''
+}: {
+    label: string;
+    children: React.ReactNode;
+    className?: string
+}) => (
+    <div className={`flex flex-col gap-1.5 ${className}`}>
+        <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            {label}
+        </label>
+        {children}
+    </div>
+);
+
+const TextInput = ({
+    value,
+    onChange,
+    placeholder,
+    type = 'text'
+}: {
+    value: string | number;
+    onChange: (value: string) => void;
+    placeholder?: string;
+    type?: string;
+}) => (
+    <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full h-6 px-3 text-xs bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-lg 
+            text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]
+            placeholder:text-gray-400 dark:placeholder:text-gray-500"
+    />
 );
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
@@ -192,7 +262,6 @@ const renderLabel = ({
     );
 };
 
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Summary() {
@@ -217,6 +286,38 @@ export default function Summary() {
     const [isSectorsLoading, setIsSectorsLoading] = useState(true);
     const [isMarketShareLoading, setIsMarketShareLoading] = useState(true);
     const [isRatingLoading, setIsRatingLoading] = useState(true);
+    const [isFiltersLoading, setIsFiltersLoading] = useState(false);
+
+    // Additional filter states (like detailed page)
+    const [filters, setFilters] = useState({
+        issuerOwnershipType: '',
+        issuerNatureType: '',
+        businessSector: '',
+        securityType: '',
+        modeOfIssue: '',
+        creditRatingAgency: '',
+        creditRating: '',
+        seniority: '',
+        servicedFlag: '',
+        listingStatus: '',
+        taxFree: '',
+        dealSizeInCr: '',
+    });
+
+    // Filter options states
+    const [filterOptions, setFilterOptions] = useState<FilterInputsResponse>({
+        taxFree: [],
+        ownershipType: [],
+        nature: [],
+        sector: [],
+        securityType: [],
+        modeOfIssue: [],
+        creditRatingAgency: [],
+        creditRating: [],
+        seniority: [],
+        securedFlag: [],
+        listingStatus: [],
+    });
 
     const selectedYearsDateRange = useMemo<DateRange | null>(
         () => getDateRange({ fy: selectedFY, frequency, period }),
@@ -237,12 +338,60 @@ export default function Summary() {
         else setPeriod(null);
     };
 
+    const updateFilter = useCallback((key: keyof typeof filters, value: string | number) => {
+        setFilters(prev => ({ ...prev, [key]: String(value) }));
+    }, []);
+
+    const toOptions = (items: string[]): FilterOption[] => {
+        return items.map(item => ({
+            value: item,
+            label: item,
+        }));
+    };
+
     const handleReset = (): void => {
         setSelectedFY(fyOptions[0]?.value);
         setFrequency('Yearly');
         setPeriod(null);
         setValueConvention('Crores');
+        setFilters({
+            issuerOwnershipType: '',
+            issuerNatureType: '',
+            businessSector: '',
+            securityType: '',
+            modeOfIssue: '',
+            creditRatingAgency: '',
+            creditRating: '',
+            seniority: '',
+            servicedFlag: '',
+            listingStatus: '',
+            taxFree: '',
+            dealSizeInCr: '',
+        });
     };
+
+    // Fetch filter inputs
+    const fetchFilterInputs = useCallback(async () => {
+        if (!selectedYearsDateRange) return;
+        setIsFiltersLoading(true);
+        try {
+            const query = {
+                startDate: selectedYearsDateRange.startDate,
+                endDate: selectedYearsDateRange.endDate,
+            };
+
+            const data: FilterInputsResponse = await fetchIssueDetailsFilterInputsData(query);
+            setFilterOptions(data);
+        } catch (err) {
+            console.error('Error fetching filter inputs:', err);
+        } finally {
+            setIsFiltersLoading(false);
+        }
+    }, [selectedYearsDateRange]);
+
+    useEffect(() => {
+        fetchFilterInputs();
+    }, [fetchFilterInputs]);
 
     // Fetch main data
     useEffect(() => {
@@ -257,18 +406,42 @@ export default function Summary() {
                 startDate: selectedYearsDateRange.startDate,
                 endDate: selectedYearsDateRange.endDate,
                 issueType,
-                limit: 10
+                limit: 10,
+                ownershipType: filters.issuerOwnershipType,
+                nature: filters.issuerNatureType,
+                sector: filters.businessSector,
+                securityType: filters.securityType,
+                modeOfIssue: filters.modeOfIssue,
+                creditRatingAgency: filters.creditRatingAgency,
+                rating: filters.creditRating,
+                seniority: filters.seniority,
+                securedFlag: filters.servicedFlag,
+                listingStatus: filters.listingStatus,
+                taxFree: filters.taxFree,
+                dealSize: filters.dealSizeInCr,
             };
+
             const Listquery = {
                 startDate: selectedYearsDateRange.startDate,
                 endDate: selectedYearsDateRange.endDate,
-                issueType
+                issueType,
+                ownershipType: filters.issuerOwnershipType,
+                nature: filters.issuerNatureType,
+                sector: filters.businessSector,
+                securityType: filters.securityType,
+                modeOfIssue: filters.modeOfIssue,
+                creditRatingAgency: filters.creditRatingAgency,
+                rating: filters.creditRating,
+                seniority: filters.seniority,
+                securedFlag: filters.servicedFlag,
+                listingStatus: filters.listingStatus,
+                taxFree: filters.taxFree,
+                dealSize: filters.dealSizeInCr,
             };
 
             try {
                 console.log('Fetching data with date range:', selectedYearsDateRange);
 
-                // const table: TableApiResponse = await fetchissuePageTableData(query);
                 const fetchedData: TableApiResponse = await fetchRatingAgencyPageData(query);
                 const lists: TableApiResponse = await fetchRatingAgencyPageData(Listquery);
                 console.log('rating agencies table data', fetchedData?.tableData);
@@ -294,7 +467,7 @@ export default function Summary() {
         };
 
         fetchData();
-    }, [selectedYearsDateRange, issueType]);
+    }, [selectedYearsDateRange, issueType, filters]);
 
     // Fetch ratings data
     useEffect(() => {
@@ -306,12 +479,23 @@ export default function Summary() {
                 startDate: selectedYearsDateRange.startDate,
                 endDate: selectedYearsDateRange.endDate,
                 id: Number(creditRatingAgency) || 0,
+                ownershipType: filters.issuerOwnershipType,
+                nature: filters.issuerNatureType,
+                sector: filters.businessSector,
+                securityType: filters.securityType,
+                modeOfIssue: filters.modeOfIssue,
+                creditRatingAgency: filters.creditRatingAgency,
+                rating: filters.creditRating,
+                seniority: filters.seniority,
+                securedFlag: filters.servicedFlag,
+                listingStatus: filters.listingStatus,
+                taxFree: filters.taxFree,
+                dealSize: filters.dealSizeInCr,
             };
 
             try {
                 const Ratings: RawRatingItem[] = await fetchRatingAgencyCreditRatingsData(query);
                 console.log("rating data", Ratings, creditRatingAgency);
-                // console.log("ratingData",ratingData);
 
                 setRatingData(formatRatingsData(Ratings || [], creditRatingAgency));
             } catch (err) {
@@ -323,7 +507,7 @@ export default function Summary() {
         };
 
         fetchData();
-    }, [selectedYearsDateRange, creditRatingAgency]);
+    }, [selectedYearsDateRange, creditRatingAgency, filters]);
 
     return (
         <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#90969bff" borderRadius="0.5rem">
@@ -426,6 +610,132 @@ export default function Summary() {
                             </div>
                         </div>
                     </div>
+                </SectionCard>
+
+                {/* ── Additional Filters ── */}
+                <SectionCard>
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Filters</h2>
+                        {isFiltersLoading && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Loading options...</span>
+                        )}
+                    </div>
+
+                    {isFiltersLoading ? (
+                        <FilterSkeleton />
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
+                                <FilterGroup label="Issuer Ownership Type">
+                                    <CustomDropdown
+                                        options={toOptions(filterOptions.ownershipType)}
+                                        value={filters.issuerOwnershipType}
+                                        onChange={(val) => updateFilter('issuerOwnershipType', val)}
+                                        placeholder="Select Ownership"
+                                    />
+                                </FilterGroup>
+
+                                <FilterGroup label="Issuer Nature Type">
+                                    <CustomDropdown
+                                        options={toOptions(filterOptions.nature)}
+                                        value={filters.issuerNatureType}
+                                        onChange={(val) => updateFilter('issuerNatureType', val)}
+                                        placeholder="Select Nature"
+                                    />
+                                </FilterGroup>
+
+                                <FilterGroup label="Business Sector">
+                                    <CustomDropdown
+                                        options={toOptions(filterOptions.sector)}
+                                        value={filters.businessSector}
+                                        onChange={(val) => updateFilter('businessSector', val)}
+                                        placeholder="Select Sector"
+                                    />
+                                </FilterGroup>
+
+                                <FilterGroup label="Security Type">
+                                    <CustomDropdown
+                                        options={toOptions(filterOptions.securityType)}
+                                        value={filters.securityType}
+                                        onChange={(val) => updateFilter('securityType', val)}
+                                        placeholder="Select Security"
+                                    />
+                                </FilterGroup>
+
+                                <FilterGroup label="Mode of Issue">
+                                    <CustomDropdown
+                                        options={toOptions(filterOptions.modeOfIssue)}
+                                        value={filters.modeOfIssue}
+                                        onChange={(val) => updateFilter('modeOfIssue', val)}
+                                        placeholder="Select Mode"
+                                    />
+                                </FilterGroup>
+
+                                <FilterGroup label="Credit Rating Agency">
+                                    <CustomDropdown
+                                        options={toOptions(filterOptions.creditRatingAgency)}
+                                        value={filters.creditRatingAgency}
+                                        onChange={(val) => updateFilter('creditRatingAgency', val)}
+                                        placeholder="Select Agency"
+                                    />
+                                </FilterGroup>
+
+                                <FilterGroup label="Credit Rating">
+                                    <CustomDropdown
+                                        options={toOptions(filterOptions.creditRating)}
+                                        value={filters.creditRating}
+                                        onChange={(val) => updateFilter('creditRating', val)}
+                                        placeholder="Select Rating"
+                                    />
+                                </FilterGroup>
+
+                                <FilterGroup label="Seniority">
+                                    <CustomDropdown
+                                        options={toOptions(filterOptions.seniority)}
+                                        value={filters.seniority}
+                                        onChange={(val) => updateFilter('seniority', val)}
+                                        placeholder="Select Seniority"
+                                    />
+                                </FilterGroup>
+
+                                <FilterGroup label="Serviced Flag">
+                                    <CustomDropdown
+                                        options={toOptions(filterOptions.securedFlag)}
+                                        value={filters.servicedFlag}
+                                        onChange={(val) => updateFilter('servicedFlag', val)}
+                                        placeholder="Select Flag"
+                                    />
+                                </FilterGroup>
+
+                                <FilterGroup label="Listing Status">
+                                    <CustomDropdown
+                                        options={toOptions(filterOptions.listingStatus)}
+                                        value={filters.listingStatus}
+                                        onChange={(val) => updateFilter('listingStatus', val)}
+                                        placeholder="Select Status"
+                                    />
+                                </FilterGroup>
+
+                                <FilterGroup label="Tax Free">
+                                    <CustomDropdown
+                                        options={toOptions(filterOptions.taxFree)}
+                                        value={filters.taxFree}
+                                        onChange={(val) => updateFilter('taxFree', val)}
+                                        placeholder="Select Tax Status"
+                                    />
+                                </FilterGroup>
+
+                                <FilterGroup label="Deal Size (in Cr)">
+                                    <TextInput
+                                        value={filters.dealSizeInCr}
+                                        onChange={(val) => updateFilter('dealSizeInCr', val)}
+                                        placeholder="Enter Size"
+                                        type="number"
+                                    />
+                                </FilterGroup>
+                            </div>
+                        </>
+                    )}
                 </SectionCard>
 
                 {/* ── Top 10 Issuers Table ── */}
@@ -557,7 +867,7 @@ export default function Summary() {
                     <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
                         All Rating Agencies List : {selectedFY}
                     </h2>
-                    <div className="h-[250px]">  {/* Fixed height parent */}
+                    <div className="h-[250px]">
                         <ScrollableTable data={listTableData} selectedFY={selectedFY} pageType='agencies' />
                     </div>
                 </SectionCard>
