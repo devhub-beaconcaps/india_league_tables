@@ -6,8 +6,50 @@ import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
-import { Search, Download, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Download, X, ChevronDown, ChevronUp, ChevronRight } from 'lucide-react';
 import { fetchTrusteeTopParticipantsData } from '@/features/trustees/services';
+
+// ─────────────────────────────────────────────────────────────
+// GLOBAL STYLES FOR ANIMATIONS
+// ─────────────────────────────────────────────────────────────
+
+const animationStyles = `
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+  }
+
+  .dropdown-row-enter {
+    animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .dropdown-row-exit {
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+`;
+
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = animationStyles;
+  document.head.appendChild(style);
+}
 
 // ─────────────────────────────────────────────────────────────
 // UTILS
@@ -50,37 +92,6 @@ function getCurrentFinancialYear(): string {
     }
 }
 
-function getDateRange(period: string, fy: string): { startDate: string; endDate: string } | null {
-    const fyData = parseFY(fy);
-    if (!fyData) return null;
-    const { startYear, endYear } = fyData;
-    const p = period.toLowerCase().trim();
-
-    if (p === 'q1') {
-        return { startDate: `${startYear}-04-01`, endDate: `${startYear}-06-30` };
-    }
-    if (p === 'q2') {
-        return { startDate: `${startYear}-07-01`, endDate: `${startYear}-09-30` };
-    }
-    if (p === 'q3') {
-        return { startDate: `${startYear}-10-01`, endDate: `${startYear}-12-31` };
-    }
-    if (p === 'q4') {
-        return { startDate: `${endYear}-01-01`, endDate: `${endYear}-03-31` };
-    }
-
-    const monthNum = getMonthNumber(p);
-    if (monthNum === null) return null;
-
-    const year = monthNum >= 4 && monthNum <= 12 ? startYear : endYear;
-    const lastDay = getLastDayOfMonth(year, monthNum);
-    const mm = monthNum.toString().padStart(2, '0');
-
-    return {
-        startDate: `${year}-${mm}-01`,
-        endDate: `${year}-${mm}-${lastDay}`,
-    };
-}
 
 function formatLocalDate(date: Date) {
     return [
@@ -159,6 +170,13 @@ interface TableDataItem {
     issuerMasterId: string;
 }
 
+interface GroupedRecord {
+    allotmentDate: string;
+    count: number;
+    representativeRow: TableDataItem;
+    records: TableDataItem[];
+}
+
 // ─────────────────────────────────────────────────────────────
 // TABLE CONFIG
 // ─────────────────────────────────────────────────────────────
@@ -182,6 +200,39 @@ const TABLE_COLUMNS = [
     { key: 'securedFlag', label: 'Secured Flag' },
     { key: 'listingStatus', label: 'Listing Status' },
 ];
+
+// ─────────────────────────────────────────────────────────────
+// GROUPING UTILITY
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Groups raw table data by allotmentDate.
+ * Uses the first record in each group as the representative row.
+ */
+function groupByAllotmentDate(data: TableDataItem[]): GroupedRecord[] {
+    const map = new Map<string, TableDataItem[]>();
+
+    for (const item of data) {
+        const key = item.allotmentDate;
+        if (!map.has(key)) {
+            map.set(key, []);
+        }
+        map.get(key)!.push(item);
+    }
+
+    // Sort groups by allotmentDate ascending for stable ordering
+    const sortedKeys = Array.from(map.keys()).sort();
+
+    return sortedKeys.map((key) => {
+        const records = map.get(key)!;
+        return {
+            allotmentDate: key,
+            count: records.length,
+            representativeRow: records[0],
+            records,
+        };
+    });
+}
 
 // ─────────────────────────────────────────────────────────────
 // SKELETON & EMPTY STATE
@@ -241,6 +292,10 @@ export default function TrusteeTopParticipantsPage() {
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [error, setError] = useState<string | null>(null);
 
+    // ── Grouping State ──
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+    const [closingGroups, setClosingGroups] = useState<Set<string>>(new Set());
+
     // ── Sort field mapping (UI key -> API snake_case field) ──
     const apiSortFieldMap: Record<string, string> = {
         issuerName: 'issuer_name',
@@ -288,6 +343,30 @@ export default function TrusteeTopParticipantsPage() {
             setSortColumn(columnKey);
             setSortDirection('asc');
         }
+    };
+
+    const toggleGroup = (allotmentDate: string) => {
+        setExpandedGroups((prev) => {
+            const next = new Set(prev);
+            if (next.has(allotmentDate)) {
+                // Group is closing, add to closing set and play exit animation
+                setClosingGroups((closing) => new Set([...closing, allotmentDate]));
+                // Remove from expanded after animation completes (400ms)
+                setTimeout(() => {
+                    next.delete(allotmentDate);
+                    setExpandedGroups(new Set(next));
+                    setClosingGroups((closing) => {
+                        const updated = new Set(closing);
+                        updated.delete(allotmentDate);
+                        return updated;
+                    });
+                }, 400);
+            } else {
+                // Group is opening
+                next.add(allotmentDate);
+            }
+            return next;
+        });
     };
 
     // ── Data Fetch ──
@@ -358,6 +437,43 @@ export default function TrusteeTopParticipantsPage() {
         fetchData();
     }, [fetchData]);
 
+    // ── Grouped Data (memoized) ──
+    const groupedData = useMemo(() => {
+        return groupByAllotmentDate(tableData);
+    }, [tableData]);
+
+    // ── Sorted Grouped Data ──
+    const sortedGroupedData = useMemo(() => {
+        if (!sortColumn) return groupedData;
+
+        const sorted = [...groupedData];
+        sorted.sort((a, b) => {
+            const aVal = (a.representativeRow as any)[sortColumn];
+            const bVal = (b.representativeRow as any)[sortColumn];
+
+            if (aVal === null || aVal === undefined) return sortDirection === 'asc' ? -1 : 1;
+            if (bVal === null || bVal === undefined) return sortDirection === 'asc' ? 1 : -1;
+
+            if (typeof aVal === 'number' && typeof bVal === 'number') {
+                return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+            }
+
+            const aStr = String(aVal).toLowerCase();
+            const bStr = String(bVal).toLowerCase();
+            if (aStr < bStr) return sortDirection === 'asc' ? -1 : 1;
+            if (aStr > bStr) return sortDirection === 'asc' ? 1 : -1;
+            return 0;
+        });
+        return sorted;
+    }, [groupedData, sortColumn, sortDirection]);
+
+    // ── Pagination (driven by API raw-record count) ──
+    const totalPages = Math.ceil(totalCount / pageSize) || 1;
+
+    // The API already limited raw records to `pageSize`.
+    // Show ALL groups from the current fetch; no frontend slicing needed.
+    const paginatedGroups = sortedGroupedData;
+
     // ── Search Handlers ──
     const handleSearch = () => {
         setCurrentPage(1);
@@ -417,6 +533,10 @@ export default function TrusteeTopParticipantsPage() {
             alert('Failed to export data');
         }
     };
+
+    // ── Pagination display helpers ──
+    const startEntry = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+    const endEntry = Math.min(currentPage * pageSize, totalCount);
 
     // ── Render ──
     return (
@@ -483,7 +603,7 @@ export default function TrusteeTopParticipantsPage() {
                             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Search Results</h2>
                             {!isLoading && (
                                 <span className="text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">
-                                    {totalCount} records
+                                    {totalCount} securities · {totalCount} unique dates
                                 </span>
                             )}
                         </div>
@@ -545,7 +665,11 @@ export default function TrusteeTopParticipantsPage() {
                                 <table className="w-full table-auto border-separate border-spacing-[4px] text-[12px]">
                                     <thead>
                                         <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
-                                            {/* Trustee — moved to first column */}
+                                            {/* Expand/Collapse column */}
+                                            <th className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8] w-[40px]">
+                                                <span className="sr-only">Expand</span>
+                                            </th>
+                                            {/* Trustee */}
                                             <th
                                                 className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8] min-w-[160px]"
                                                 onClick={() => handleSort('debentureTrustee')}
@@ -608,114 +732,259 @@ export default function TrusteeTopParticipantsPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {tableData.map((row, index) => (
-                                            <tr
-                                                key={`${row.isin}-${index}`}
-                                                className={`transition-colors ${
-                                                    index % 2 === 0
-                                                        ? 'bg-white dark:bg-gray-900'
-                                                        : 'bg-gray-50 dark:bg-gray-800'
-                                                }`}
-                                            >
-                                                {/* Trustee — first column */}
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[160px] text-gray-800 dark:text-gray-200">
-                                                    {row.debentureTrustee}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[180px] text-gray-800 dark:text-gray-200">
-                                                    {row.issuerName}
-                                                </td>
-                                                <td
-                                                    onClick={() => isinHandler(row)}
-                                                    className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[140px] underline text-blue-500 decoration-sky-500 cursor-pointer"
-                                                >
-                                                    {row.isin}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[140px] text-gray-800 dark:text-gray-200">
-                                                    {row.securityName}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
-                                                    <span
-                                                        className={`
-                                                            inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
-                                                            ${row.securityType === 'Equity' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
-                                                            ${row.securityType === 'Debentures' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
-                                                            ${row.securityType === 'Mutual Fund' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
-                                                            ${row.securityType === 'Hybrid Fund' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : ''}
-                                                            ${row.securityType === 'Municipal Bonds' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : ''}
-                                                            ${!['Equity', 'Debentures', 'Mutual Fund', 'Hybrid Fund', 'Municipal Bonds'].includes(row.securityType) ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' : ''}
-                                                        `}
+                                        {paginatedGroups.map((group, groupIndex) => {
+                                            const isExpanded = expandedGroups.has(group.allotmentDate);
+                                            const rep = group.representativeRow;
+                                            const groupBgClass = groupIndex % 2 === 0
+                                                ? 'bg-white dark:bg-gray-900'
+                                                : 'bg-gray-50 dark:bg-gray-800';
+
+                                            return (
+                                                <React.Fragment key={group.allotmentDate}>
+                                                    {/* Group Header Row — shows all representative values */}
+                                                    <tr
+                                                        className={`transition-colors cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 ${groupBgClass}`}
                                                     >
-                                                        {row.securityType}
-                                                    </span>
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
-                                                    {row.modeOfIssue}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
-                                                    {row.allotmentDate}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
-                                                    {row.maturityDate}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
-                                                    {row.couponRate}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200 text-right">
-                                                    {formatCurrency(row.issueSize)}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200 text-right">
-                                                    {formatCurrency(row.faceValue)}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
-                                                    {row.rating}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[140px] text-gray-800 dark:text-gray-200">
-                                                    {row.creditRatingAgency}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[140px] text-gray-800 dark:text-gray-200">
-                                                    {row.debentureTrustee}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[140px] text-gray-800 dark:text-gray-200">
-                                                    {row.registrar}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
-                                                    {row.arranger}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
-                                                    {row.seniority}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
-                                                    {row.taxFree}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
-                                                    {row.securedFlag}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
-                                                    {row.listingStatus}
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                        {/* Expand/Collapse Icon — visual indicator only */}
+                                                        <td
+                                                            className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 text-center"
+                                                            onClick={() => {
+                                                                if (group.count > 1) toggleGroup(group.allotmentDate);
+                                                                else isinHandler(rep);
+                                                            }}
+                                                        >
+                                                            {group.count > 1 ? (
+                                                                isExpanded ? (
+                                                                    <ChevronDown className="w-4 h-4 text-[#423CAB] dark:text-[#8b7cf7] mx-auto" />
+                                                                ) : (
+                                                                    <ChevronRight className="w-4 h-4 text-[#423CAB] dark:text-[#8b7cf7] mx-auto" />
+                                                                )
+                                                            ) : (
+                                                                <span className="sr-only">Single ISIN</span>
+                                                            )}
+                                                        </td>
+                                                        {/* Trustee */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[160px] text-gray-800 dark:text-gray-200">
+                                                            {rep.debentureTrustee}
+                                                        </td>
+                                                        {/* Issuer Name */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[180px] text-gray-800 dark:text-gray-200">
+                                                            {rep.issuerName}
+                                                        </td>
+                                                        {/* ISIN — clickable "N ISINs" link */}
+                                                        <td
+                                                            onClick={() => {
+                                                                if (group.count > 1) toggleGroup(group.allotmentDate);
+                                                                else isinHandler(rep);
+                                                            }}
+                                                            className='border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[140px] underline text-blue-500 decoration-sky-500 cursor-pointer'
+                                                        >
+                                                            {group.count > 1 ? `${group.count} ${group.count === 1 ? 'ISIN' : 'ISINs'}` : rep.isin}
+                                                        </td>
+                                                        {/* Security Name */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[140px] text-gray-800 dark:text-gray-200">
+                                                            {rep.securityName}
+                                                        </td>
+                                                        {/* Security Type */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                            <span
+                                                                className={`
+                                                                    inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
+                                                                    ${rep.securityType === 'Equity' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
+                                                                    ${rep.securityType === 'Debentures' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
+                                                                    ${rep.securityType === 'Mutual Fund' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
+                                                                    ${rep.securityType === 'Hybrid Fund' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : ''}
+                                                                    ${rep.securityType === 'Municipal Bonds' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : ''}
+                                                                    ${!['Equity', 'Debentures', 'Mutual Fund', 'Hybrid Fund', 'Municipal Bonds'].includes(rep.securityType) ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' : ''}
+                                                                `}
+                                                            >
+                                                                {rep.securityType}
+                                                            </span>
+                                                        </td>
+                                                        {/* Mode of Issue */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                            {rep.modeOfIssue}
+                                                        </td>
+                                                        {/* Allotment Date */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                            {rep.allotmentDate}
+                                                        </td>
+                                                        {/* Maturity Date */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                            {rep.maturityDate}
+                                                        </td>
+                                                        {/* Coupon Rate */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
+                                                            {rep.couponRate}
+                                                        </td>
+                                                        {/* Issue Size */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200 text-right">
+                                                            {formatCurrency(rep.issueSize)}
+                                                        </td>
+                                                        {/* Face Value */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200 text-right">
+                                                            {formatCurrency(rep.faceValue)}
+                                                        </td>
+                                                        {/* Rating */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
+                                                            {rep.rating}
+                                                        </td>
+                                                        {/* Credit Rating Agency */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[140px] text-gray-800 dark:text-gray-200">
+                                                            {rep.creditRatingAgency}
+                                                        </td>
+                                                        {/* Registrar */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[140px] text-gray-800 dark:text-gray-200">
+                                                            {rep.registrar}
+                                                        </td>
+                                                        {/* Arranger */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                            {rep.arranger}
+                                                        </td>
+                                                        {/* Seniority */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                            {rep.seniority}
+                                                        </td>
+                                                        {/* Tax Free */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
+                                                            {rep.taxFree}
+                                                        </td>
+                                                        {/* Secured Flag */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
+                                                            {rep.securedFlag}
+                                                        </td>
+                                                        {/* Listing Status */}
+                                                        <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                            {rep.listingStatus}
+                                                        </td>
+                                                    </tr>
+
+                                                    {/* Child Rows (visible when expanded) */}
+                                                    {isExpanded && group.records.map((row, rowIndex) => (
+                                                        <tr
+                                                            key={`${row.isin}-${rowIndex}`}
+                                                            className={`transition-colors ${
+                                                                closingGroups.has(group.allotmentDate)
+                                                                    ? 'dropdown-row-exit'
+                                                                    : 'dropdown-row-enter'
+                                                            } ${rowIndex % 2 === 0
+                                                                ? 'bg-slate-200 dark:bg-black'
+                                                                : 'bg-slate-200 dark:bg-black'
+                                                            } hover:bg-slate-200 dark:hover:bg-slate-900`}
+                                                        >
+                                                            {/* Empty cell for expand column alignment */}
+                                                            <td className="relative border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 bg-inherit">
+                                                                <span className="absolute left-3 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-[#423CAB] dark:bg-[#8b7cf7]" />
+                                                                <span className="sr-only">—</span>
+                                                            </td>
+                                                            {/* Trustee */}
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[160px] text-gray-800 dark:text-gray-200 bg-inherit border-l-4 border-[#423CAB] dark:border-[#8b7cf7]">
+                                                                {row.debentureTrustee}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[180px] text-gray-800 dark:text-gray-200">
+                                                                {row.issuerName}
+                                                            </td>
+                                                            <td
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    isinHandler(row);
+                                                                }}
+                                                                className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[140px] underline text-blue-500 decoration-sky-500 cursor-pointer"
+                                                            >
+                                                                {row.isin}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[140px] text-gray-800 dark:text-gray-200">
+                                                                {row.securityName}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                                <span
+                                                                    className={`
+                                                                        inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
+                                                                        ${row.securityType === 'Equity' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
+                                                                        ${row.securityType === 'Debentures' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
+                                                                        ${row.securityType === 'Mutual Fund' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
+                                                                        ${row.securityType === 'Hybrid Fund' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : ''}
+                                                                        ${row.securityType === 'Municipal Bonds' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : ''}
+                                                                        ${!['Equity', 'Debentures', 'Mutual Fund', 'Hybrid Fund', 'Municipal Bonds'].includes(row.securityType) ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' : ''}
+                                                                    `}
+                                                                >
+                                                                    {row.securityType}
+                                                                </span>
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                                {row.modeOfIssue}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                                {row.allotmentDate}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                                {row.maturityDate}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
+                                                                {row.couponRate}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200 text-right">
+                                                                {formatCurrency(row.issueSize)}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200 text-right">
+                                                                {formatCurrency(row.faceValue)}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
+                                                                {row.rating}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[140px] text-gray-800 dark:text-gray-200">
+                                                                {row.creditRatingAgency}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[140px] text-gray-800 dark:text-gray-200">
+                                                                {row.registrar}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                                {row.arranger}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                                {row.seniority}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
+                                                                {row.taxFree}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
+                                                                {row.securedFlag}
+                                                            </td>
+                                                            <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
+                                                                {row.listingStatus}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </React.Fragment>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
 
                                 {/* Pagination */}
                                 <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 gap-3">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[10px] text-gray-500 dark:text-gray-400">Show</span>
-                                        <select
-                                            value={pageSize}
-                                            onChange={(e) => {
-                                                setPageSize(Number(e.target.value));
-                                                setCurrentPage(1);
-                                            }}
-                                            className="h-7 px-2 text-[10px] bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#423CAB]"
-                                        >
-                                            <option value={10}>10</option>
-                                            <option value={25}>25</option>
-                                            <option value={50}>50</option>
-                                            <option value={100}>100</option>
-                                        </select>
-                                        <span className="text-[10px] text-gray-500 dark:text-gray-400">entries</span>
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-gray-500 dark:text-gray-400">Show</span>
+                                            <select
+                                                value={pageSize}
+                                                onChange={(e) => {
+                                                    setPageSize(Number(e.target.value));
+                                                    setCurrentPage(1);
+                                                }}
+                                                className="h-7 px-2 text-[10px] bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#423CAB]"
+                                            >
+                                                <option value={10}>10</option>
+                                                <option value={25}>25</option>
+                                                <option value={50}>50</option>
+                                                <option value={100}>100</option>
+                                            </select>
+                                            <span className="text-[10px] text-gray-500 dark:text-gray-400">entries</span>
+                                        </div>
+                                        <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                            Showing {startEntry}–{endEntry} of {totalCount} securities
+                                            ({paginatedGroups.length} groups on this page)
+                                        </span>
                                     </div>
 
                                     <div className="flex items-center gap-1">
@@ -728,7 +997,6 @@ export default function TrusteeTopParticipantsPage() {
                                         </button>
 
                                         {(() => {
-                                            const totalPages = Math.ceil(totalCount / pageSize) || 1;
                                             const pages: number[] = [];
                                             const start = Math.max(1, currentPage - 2);
                                             const end = Math.min(totalPages, start + 4);
@@ -741,10 +1009,9 @@ export default function TrusteeTopParticipantsPage() {
                                                         onClick={() => setCurrentPage(page)}
                                                         className={`
                                                             px-3 py-1.5 text-[10px] font-medium rounded-md transition-colors
-                                                            ${
-                                                                isActive
-                                                                    ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
-                                                                    : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                            ${isActive
+                                                                ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
+                                                                : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                                                             }
                                                         `}
                                                     >
@@ -756,7 +1023,7 @@ export default function TrusteeTopParticipantsPage() {
 
                                         <button
                                             onClick={() => setCurrentPage((prev) => prev + 1)}
-                                            disabled={currentPage >= Math.ceil(totalCount / pageSize)}
+                                            disabled={currentPage >= totalPages}
                                             className="px-3 py-1.5 text-[10px] font-medium rounded-md border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                         >
                                             Next

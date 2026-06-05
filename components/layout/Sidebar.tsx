@@ -182,10 +182,10 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }: SidebarPro
                             <div key={item.name}>
                                 <div
                                     onClick={() => {
+                                        // Only toggle submenu when expanded and item has children.
+                                        // When collapsed we let the inner Link handle navigation to the item's href.
                                         if (hasChildren && !collapsed) {
                                             toggleExpand(item.name);
-                                        } else {
-                                            onClose();
                                         }
                                     }}
                                     className={cn(
@@ -196,12 +196,13 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }: SidebarPro
                                     )}
                                 >
                                     <Link
-                                        href={hasChildren ? '#' : item.href}
+                                        href={item.href}
                                         onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                                             if (hasChildren && !collapsed) {
                                                 e.preventDefault();
                                                 toggleExpand(item.name);
                                             } else {
+                                                // Close sidebar (mobile overlay) when navigating
                                                 onClose();
                                             }
                                         }}
