@@ -55,29 +55,38 @@ export default function DualAxisChart({
   // Right axis tick formatter (Outstanding)
   const formatRightAxisTick = (value: number | string): string => {
     const numValue = Number(value);
-    return `${(numValue / 1000000).toFixed(1)}M`;
+    // show in lakhs (1 L = 100,000)
+    return `${(numValue / 100000).toFixed(1)}L`;
   };
 
-  // Custom tooltip formatter - matches Recharts expected signature
-  const formatTooltipValue = (
-    value: number | string,
-    name: string,
-    item: PayloadItem,
-    index: number,
-    payload: PayloadItem[]
-  ): [string, string] | string => {
-    const numValue = Number(value);
-    let formatted: string;
+  // Custom tooltip for this component only. Uses dark:bg-[#14142b].
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || !payload.length) return null;
 
-    if (name === "Outstanding") {
-      formatted = `${(numValue / 1000000).toFixed(2)}M`;
-    } else if (numValue >= 1000) {
-      formatted = `${(numValue / 1000).toFixed(1)}k`;
-    } else {
-      formatted = numValue.toLocaleString();
-    }
+    return (
+      <div className="bg-white dark:bg-[#14142b] border border-gray-200 dark:border-[#423CAB]/40 rounded-lg shadow-lg p-3 text-xs">
+        <p className="font-semibold text-gray-700 dark:text-gray-200 mb-1">{label}</p>
+        {payload.map((p: any, i: number) => {
+          const num = Number(p.value || 0);
+          let formatted: string;
+          if (p.name === 'Outstanding') formatted = `${(num / 100000).toFixed(2)}L`;
+          else if (num >= 1000) formatted = `${(num / 1000).toFixed(1)}k`;
+          else formatted = num.toLocaleString();
 
-    return [formatted, name];
+          const color = (p.color as string) || (p.stroke as string) || (p.fill as string) || '#000';
+
+          return (
+            <div key={i} className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: color }} />
+                <span className="text-xs text-gray-600 dark:text-gray-300">{p.name}</span>
+              </div>
+              <div className="text-xs font-semibold text-gray-800 dark:text-gray-100">{formatted}</div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -113,15 +122,8 @@ export default function DualAxisChart({
           tickFormatter={formatRightAxisTick}
         />
 
-        {/* Alternative: Simpler approach without custom formatter */}
-        <Tooltip
-          formatter={(value: number | string, name: string) => {
-            const num = Number(value);
-            if (name === "Outstanding") return [`${(num / 1000000).toFixed(2)}M`, name];
-            if (num >= 1000) return [`${(num / 1000).toFixed(1)}k`, name];
-            return [num.toLocaleString(), name];
-          }}
-        />
+        {/* Component-local custom tooltip (dark:bg-[#14142b]) */}
+        <Tooltip content={<CustomTooltip />} />
         <Legend wrapperStyle={{ fontSize: 9 }} />
 
         {/* Issue */}

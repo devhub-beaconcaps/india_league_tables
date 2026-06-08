@@ -1022,15 +1022,23 @@ export default function IssuerSummary() {
                                 <BarChartSkeleton />
                             ) : data.length > 0 ? (
                                 <>
-                                    <ResponsiveContainer width="100%" height={200}>
-                                        <BarChart data={data} margin={{ top: 5, right: 10, left: 5, bottom: 5 }} barCategoryGap="30%">
+                                    <ResponsiveContainer width="100%" height={320}>
+                                        <BarChart data={data} margin={{ top: 5, right: 10, left: 5, bottom: 60 }} barCategoryGap="10%">
                                             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.6} vertical={false} />
-                                            <XAxis dataKey="month" tick={{ fontSize: 9, fill: '#9ca3af' }} />
+                                            <XAxis
+                                                dataKey="month"
+                                                tick={{ fontSize: 9, fill: '#9ca3af' }}
+                                                angle={-60}
+                                                textAnchor="end"
+                                                height={70}
+                                                tickMargin={18}
+                                                interval={0}
+                                            />
                                             <YAxis yAxisId="left" tick={{ fontSize: 9, fill: '#9ca3af' }} />
                                             <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9, fill: '#9ca3af' }} />
                                             <Tooltip content={<CustomTooltip />} />
-                                            <Bar yAxisId="left" dataKey="noOfIssues" name="No. of Issues" fill="#423CAB" radius={[2, 2, 0, 0]} onClick={handleBarClick} />
-                                            <Bar yAxisId="right" dataKey="issueSize" name="Issue Size" fill="#a5b4fc" radius={[2, 2, 0, 0]} onClick={handleBarClick} />
+                                            <Bar yAxisId="left" dataKey="noOfIssues" name="No. of Issues" fill="#645cf5ff" radius={[2, 2, 0, 0]} onClick={handleBarClick} maxBarSize={36} />
+                                            <Bar yAxisId="right" dataKey="issueSize" name="Issue Size" fill="#a5b4fc" radius={[2, 2, 0, 0]} onClick={handleBarClick} maxBarSize={36} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                     <div className="flex items-center gap-4 justify-center mt-1">

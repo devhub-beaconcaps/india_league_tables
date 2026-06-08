@@ -84,7 +84,20 @@ const CustomTooltip = ({ active, payload, label }: {
   if (validItems.length === 0) return null;
 
   return (
-    <div className="bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 min-w-[180px]">
+    <div
+      className="
+    bg-white
+    dark:bg-[#14142b]
+    border border-[#423CAB]/20
+    dark:border-[#423CAB]/40
+    rounded-xl
+    shadow-2xl
+    p-3
+    min-w-[180px]
+    relative
+    z-50
+  "
+    >
       <p className="text-[11px] font-semibold text-gray-800 dark:text-gray-100 mb-2 border-b border-gray-100 dark:border-gray-700 pb-1">
         {label}
       </p>
@@ -210,23 +223,8 @@ export default function StackedChart({
             tickFormatter={(v: number) => formatValue(v)}
             width={50}
           />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            verticalAlign="bottom"
-            height={96}
-            iconType="circle"
-            iconSize={8}
-            wrapperStyle={{
-              fontSize: '10px',
-              paddingTop: '10px',
-              maxHeight: '96px',
-              overflowY: 'auto',
-            }}
-            formatter={(value: string) => (
-              <span className="text-[10px] text-gray-600 dark:text-gray-400 ml-1">
-                {getShortForm(value, 20)}
-              </span>
-            )}
+          <Tooltip
+            content={<CustomTooltip />}
           />
 
           {sectors.map((sector, index) => (
@@ -243,6 +241,31 @@ export default function StackedChart({
           ))}
         </BarChart>
       </ResponsiveContainer>
+
+      {
+        sectors.length > 0 && (
+          <div
+            className="mt-4 flex flex-wrap gap-x-4 gap-y-2 justify-center"
+            style={{
+              fontSize: '10px',
+              maxHeight: '96px',
+              overflowY: 'auto',
+            }}
+          >
+            {sectors.map((sector, idx) => (
+              <div key={sector} className="flex items-center gap-1.5">
+                <span
+                  className="w-2.5 h-2.5 rounded-full inline-block"
+                  style={{ backgroundColor: colors[idx] }}
+                />
+                <span className="text-gray-600 dark:text-gray-400">
+                  {getShortForm(sector, 20)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )
+      }
     </div>
   );
 }
