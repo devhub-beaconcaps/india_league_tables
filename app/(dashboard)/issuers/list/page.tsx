@@ -59,32 +59,47 @@ function getDateRange(period: string, fy: string): { startDate: string; endDate:
     const { startYear, endYear } = fyData;
     const p = period.toLowerCase().trim();
 
+    let startDate: string;
+    let endDate: string;
+
     // ── Quarters ──
     if (p === 'q1') {
-        return { startDate: `${startYear}-04-01`, endDate: `${startYear}-06-30` };
-    }
-    if (p === 'q2') {
-        return { startDate: `${startYear}-07-01`, endDate: `${startYear}-09-30` };
-    }
-    if (p === 'q3') {
-        return { startDate: `${startYear}-10-01`, endDate: `${startYear}-12-31` };
-    }
-    if (p === 'q4') {
-        return { startDate: `${endYear}-01-01`, endDate: `${endYear}-03-31` };
+        startDate = `${startYear}-04-01`;
+        endDate = `${startYear}-06-30`;
+    } else if (p === 'q2') {
+        startDate = `${startYear}-07-01`;
+        endDate = `${startYear}-09-30`;
+    } else if (p === 'q3') {
+        startDate = `${startYear}-10-01`;
+        endDate = `${startYear}-12-31`;
+    } else if (p === 'q4') {
+        startDate = `${endYear}-01-01`;
+        endDate = `${endYear}-03-31`;
+    } else {
+        // ── Months ──
+        const monthNum = getMonthNumber(p);
+        if (monthNum === null) return null;
+
+        const year = monthNum >= 4 && monthNum <= 12 ? startYear : endYear;
+        const lastDay = getLastDayOfMonth(year, monthNum);
+        const mm = monthNum.toString().padStart(2, '0');
+
+        startDate = `${year}-${mm}-01`;
+        endDate = `${year}-${mm}-${lastDay}`;
     }
 
-    // ── Months ──
-    const monthNum = getMonthNumber(p);
-    if (monthNum === null) return null;
+    // Clamp endDate to today if it's in the future
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
 
-    const year = monthNum >= 4 && monthNum <= 12 ? startYear : endYear;
-    const lastDay = getLastDayOfMonth(year, monthNum);
-    const mm = monthNum.toString().padStart(2, '0');
+    if (endDate > todayStr) {
+        endDate = todayStr;
+    }
 
-    return {
-        startDate: `${year}-${mm}-01`,
-        endDate: `${year}-${mm}-${lastDay}`,
-    };
+    return { startDate, endDate };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -221,6 +236,10 @@ export default function IssuerListPage() {
         if (item.issuerId && item.issuerId !== '-') {
             router.push(`/specific-issuer/${item.issuerId}`);
         }
+    };
+
+    const handleBack = () => {
+        router.back();
     };
 
     const handleSort = (columnKey: string) => {
@@ -393,10 +412,20 @@ export default function IssuerListPage() {
         <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#90969bff" borderRadius="0.5rem">
             <div className="min-h-full space-y-4 font-sans text-gray-700 dark:text-gray-200 p-4">
                 {/* Header */}
-                <div>
-                    <h1 className="text-xl font-bold text-gray-700 dark:text-gray-200">Issuer List</h1>
-                    <p className="text-[9px] text-gray-400 mb-6 mt-1">Issuer &gt; List</p>
+                <div className="flex flex-col items-start gap-3">
+                    <button
+                        onClick={handleBack}
+                        className="cursor-pointer text-xs border border-gray-300 dark:border-gray-600 px-3 py-1.5 rounded-md bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        title="Go back"
+                    >
+                        ← Back
+                    </button>
+                    <div>
+                        <h1 className="text-xl font-bold text-gray-700 dark:text-gray-200">Issuer List</h1>
+                        <p className="text-[9px] text-gray-400 mb-6 mt-1">Issuer &gt; List</p>
+                    </div>
                 </div>
+
 
                 {/* Params / Date-Range Card */}
                 <div className="bg-white dark:bg-[#1a1a2e] rounded-[12px] shadow-sm border border-gray-200 dark:border-gray-600 p-5 space-y-5">

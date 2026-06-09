@@ -46,13 +46,6 @@ export function Header({ onMenuClick }: HeaderProps) {
         router.push('/sign-in'); // then navigate — skip / entirely
     };
 
-    // Kept typed but unused — remove if notifications UI is not needed
-    const _notifications: Notification[] = [
-        { id: 1, title: 'New report available', time: '2 minutes ago', isNew: true },
-        { id: 2, title: 'System update completed', time: '1 hour ago', isNew: true },
-        { id: 3, title: 'New issuer registered', time: '3 hours ago', isNew: false },
-    ];
-
     return (
         <header className="h-full bg-[var(--color-card)] dark:bg-gray-900 border-b border-[#ECECEC] dark:border-gray-800 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-30">
 
@@ -92,7 +85,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                         className="flex items-center gap-3 p-1.5 pr-3 rounded-xl hover:bg-[var(--color-accent)] dark:hover:bg-gray-800 transition-all duration-200 border border-transparent hover:border-[var(--color-border)] dark:hover:border-gray-700"
                     >
                         <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-blue-500/30 dark:shadow-blue-900/40">
-                            <User className="w-4 h-4 text-white" />
+                            <User className="w-4 h-4 text-[var(--color-muted)] dark:text-gray-400" />
                         </div>
                         <div className="hidden md:block text-left">
                             <p className="text-sm font-semibold text-[var(--color-foreground)] dark:text-white leading-tight">

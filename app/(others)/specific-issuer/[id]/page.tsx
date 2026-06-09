@@ -5,6 +5,9 @@ import { useEffect, useState } from 'react';
 import { MoveLeft } from "lucide-react";
 import { fetchSpecificISINData } from '@/features/issuers/services';
 import IssuerProfileCard, { IssuerDataItem } from '@/components/Issuerprofilecomponent';
+import { SkeletonTheme } from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
+import { useThemeStore } from '@/lib/store';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -95,29 +98,37 @@ export default function SpecificIssuerPage() {
     const params = useParams();
     const id = params?.id as string | undefined;
     const router = useRouter();
+    const { theme } = useThemeStore();
 
     const [ISINData, setISINData] = useState<IssuerDataItem[] | null>(null);
+    const [loading, setLoading] = useState(true);
 
     console.log("id", id);
 
     useEffect(() => {
         const fetchData = async (): Promise<void> => {
             try {
-                const query = { masterIssuerId: id };
-                const resData: RawISINData = await fetchSpecificISINData(query);
+                setLoading(true);
 
-                console.log('fetched data of ISIN...', id, resData);
+                const query = { masterIssuerId: id };
+
+                const resData: RawISINData =
+                    await fetchSpecificISINData(query);
+
                 const formattedData = transformInstrumentData(resData);
-                console.log('formattedData: ', formattedData);
 
                 setISINData(formattedData);
             } catch (error) {
                 console.error("error issuer profile fetching: ", error);
+            } finally {
+                setLoading(false);
             }
         };
 
-        fetchData();
-    }, [id]); // ← just add id here
+        if (id) {
+            fetchData();
+        }
+    }, [id]);
 
     return (
         <div>
@@ -130,7 +141,24 @@ export default function SpecificIssuerPage() {
                         <MoveLeft />
                     </button>
                 </div>
-                <IssuerProfileCard issuerData={ISINData} />
+                <SkeletonTheme
+                    baseColor={
+                        theme === "dark"
+                            ? "#374151"
+                            : "#e5e7eb"
+                    }
+                    highlightColor={
+                        theme === "dark"
+                            ? "#4b5563"
+                            : "#f8fafc"
+                    }
+                    duration={1}
+                >
+                    <IssuerProfileCard
+                        issuerData={ISINData}
+                        isLoading={loading}
+                    />
+                </SkeletonTheme>
             </div>
         </div>
     );

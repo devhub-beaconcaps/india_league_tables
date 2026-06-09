@@ -46,9 +46,9 @@ const animationStyles = `
 `;
 
 if (typeof document !== 'undefined') {
-  const style = document.createElement('style');
-  style.textContent = animationStyles;
-  document.head.appendChild(style);
+    const style = document.createElement('style');
+    style.textContent = animationStyles;
+    document.head.appendChild(style);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -375,6 +375,10 @@ export default function RegistrarTopParticipantsPage() {
         }
     };
 
+    const handleBack = () => {
+        router.back();
+    };
+
     const toggleGroup = (allotmentDate: string) => {
         setExpandedGroups((prev) => {
             const next = new Set(prev);
@@ -573,9 +577,19 @@ export default function RegistrarTopParticipantsPage() {
         <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#90969bff" borderRadius="0.5rem">
             <div className="min-h-full space-y-4 font-sans text-gray-700 dark:text-gray-200 p-4">
                 {/* Header */}
-                <div>
-                    <h1 className="text-xl font-bold text-gray-700 dark:text-gray-200">Registrar Top Participants</h1>
-                    <p className="text-[9px] text-gray-400 mb-6 mt-1">Registrar &gt; Top Participants</p>
+
+                <div className="flex flex-col items-start gap-3">
+                    <button
+                        onClick={handleBack}
+                        className="cursor-pointer text-xs border border-gray-300 dark:border-gray-600 px-3 py-1.5 rounded-md bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        title="Go back"
+                    >
+                        ← Back
+                    </button>
+                    <div>
+                        <h1 className="text-xl font-bold">Registrar Top Participants</h1>
+                        <p className="text-xs text-gray-500 mt-1 mb-6">Registrar &gt; Top Participants</p>
+                    </div>
                 </div>
 
                 {/* Params / Date-Range Card */}
@@ -893,14 +907,13 @@ export default function RegistrarTopParticipantsPage() {
                                                     {isExpanded && group.records.map((row, rowIndex) => (
                                                         <tr
                                                             key={`${row.isin}-${rowIndex}`}
-                                                            className={`transition-colors ${
-                                                                closingGroups.has(group.allotmentDate)
+                                                            className={`transition-colors ${closingGroups.has(group.allotmentDate)
                                                                     ? 'dropdown-row-exit'
                                                                     : 'dropdown-row-enter'
-                                                            } ${rowIndex % 2 === 0
-                                                                ? 'bg-slate-200 dark:bg-black'
-                                                                : 'bg-slate-200 dark:bg-black'
-                                                            } hover:bg-slate-200 dark:hover:bg-slate-900`}
+                                                                } ${rowIndex % 2 === 0
+                                                                    ? 'bg-slate-200 dark:bg-black'
+                                                                    : 'bg-slate-200 dark:bg-black'
+                                                                } hover:bg-slate-200 dark:hover:bg-slate-900`}
                                                         >
                                                             {/* Empty cell for expand column alignment */}
                                                             <td className="relative border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 bg-inherit">

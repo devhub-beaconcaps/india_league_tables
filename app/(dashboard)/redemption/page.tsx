@@ -6,6 +6,7 @@ import { fetchSpecificMonthDebtRedemptionData } from '@/features/issuers/service
 import { useRedemptionMonthStore } from '@/lib/store';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import DetailedTable from "@/components/DetailedTable";
+import { useRouter } from 'next/navigation';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -152,6 +153,11 @@ export default function RedemptionList() {
     const [isColumnMenuOpen, setIsColumnMenuOpen] = useState<boolean>(false);
 
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const router = useRouter();
+
+    const handleBack = () => {
+        router.back();
+    };
 
     const offset = (page - 1) * PAGE_LIMIT;
 
@@ -237,10 +243,20 @@ export default function RedemptionList() {
     return (
         <div className="min-h-full space-y-4 font-sans text-gray-800 dark:text-gray-100">
 
-            <div>
-                <h1 className="text-xl font-bold">Redemption List</h1>
-                <p className="text-xs text-gray-500 mt-1 mb-6">Redemption List</p>
+            <div className="flex flex-col items-start gap-3">
+                <button
+                    onClick={handleBack}
+                    className="cursor-pointer text-xs border border-gray-300 dark:border-gray-600 px-3 py-1.5 rounded-md bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    title="Go back"
+                >
+                    ← Back
+                </button>
+                <div>
+                    <h1 className="text-xl font-bold">Redemption List</h1>
+                    <p className="text-xs text-gray-500 mt-1 mb-6">Redemption List</p>
+                </div>
             </div>
+
 
             <SectionCard>
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
