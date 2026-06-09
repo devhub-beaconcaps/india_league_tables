@@ -152,7 +152,7 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }: SidebarPro
                 <div className="absolute top-0 right-0 hidden lg:flex justify-center">
                     <button
                         onClick={() => setCollapsed(!collapsed)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                        className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 transition"
                     >
                         {collapsed ? (
                             <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />

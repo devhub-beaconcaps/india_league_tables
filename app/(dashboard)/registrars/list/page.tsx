@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
@@ -127,27 +127,54 @@ interface PaginatedApiResponse {
 }
 
 // ─────────────────────────────────────────────────────────────
-// TABLE CONFIG
+// COLUMN DEFINITIONS
 // ─────────────────────────────────────────────────────────────
 
-const TABLE_COLUMNS = [
-    { key: 'securityName', label: 'Security Name' },
-    { key: 'securityType', label: 'Security Type' },
-    { key: 'modeOfIssue', label: 'Mode of Issue' },
-    { key: 'allotmentDate', label: 'Allotment Date' },
-    { key: 'maturityDate', label: 'Maturity Date' },
-    { key: 'couponRate', label: 'Coupon Rate' },
-    { key: 'issueSize', label: 'Issue Size' },
-    { key: 'faceValue', label: 'Face Value' },
-    { key: 'rating', label: 'Rating' },
-    { key: 'creditRatingAgency', label: 'Rating Agency' },
-    { key: 'debentureTrustee', label: 'Debenture Trustee' },
-    { key: 'registrar', label: 'Registrar' },
-    { key: 'arranger', label: 'Arranger' },
-    { key: 'seniority', label: 'Seniority' },
-    { key: 'taxFree', label: 'Tax Free' },
-    { key: 'securedFlag', label: 'Secured Flag' },
-    { key: 'listingStatus', label: 'Listing Status' },
+interface Column {
+    header: string;
+    accessor: string;
+}
+
+const allColumns: Column[] = [
+    { header: 'Registrar', accessor: 'registrar' },
+    { header: 'ISIN', accessor: 'isin' },
+    { header: 'Security Name', accessor: 'securityName' },
+    { header: 'Security Type', accessor: 'securityType' },
+    { header: 'Mode of Issue', accessor: 'modeOfIssue' },
+    { header: 'Allotment Date', accessor: 'allotmentDate' },
+    { header: 'Maturity Date', accessor: 'maturityDate' },
+    { header: 'Coupon Rate', accessor: 'couponRate' },
+    { header: 'Issue Size', accessor: 'issueSize' },
+    { header: 'Face Value', accessor: 'faceValue' },
+    { header: 'Rating', accessor: 'rating' },
+    { header: 'Credit Rating Agency', accessor: 'creditRatingAgency' },
+    { header: 'Debenture Trustee', accessor: 'debentureTrustee' },
+    { header: 'Arranger', accessor: 'arranger' },
+    { header: 'Seniority', accessor: 'seniority' },
+    { header: 'Tax Free', accessor: 'taxFree' },
+    { header: 'Secured Flag', accessor: 'securedFlag' },
+    { header: 'Listing Status', accessor: 'listingStatus' },
+];
+
+const defaultColumns: string[] = [
+    'registrar',
+    'isin',
+    'securityName',
+    'securityType',
+    'modeOfIssue',
+    'allotmentDate',
+    'maturityDate',
+    'couponRate',
+    'issueSize',
+    'faceValue',
+    'rating',
+    'creditRatingAgency',
+    'debentureTrustee',
+    'arranger',
+    'seniority',
+    'taxFree',
+    'securedFlag',
+    'listingStatus',
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -205,6 +232,35 @@ export default function IssuerListPage() {
     const [sortColumn, setSortColumn] = useState<string>('registrar');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [error, setError] = useState<string | null>(null);
+
+    // Column selector states
+    const [visibleColumns, setVisibleColumns] = useState<string[]>(defaultColumns);
+    const [isColumnMenuOpen, setIsColumnMenuOpen] = useState<boolean>(false);
+
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const filteredColumns = useMemo<Column[]>(() => {
+        return allColumns.filter(col => visibleColumns.includes(col.accessor));
+    }, [visibleColumns]);
+
+    const toggleColumn = (accessor: string): void => {
+        setVisibleColumns(prev =>
+            prev.includes(accessor)
+                ? prev.filter(col => col !== accessor)
+                : [...prev, accessor]
+        );
+    };
+
+    // Close column dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent): void => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsColumnMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // ── Helpers ──
     const formatCurrency = (value: number | null): string => {
@@ -322,11 +378,10 @@ export default function IssuerListPage() {
     const handleReset = () => {
         setSearchQuery('');
         setCurrentPage(1);
+        setVisibleColumns(defaultColumns);
         // slight delay so state clears before fetch
         setTimeout(() => fetchData(), 0);
     };
-
-
 
     // ── Client-side sort (optional polish) ──
     const sortedData = useMemo(() => {
@@ -342,55 +397,71 @@ export default function IssuerListPage() {
         });
     }, [tableData, sortColumn, sortDirection]);
 
+    // Render cell with special formatting
+    const renderCell = (row: TableDataItem, accessor: string) => {
+        const value = row[accessor as keyof TableDataItem];
+
+        if (accessor === 'isin') {
+            return (
+                <span
+                    onClick={() => isinHandler(row)}
+                    className="underline text-blue-500 decoration-sky-500 cursor-pointer"
+                >
+                    {value}
+                </span>
+            );
+        }
+
+        if (accessor === 'securityType') {
+            return (
+                <span
+                    className={`
+                        inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
+                        ${value === 'Equity' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
+                        ${value === 'Debentures' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
+                        ${value === 'Mutual Fund' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
+                        ${value === 'Hybrid Fund' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : ''}
+                        ${!['Equity', 'Debentures', 'Mutual Fund', 'Hybrid Fund'].includes(value as string) ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' : ''}
+                    `}
+                >
+                    {value}
+                </span>
+            );
+        }
+
+        if (accessor === 'issueSize' || accessor === 'faceValue') {
+            return (
+                <span className="block text-right">
+                    {formatCurrency(value as number | null)}
+                </span>
+            );
+        }
+
+        return value;
+    };
+
     const handleExport = useCallback(() => {
         if (sortedData.length === 0) {
             console.warn('No data to export');
             return;
         }
 
-        const exportData = sortedData.map((row) => ({
-            'Registrar': row.registrar,
-            'ISIN': row.isin,
-            'Security Name': row.securityName,
-            'Security Type': row.securityType,
-            'Mode of Issue': row.modeOfIssue,
-            'Allotment Date': row.allotmentDate,
-            'Maturity Date': row.maturityDate,
-            'Coupon Rate': row.couponRate,
-            'Issue Size': row.issueSize ?? '',
-            'Face Value': row.faceValue ?? '',
-            'Rating': row.rating,
-            'Credit Rating Agency': row.creditRatingAgency,
-            'Debenture Trustee': row.debentureTrustee,
-            'Arranger': row.arranger,
-            'Seniority': row.seniority,
-            'Tax Free': row.taxFree,
-            'Secured Flag': row.securedFlag,
-            'Listing Status': row.listingStatus,
-        }));
+        const exportData = sortedData.map((row) => {
+            const newRow: Record<string, any> = {};
+            filteredColumns.forEach(col => {
+                const value = (row as any)[col.accessor];
+                if (col.accessor === 'issueSize' || col.accessor === 'faceValue') {
+                    newRow[col.header] = formatCurrency(value);
+                } else {
+                    newRow[col.header] = value || '-';
+                }
+            });
+            return newRow;
+        });
 
         const worksheet = XLSX.utils.json_to_sheet(exportData);
 
-        const colWidths = [
-            { wch: 20 }, // Registrar
-            { wch: 15 }, // ISIN
-            { wch: 20 }, // Security Name
-            { wch: 14 }, // Security Type
-            { wch: 14 }, // Mode of Issue
-            { wch: 14 }, // Allotment Date
-            { wch: 14 }, // Maturity Date
-            { wch: 12 }, // Coupon Rate
-            { wch: 14 }, // Issue Size
-            { wch: 14 }, // Face Value
-            { wch: 12 }, // Rating
-            { wch: 20 }, // Credit Rating Agency
-            { wch: 20 }, // Debenture Trustee
-            { wch: 18 }, // Arranger
-            { wch: 14 }, // Seniority
-            { wch: 10 }, // Tax Free
-            { wch: 12 }, // Secured Flag
-            { wch: 14 }, // Listing Status
-        ];
+        const colWidths = filteredColumns.map(() => ({ wch: 15 }));
         worksheet['!cols'] = colWidths;
 
         const workbook = XLSX.utils.book_new();
@@ -400,7 +471,7 @@ export default function IssuerListPage() {
         const filename = `registrar-list-${fy}-${period}-${dateStr}.xlsx`;
 
         XLSX.writeFile(workbook, filename);
-    }, [sortedData, fy, period]);
+    }, [sortedData, filteredColumns, fy, period]);
 
     // ── Render ──
     return (
@@ -500,6 +571,35 @@ export default function IssuerListPage() {
                                 <X className="w-3.5 h-3.5" />
                                 Clear
                             </button>
+
+                            {/* Custom Column Selector */}
+                            <div className="relative" ref={dropdownRef}>
+                                <button
+                                    onClick={() => setIsColumnMenuOpen(prev => !prev)}
+                                    className="text-xs border border-gray-300 dark:border-gray-600 px-3 py-1.5 rounded-md bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                    Columns
+                                </button>
+
+                                {isColumnMenuOpen && (
+                                    <div className="absolute right-0 mt-2 w-60 max-h-72 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a2e] shadow-lg p-3 z-20">
+                                        {allColumns.map(col => (
+                                            <label
+                                                key={col.accessor}
+                                                className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200 py-1 px-1 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={visibleColumns.includes(col.accessor)}
+                                                    onChange={() => toggleColumn(col.accessor)}
+                                                    className="cursor-pointer accent-violet-500 dark:accent-violet-400"
+                                                />
+                                                {col.header}
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -519,37 +619,15 @@ export default function IssuerListPage() {
                                 <table className="w-full table-auto border-separate border-spacing-[4px] text-[12px]">
                                     <thead>
                                         <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
-                                            <th
-                                                className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8] min-w-[180px]"
-                                                onClick={() => handleSort('registrar')}
-                                            >
-                                                <div className="flex items-center gap-1 justify-center cursor-pointer">
-                                                    Registrar
-                                                    {sortColumn === 'registrar' && (
-                                                        sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
-                                                    )}
-                                                </div>
-                                            </th>
-                                            <th
-                                                className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8] min-w-[140px]"
-                                                onClick={() => handleSort('isin')}
-                                            >
-                                                <div className="flex items-center gap-1 justify-center cursor-pointer">
-                                                    ISIN
-                                                    {sortColumn === 'isin' && (
-                                                        sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
-                                                    )}
-                                                </div>
-                                            </th>
-                                            {TABLE_COLUMNS.map((column) => (
+                                            {filteredColumns.map((column) => (
                                                 <th
-                                                    key={column.key}
+                                                    key={column.accessor}
                                                     className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8] min-w-[120px]"
-                                                    onClick={() => handleSort(column.key)}
+                                                    onClick={() => handleSort(column.accessor)}
                                                 >
                                                     <div className="flex items-center gap-1 justify-center cursor-pointer">
-                                                        {column.label}
-                                                        {sortColumn === column.key && (
+                                                        {column.header}
+                                                        {sortColumn === column.accessor && (
                                                             sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
                                                         )}
                                                     </div>
@@ -563,77 +641,16 @@ export default function IssuerListPage() {
                                                 key={`${row.isin}-${index}`}
                                                 className={`transition-colors ${index % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800'}`}
                                             >
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[180px] text-gray-800 dark:text-gray-200">
-                                                    {row.registrar}
-                                                </td>
-                                                <td
-                                                    onClick={() => isinHandler(row)}
-                                                    className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[140px] underline text-blue-500 decoration-sky-500 cursor-pointer"
-                                                >
-                                                    {row.isin}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[140px] text-gray-800 dark:text-gray-200">
-                                                    {row.securityName}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
-                                                    <span
-                                                        className={`
-                                                            inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
-                                                            ${row.securityType === 'Equity' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
-                                                            ${row.securityType === 'Debentures' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
-                                                            ${row.securityType === 'Mutual Fund' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
-                                                            ${row.securityType === 'Hybrid Fund' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : ''}
-                                                            ${!['Equity', 'Debentures', 'Mutual Fund', 'Hybrid Fund'].includes(row.securityType) ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' : ''}
-                                                        `}
+                                                {filteredColumns.map((column) => (
+                                                    <td
+                                                        key={column.accessor}
+                                                        className={`border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200 ${
+                                                            column.accessor === 'issueSize' || column.accessor === 'faceValue' ? 'text-right' : ''
+                                                        }`}
                                                     >
-                                                        {row.securityType}
-                                                    </span>
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
-                                                    {row.modeOfIssue}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
-                                                    {row.allotmentDate}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
-                                                    {row.maturityDate}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
-                                                    {row.couponRate}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200 text-right">
-                                                    {formatCurrency(row.issueSize)}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200 text-right">
-                                                    {formatCurrency(row.faceValue)}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
-                                                    {row.rating}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[140px] text-gray-800 dark:text-gray-200">
-                                                    {row.creditRatingAgency}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[140px] text-gray-800 dark:text-gray-200">
-                                                    {row.debentureTrustee}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[140px] text-gray-800 dark:text-gray-200">
-                                                    {row.registrar}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[140px] text-gray-800 dark:text-gray-200">
-                                                    {row.arranger}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
-                                                    {row.seniority}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
-                                                    {row.taxFree}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
-                                                    {row.securedFlag}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
-                                                    {row.listingStatus}
-                                                </td>
+                                                        {renderCell(row, column.accessor)}
+                                                    </td>
+                                                ))}
                                             </tr>
                                         ))}
                                     </tbody>

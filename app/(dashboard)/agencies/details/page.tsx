@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -9,7 +9,6 @@ import { Search, Download, X, ChevronDown, ChevronUp, Calendar } from 'lucide-re
 import * as XLSX from 'xlsx';
 
 import { FilterOption, FilterState, TableDataItem } from './types';
-import { TABLE_COLUMNS } from './constants';
 import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
 import { fetchRatingAgencyDetailedData } from '@/features/ratingAgencies/services';
 
@@ -57,6 +56,57 @@ interface PaginatedResponse {
         hasMore: boolean;
     };
 }
+
+// ─── Column Definitions ─────────────────────────────────────────────────────
+
+interface Column {
+    header: string;
+    accessor: string;
+}
+
+const allColumns: Column[] = [
+    { header: 'Rating Agency', accessor: 'creditRatingAgency' },
+    { header: 'Issuer Name', accessor: 'issuerName' },
+    { header: 'ISIN', accessor: 'isin' },
+    { header: 'Security Name', accessor: 'securityName' },
+    { header: 'Nature', accessor: 'nature' },
+    { header: 'Ownership Type', accessor: 'ownershipType' },
+    { header: 'Sector', accessor: 'sector' },
+    { header: 'Credit Rating', accessor: 'creditRating' },
+    { header: 'Seniority', accessor: 'seniority' },
+    { header: 'Secured Flag', accessor: 'securedFlag' },
+    { header: 'Listing Status', accessor: 'listingStatus' },
+    { header: 'Tax Free', accessor: 'taxFree' },
+    { header: 'Issue Size', accessor: 'issueSize' },
+    { header: 'Security Type', accessor: 'securityType' },
+    { header: 'Mode of Issue', accessor: 'modeOfIssue' },
+    { header: 'Issue Value', accessor: 'issueValue' },
+    { header: 'Face Value', accessor: 'faceValue' },
+    { header: 'Allotment Date', accessor: 'allotmentDate' },
+    { header: 'Date of Maturity', accessor: 'dateOfMaturity' },
+];
+
+const defaultColumns: string[] = [
+    'creditRatingAgency',
+    'issuerName',
+    'isin',
+    'securityName',
+    'nature',
+    'ownershipType',
+    'sector',
+    'creditRating',
+    'seniority',
+    'securedFlag',
+    'listingStatus',
+    'taxFree',
+    'issueSize',
+    'securityType',
+    'modeOfIssue',
+    'issueValue',
+    'faceValue',
+    'allotmentDate',
+    'dateOfMaturity',
+];
 
 // ─── Skeleton Components ─────────────────────────────────────────────────────
 
@@ -190,6 +240,7 @@ const TextInput = ({
 
 export default function DetailedAnalysis() {
     const router = useRouter();
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const isinHandler = (item: any): void => {
         router.push(`/specific-issuer/${item?.id}`);
@@ -239,6 +290,33 @@ export default function DetailedAnalysis() {
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [searchQuery, setSearchQuery] = useState('');
     const [error, setError] = useState<string | null>(null);
+
+    // Column selector states
+    const [visibleColumns, setVisibleColumns] = useState<string[]>(defaultColumns);
+    const [isColumnMenuOpen, setIsColumnMenuOpen] = useState<boolean>(false);
+
+    const filteredColumns = useMemo<Column[]>(() => {
+        return allColumns.filter(col => visibleColumns.includes(col.accessor));
+    }, [visibleColumns]);
+
+    const toggleColumn = (accessor: string): void => {
+        setVisibleColumns(prev =>
+            prev.includes(accessor)
+                ? prev.filter(col => col !== accessor)
+                : [...prev, accessor]
+        );
+    };
+
+    // Close column dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent): void => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsColumnMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Update filter helper
     const updateFilter = useCallback((key: keyof FilterState, value: string | number) => {
@@ -377,6 +455,7 @@ export default function DetailedAnalysis() {
         });
         setSearchQuery('');
         setCurrentPage(1);
+        setVisibleColumns(defaultColumns);
         setTimeout(fetchData, 0);
     };
 
@@ -397,61 +476,38 @@ export default function DetailedAnalysis() {
             return;
         }
 
-        const exportData = tableData.map((row) => ({
-            'Rating Agency': row.creditRatingAgency,
-            'Issuer Name': row.issuerName,
-            'ISIN': row.isin,
-            'Security Name': row.securityName,
-            'Nature': row.nature,
-            'Ownership Type': row.ownershipType,
-            'Sector': row.sector,
-            'Credit Rating': row.creditRating,
-            'Seniority': row.seniority,
-            'Secured Flag': row.securedFlag,
-            'Listing Status': row.listingStatus,
-            'Tax Free': row.taxFree,
-            'Issue Size': row.issueSize,
-            'Security Type': row.securityType,
-            'Mode of Issue': row.modeOfIssue,
-            'Issue Value (INR)': row.issueValue,
-            'Face Value (INR)': row.faceValue,
-            'Allotment Date': row.allotmentDate,
-            'Date of Maturity': row.dateOfMaturity,
-        }));
+        // Build export data from visible columns only
+        const exportData = tableData.map((row) => {
+            const newRow: Record<string, any> = {};
+            filteredColumns.forEach(col => {
+                const value = (row as any)[col.accessor];
+                if (col.accessor === 'issueValue' || col.accessor === 'faceValue') {
+                    newRow[col.header] = typeof value === 'number' ? formatCurrency(value) : value;
+                } else {
+                    newRow[col.header] = value || '-';
+                }
+            });
+            return newRow;
+        });
 
+        // Create worksheet
         const worksheet = XLSX.utils.json_to_sheet(exportData);
 
-        const colWidths = [
-            { wch: 22 }, // Rating Agency
-            { wch: 22 }, // Issuer Name
-            { wch: 15 }, // ISIN
-            { wch: 20 }, // Security Name
-            { wch: 14 }, // Nature
-            { wch: 16 }, // Ownership Type
-            { wch: 16 }, // Sector
-            { wch: 14 }, // Credit Rating
-            { wch: 12 }, // Seniority
-            { wch: 12 }, // Secured Flag
-            { wch: 14 }, // Listing Status
-            { wch: 10 }, // Tax Free
-            { wch: 12 }, // Issue Size
-            { wch: 14 }, // Security Type
-            { wch: 14 }, // Mode of Issue
-            { wch: 16 }, // Issue Value
-            { wch: 16 }, // Face Value
-            { wch: 14 }, // Allotment Date
-            { wch: 14 }, // Date of Maturity
-        ];
+        // Set column widths
+        const colWidths = filteredColumns.map(() => ({ wch: 15 }));
         worksheet['!cols'] = colWidths;
 
+        // Create workbook and append worksheet
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Rating Agency Analysis');
 
+        // Generate filename with current date
         const dateStr = new Date().toISOString().split('T')[0];
         const filename = `rating-agency-detailed-analysis-${dateStr}.xlsx`;
 
+        // Trigger download
         XLSX.writeFile(workbook, filename);
-    }, [tableData]);
+    }, [tableData, filteredColumns]);
 
     // Format currency
     const formatCurrency = (value: number): string => {
@@ -461,6 +517,48 @@ export default function DetailedAnalysis() {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
         }).format(value);
+    };
+
+    // Render cell with special formatting
+    const renderCell = (row: TableDataItem, accessor: string) => {
+        const value = row[accessor as keyof TableDataItem];
+
+        if (accessor === 'isin') {
+            return (
+                <span
+                    onClick={() => isinHandler(row)}
+                    className="underline text-blue-500 decoration-sky-500 cursor-pointer"
+                >
+                    {value}
+                </span>
+            );
+        }
+
+        if (accessor === 'securityType') {
+            return (
+                <span
+                    className={`
+                        inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
+                        ${value === 'Equity' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
+                        ${value === 'Debentures' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
+                        ${value === 'Mutual Fund' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
+                        ${value === 'Hybrid Fund' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : ''}
+                    `}
+                >
+                    {value}
+                </span>
+            );
+        }
+
+        if (accessor === 'issueValue' || accessor === 'faceValue') {
+            return (
+                <span className="block">
+                    {formatCurrency(value as number)}
+                </span>
+            );
+        }
+
+        return value;
     };
 
     // Convert array to dropdown options format
@@ -655,7 +753,7 @@ export default function DetailedAnalysis() {
 
                 {/* ── Data Table Section ── */}
                 <SectionCard className="p-5">
-                    {/* Table Header with Search */}
+                    {/* Table Header with Search & Column Selector */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                         <div className="flex items-center gap-2">
                             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
@@ -668,17 +766,48 @@ export default function DetailedAnalysis() {
                             )}
                         </div>
 
-                        <div className="relative w-full sm:w-64">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                placeholder="Search ISIN..."
-                                className="w-full h-6 px-3 py-1.5 text-xs bg-gray-50 dark:bg-[#0f0f1a] border border-gray-200 dark:border-gray-700 rounded-lg 
-                                    text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]
-                                    placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                            />
+                        <div className="flex items-center gap-2">
+                            <div className="relative w-full sm:w-64">
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                    placeholder="Search ISIN..."
+                                    className="w-full h-6 px-3 py-1.5 text-xs bg-gray-50 dark:bg-[#0f0f1a] border border-gray-200 dark:border-gray-700 rounded-lg 
+                                        text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]
+                                        placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                                />
+                            </div>
+
+                            {/* Custom Column Selector */}
+                            <div className="relative" ref={dropdownRef}>
+                                <button
+                                    onClick={() => setIsColumnMenuOpen(prev => !prev)}
+                                    className="text-xs border border-gray-300 dark:border-gray-600 px-3 py-1.5 rounded-md bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                    Columns
+                                </button>
+
+                                {isColumnMenuOpen && (
+                                    <div className="absolute right-0 mt-2 w-60 max-h-72 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a2e] shadow-lg p-3 z-20">
+                                        {allColumns.map(col => (
+                                            <label
+                                                key={col.accessor}
+                                                className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200 py-1 px-1 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={visibleColumns.includes(col.accessor)}
+                                                    onChange={() => toggleColumn(col.accessor)}
+                                                    className="cursor-pointer accent-violet-500 dark:accent-violet-400"
+                                                />
+                                                {col.header}
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -698,21 +827,15 @@ export default function DetailedAnalysis() {
                                 <table className="w-full table-auto overflow-x-auto border-separate border-spacing-[4px] text-[12px]">
                                     <thead>
                                         <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
-                                            <th className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8] w-[30%]">
-                                                Rating Agency
-                                            </th>
-                                            <th className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8] w-[30%]">
-                                                Issuer Name
-                                            </th>
-                                            {TABLE_COLUMNS.map((column) => (
+                                            {filteredColumns.map((column) => (
                                                 <th
-                                                    key={column.key}
-                                                    className={`border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8]`}
-                                                    onClick={() => handleSort(column.key)}
+                                                    key={column.accessor}
+                                                    className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 text-center text-white font-semibold whitespace-nowrap bg-gradient-to-r from-[#423CAB] to-[#653FD8]"
+                                                    onClick={() => handleSort(column.accessor)}
                                                 >
                                                     <div className="flex items-center gap-1 justify-center">
-                                                        {column.label}
-                                                        {sortColumn === column.key && (
+                                                        {column.header}
+                                                        {sortColumn === column.accessor && (
                                                             sortDirection === 'asc'
                                                                 ? <ChevronUp className="w-3 h-3" />
                                                                 : <ChevronDown className="w-3 h-3" />
@@ -722,7 +845,7 @@ export default function DetailedAnalysis() {
                                             ))}
                                         </tr>
                                     </thead>
-                                    <tbody className="">
+                                    <tbody>
                                         {tableData?.map((row, index) => (
                                             <tr
                                                 key={row.id}
@@ -731,71 +854,16 @@ export default function DetailedAnalysis() {
                                                     ${index % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800'}
                                                 `}
                                             >
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.creditRatingAgency}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.issuerName}
-                                                </td>
-                                                <td onClick={() => isinHandler(row)} className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] underline text-blue-500 decoration-sky-500 cursor-pointer">
-                                                    {row.isin}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.securityName}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.nature}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.ownershipType}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.sector}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.creditRating}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.seniority}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.securedFlag}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.listingStatus}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.taxFree}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.issueSize}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    <span className={`
-                                                        inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
-                                                        ${row.securityType === 'Equity' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
-                                                        ${row.securityType === 'Debentures' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
-                                                        ${row.securityType === 'Mutual Fund' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
-                                                        ${row.securityType === 'Hybrid Fund' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : ''}
-                                                    `}>
-                                                        {row.securityType}
-                                                    </span>
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.modeOfIssue}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200 text-right">
-                                                    {formatCurrency(row.issueValue)}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200 text-right">
-                                                    {formatCurrency(row.faceValue)}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.allotmentDate}
-                                                </td>
-                                                <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
-                                                    {row.dateOfMaturity}
-                                                </td>
+                                                {filteredColumns.map((column) => (
+                                                    <td
+                                                        key={column.accessor}
+                                                        className={`border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200 ${
+                                                            column.accessor === 'issueValue' || column.accessor === 'faceValue' ? 'text-right' : ''
+                                                        }`}
+                                                    >
+                                                        {renderCell(row, column.accessor)}
+                                                    </td>
+                                                ))}
                                             </tr>
                                         ))}
                                     </tbody>

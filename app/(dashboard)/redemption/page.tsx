@@ -255,7 +255,7 @@ export default function RedemptionList() {
                         >
                             Export
                         </button>
-
+                        {/* custom column selector */}
                         <div className="relative" ref={dropdownRef}>
                             <button
                                 onClick={() => setIsColumnMenuOpen(prev => !prev)}
