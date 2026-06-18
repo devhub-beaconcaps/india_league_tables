@@ -200,7 +200,7 @@ function StatCard({ label, value, change, color, icon }: StatCardProps) {
           <span>{icon}</span>
         </div>
         <p className="text-[9px] mb-1 text-gray-400 dark:text-gray-500 font-medium truncate">{label}</p>
-        <p title={value} className="text-[14px] font-bold text-gray-800 dark:text-white leading-tight mt-0.5">{label === 'Top Sector' ? truncateText(value, 7) : value}</p>
+        <p title={value} className="text-[14px] font-bold text-gray-800 dark:text-white leading-tight mt-0.5">{label === 'Top Issuer' ? truncateText(value, 7) : value}</p>
       </div>
     </div>
   );
@@ -267,7 +267,8 @@ export default function Dashboard() {
 
   const valueConventionOptions = [
     { label: "Crores", value: "Crores" },
-    { label: "Lakhs", value: "Lakhs" }
+    { label: "Lakhs", value: "Lakhs" },
+    { label: "Billions", value: "Billions" }
   ];
 
   const dateRange = useMemo(() => handleFinancialYearSelection(fyOptions[0]?.value || ''), [fyOptions]);
@@ -281,7 +282,7 @@ export default function Dashboard() {
   const [SpecificAgencyData, setSpecificAgencyData] = useState<AgencyData[] | null>(null);
   const [monthlyVolumeData, setMonthlyVolumeData] = useState<MonthlyVolumeData[]>([]);
   const [issueTrendsData, setIssueTrendsData] = useState<IssueTrendData[]>([]);
-  const [valueConvention, setValueConvention] = useState<'Crores' | 'Lakhs'>('Crores');
+  const [valueConvention, setValueConvention] = useState<'Crores' | 'Lakhs' | 'Billions'>('Crores');
   const [yearDropdownopen, setYearDropdownopen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [selectedYearsDateRange, setSelectedYearsDateRange] = useState<DateRange>(dateRange || { startDate: '', endDate: '' });
@@ -302,8 +303,6 @@ export default function Dashboard() {
       percentage: parseFloat(String(item.percentage)) || 0
     }));
   }, [SpecificAgencyData]);
-
-  // console.log('sanitizedAgencyData', sanitizedAgencyData);
 
 
   const sanitizedSectorsData = useMemo((): SectorData[] => {
@@ -393,7 +392,7 @@ export default function Dashboard() {
           { label: 'Total Issues', value: Number(data[0]?.total_issues || 0).toLocaleString('en-IN'), change: '+5%', color: '#7C3AED', icon: '📋' },
           { label: 'Avg Issue Size', value: `₹${Number(data[0]?.avg_issue_size_in_cr || 0).toLocaleString('en-IN')} Cr.`, change: '+8%', color: '#EC4899', icon: '📈' },
           { label: 'Total Issue Size', value: `₹${Number(data[0]?.total_issue_size_in_cr || 0).toLocaleString('en-IN')} Cr.`, change: '+8%', color: '#F97316', icon: '🏦' },
-          { label: 'Top Sector', value: data[0]?.top_sector_by_volume || 'N/A', change: '+8%', color: '#10B981', icon: '📦' },
+          { label: 'Top Issuer', value: data[0]?.largest_issue_issuer_name || 'N/A', change: '+8%', color: '#10B981', icon: '📦' },
         ];
         setStatsData(statsCards);
         console.log("Fetched stats data:", data[0]);
@@ -632,7 +631,7 @@ export default function Dashboard() {
             {/* Financial Year Table */}
             <SectionCard className="p-5">
               <h2 className="text-md font-semibold text-gray-800 dark:text-white mb-4">
-                Financial Year: {selectedFY}
+                Top {activeTab}
               </h2>
 
               <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
@@ -640,7 +639,7 @@ export default function Dashboard() {
                   label="Value Convention"
                   options={valueConventionOptions}
                   value={valueConvention}
-                  onChange={(val: string) => setValueConvention(val as 'Crores' | 'Lakhs')}
+                  onChange={(val: string) => setValueConvention(val as 'Crores' | 'Lakhs' | 'Billions')}
                 />
                 <div className='flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4'>
                   <CustomDropdown
@@ -722,7 +721,9 @@ export default function Dashboard() {
                           <td className={`py-2.5 text-right pr-2 rounded-r-lg ${row.active ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
                             {valueConvention === 'Lakhs'
                               ? `₹${(parseFloat(String(row?.issueSize || 0)) * 100).toLocaleString()}`
-                              : `₹${parseFloat(String(row?.issueSize || 0)).toLocaleString()}`}
+                              : valueConvention === 'Billions'
+                                ? `₹${(parseFloat(String(row?.issueSize || 0)) / 100).toLocaleString()}`
+                                : `₹${parseFloat(String(row?.issueSize || 0)).toLocaleString()}`}
                           </td>
                         </tr>
                       ))
@@ -952,8 +953,8 @@ export default function Dashboard() {
                         <Tooltip
                           contentStyle={{ fontSize: 11, borderRadius: 8 }}
                           formatter={(value, name, props) => [
-                            value,              // The value (rating_no)
-                            props.payload.label // The custom label you want to show
+                            value,
+                            props.payload.label
                           ]}
                         />
                       </PieChart>

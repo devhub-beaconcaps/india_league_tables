@@ -55,7 +55,7 @@ export interface StatsApiResponse {
   avg_issue_size_in_cr: number;
   total_volume_in_cr: number;
   total_issue_size_in_cr: number;
-  top_sector_by_volume: string;
+  largest_issue_issuer_name: string;
 }
 
 export interface SectorsApiResponse {
