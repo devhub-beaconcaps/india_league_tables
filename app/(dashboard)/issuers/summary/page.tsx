@@ -64,7 +64,6 @@ import {
 import {
     formatData,
     formatSectorData,
-    getShortForm,
     formatOutstandingData,
     formatDebtData,
     formatMarketShareData,
@@ -82,7 +81,6 @@ interface FilterOption {
 }
 
 interface SummaryFilterState {
-    issuerName: string;
     issuerOwnershipType: string;
     issuerNatureType: string;
     businessSector: string;
@@ -93,12 +91,9 @@ interface SummaryFilterState {
     seniority: string;
     servicedFlag: string;
     listingStatus: string;
-    taxFree: string;
-    dealSizeInCr: string;
 }
 
 interface FilterInputsResponse {
-    taxFree: string[];
     ownershipType: string[];
     nature: string[];
     sector: string[];
@@ -124,7 +119,7 @@ function TableSkeleton() {
     );
 }
 
-function ChartSkeleton({ height = 220 }: { height?: number }) {
+function ChartSkeleton({ height = 300 }: { height?: number }) {
     return (
         <div style={{ height }} className="w-full">
             <Skeleton height="100%" width="100%" />
@@ -159,7 +154,7 @@ function BarChartSkeleton() {
 function FilterSkeleton() {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(13)].map((_, i) => (
+            {[...Array(10)].map((_, i) => (
                 <div key={i} className="space-y-1.5">
                     <Skeleton height={12} width={80} />
                     <Skeleton height={36} />
@@ -226,28 +221,6 @@ const FilterGroup = ({
     </div>
 );
 
-const TextInput = ({
-    value,
-    onChange,
-    placeholder,
-    type = 'text'
-}: {
-    value: string | number;
-    onChange: (value: string) => void;
-    placeholder?: string;
-    type?: string;
-}) => (
-    <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full h-6 px-3 text-xs bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-lg 
-            text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]
-            placeholder:text-gray-400 dark:placeholder:text-gray-500"
-    />
-);
-
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
         return (
@@ -299,6 +272,22 @@ const renderLabel = ({
     );
 };
 
+// Custom X-axis tick that stacks words vertically
+const VerticalXAxisTick = ({ x, y, payload }: any) => {
+    const words = String(payload?.value ?? '').split(/[\s-]+/);
+    return (
+        <g transform={`translate(${x},${y})`}>
+            <text textAnchor="middle" fill="#9ca3af" fontSize={9}>
+                {words.map((word: string, index: number) => (
+                    <tspan key={index} x={0} dy={index === 0 ? 0 : 11}>
+                        {word}
+                    </tspan>
+                ))}
+            </text>
+        </g>
+    );
+};
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function IssuerSummary() {
@@ -314,7 +303,6 @@ export default function IssuerSummary() {
     
     // ── New Filter States ──
     const [filters, setFilters] = useState<SummaryFilterState>({
-        issuerName: '',
         issuerOwnershipType: '',
         issuerNatureType: '',
         businessSector: '',
@@ -325,12 +313,9 @@ export default function IssuerSummary() {
         seniority: '',
         servicedFlag: '',
         listingStatus: '',
-        taxFree: '',
-        dealSizeInCr: '',
     });
 
     const [filterOptions, setFilterOptions] = useState<FilterInputsResponse>({
-        taxFree: [],
         ownershipType: [],
         nature: [],
         sector: [],
@@ -405,7 +390,6 @@ export default function IssuerSummary() {
         setPeriod(null);
         setValueConvention('Crores');
         setFilters({
-            issuerName: '',
             issuerOwnershipType: '',
             issuerNatureType: '',
             businessSector: '',
@@ -416,10 +400,35 @@ export default function IssuerSummary() {
             seniority: '',
             servicedFlag: '',
             listingStatus: '',
-            taxFree: '',
-            dealSizeInCr: '',
         });
     };
+
+    const handleExportCSV = useCallback(() => {
+        if (!issueTableData.length) return;
+
+        const headers = Object.keys(issueTableData[0]);
+        const rows = issueTableData.map((row) =>
+            headers.map((header) => {
+                const cell = (row as Record<string, any>)[header];
+                const str = String(cell ?? '');
+                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                }
+                return str;
+            }).join(',')
+        );
+
+        const csv = [headers.join(','), ...rows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.download = `top_issuers_${selectedFY}_${issueType}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }, [issueTableData, selectedFY, issueType]);
 
     // ── Fetch Filter Inputs ──
     const fetchFilterInputs = useCallback(async () => {
@@ -457,7 +466,6 @@ export default function IssuerSummary() {
             startDate: selectedYearsDateRange.startDate,
             endDate: selectedYearsDateRange.endDate,
             issueType,
-            issuerName: filters.issuerName,
             ownershipType: filters.issuerOwnershipType,
             nature: filters.issuerNatureType,
             sector: filters.businessSector,
@@ -468,8 +476,6 @@ export default function IssuerSummary() {
             seniority: filters.seniority,
             securedFlag: filters.servicedFlag,
             listingStatus: filters.listingStatus,
-            taxFree: filters.taxFree,
-            dealSize: filters.dealSizeInCr,
         };
 
         try {
@@ -524,7 +530,6 @@ export default function IssuerSummary() {
             startDate: selectedYearsDateRange.startDate,
             endDate: selectedYearsDateRange.endDate,
             creditRatingAgency: filters.creditRatingAgency,
-            issuerName: filters.issuerName,
             ownershipType: filters.issuerOwnershipType,
             nature: filters.issuerNatureType,
             sector: filters.businessSector,
@@ -534,8 +539,6 @@ export default function IssuerSummary() {
             seniority: filters.seniority,
             securedFlag: filters.servicedFlag,
             listingStatus: filters.listingStatus,
-            taxFree: filters.taxFree,
-            dealSize: filters.dealSizeInCr,
         };
 
         try {
@@ -676,15 +679,6 @@ export default function IssuerSummary() {
                     ) : (
                         <>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
-                                <FilterGroup label="Issuer Name">
-                                    <TextInput
-                                        value={filters.issuerName}
-                                        onChange={(val) => updateFilter('issuerName', val)}
-                                        placeholder="Enter Issuer Name"
-                                        type="text"
-                                    />
-                                </FilterGroup>
-
                                 <FilterGroup label="Issuer Ownership Type">
                                     <CustomDropdown
                                         options={toOptions(filterOptions.ownershipType)}
@@ -774,24 +768,6 @@ export default function IssuerSummary() {
                                         placeholder="Select Status"
                                     />
                                 </FilterGroup>
-
-                                <FilterGroup label="Tax Free">
-                                    <CustomDropdown
-                                        options={toOptions(filterOptions.taxFree)}
-                                        value={filters.taxFree}
-                                        onChange={(val) => updateFilter('taxFree', val)}
-                                        placeholder="Select Tax Status"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Deal Size (in Cr)">
-                                    <TextInput
-                                        value={filters.dealSizeInCr}
-                                        onChange={(val) => updateFilter('dealSizeInCr', val)}
-                                        placeholder="Enter Size"
-                                        type="number"
-                                    />
-                                </FilterGroup>
                             </div>
 
                             {/* Action Buttons */}
@@ -822,13 +798,25 @@ export default function IssuerSummary() {
                         <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                             Top 10 Issuers by {issueType === 'size' ? 'Issue size' : 'No of Issues'} (Rupees in Crores)
                         </h2>
-                        <div className="w-full sm:w-auto">
-                            <CustomDropdown
-                                label="Value Convention"
-                                options={valueConventionOptions}
-                                value={valueConvention}
-                                onChange={(val) => setValueConvention(val as ValueConvention)}
-                            />
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <button
+                                onClick={handleExportCSV}
+                                disabled={isTableLoading || issueTableData.length === 0}
+                                className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-4 h-8 text-xs font-medium transition-colors"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Export CSV
+                            </button>
+                            <div className="w-full sm:w-auto">
+                                <CustomDropdown
+                                    label="Value Convention"
+                                    options={valueConventionOptions}
+                                    value={valueConvention}
+                                    onChange={(val) => setValueConvention(val as ValueConvention)}
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -879,10 +867,10 @@ export default function IssuerSummary() {
                             Top 10 Business Sectors by Issue Size
                         </h2>
                         {isSectorsLoading ? (
-                            <ChartSkeleton height={220} />
+                            <ChartSkeleton height={300} />
                         ) : topSectorsData.length > 0 ? (
                             <>
-                                <ResponsiveContainer width="100%" height={220}>
+                                <ResponsiveContainer width="100%" height={340}>
                                     <AreaChart data={topSectorsData} margin={{ top: 5, right: 10, left: 10, bottom: 40 }}>
                                         <defs>
                                             <linearGradient id="cyGrad" x1="0" y1="0" x2="0" y2="1">
@@ -897,12 +885,10 @@ export default function IssuerSummary() {
                                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.6} vertical={false} />
                                         <XAxis
                                             dataKey="sector"
-                                            tick={{ fontSize: 9, fill: '#9ca3af' }}
-                                            tickFormatter={getShortForm}
+                                            tick={<VerticalXAxisTick />}
                                             tickMargin={12}
                                             interval={0}
-                                            angle={-30}
-                                            textAnchor="end"
+                                            height={60}
                                         />
                                         <YAxis
                                             tick={{ fontSize: 9, fill: '#9ca3af' }}
