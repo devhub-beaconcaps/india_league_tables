@@ -15,20 +15,42 @@ import { fetchRegistrarPageDetailedData } from '@/features/registrars/services';
 
 
 // Helper to get current financial year dates (India: April 1 - March 31)
-const getCurrentFinancialYearDates = () => {
-    const today = new Date('2026-05-07'); // Current date
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth(); // 0-indexed, April = 3
+function getCurrentFinancialYearDates() {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); 
 
-    // Financial year starts April 1
-    // If current month is Jan-Mar, FY started previous year
-    const fyStartYear = currentMonth < 3 ? currentYear - 1 : currentYear;
+  let startYear:any;
+  let endYear:any;
 
-    const startDate = `${fyStartYear}-04-01`;
-    const endDate = today.toISOString().split('T')[0]; // 2026-05-07
+  // Determine financial year bounds
+  if (currentMonth >= 3) { // April is 3
+    startYear = currentYear;
+    endYear = currentYear + 1;
+  } else {
+    startYear = currentYear - 1;
+    endYear = currentYear;
+  }
 
-    return { startDate, endDate };
-};
+  const startDate = new Date(startYear, 3, 1);
+  const endDate = new Date(endYear, 2, 31);
+
+  // If the financial year end is in the future, use today
+  const finalEndDate = endDate > now ? now : endDate;
+
+  // Helper to format date as YYYY-MM-DD using LOCAL time
+  const formatLocalDate = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  return {
+    startDate: formatLocalDate(startDate),
+    endDate: formatLocalDate(finalEndDate)
+  };
+}
 
 const DEFAULT_DATES = getCurrentFinancialYearDates();
 

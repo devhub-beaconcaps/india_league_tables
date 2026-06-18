@@ -201,7 +201,7 @@ interface TableDataItem {
 }
 
 interface GroupedRecord {
-    allotmentDate: string;
+    issuerName: string;
     count: number;
     representativeRow: TableDataItem;
     records: TableDataItem[];
@@ -239,24 +239,28 @@ const TABLE_COLUMNS = [
  * Groups raw table data by allotmentDate.
  * Uses the first record in each group as the representative row.
  */
-function groupByAllotmentDate(data: TableDataItem[]): GroupedRecord[] {
+/**
+ * Groups raw table data by issuerName.
+ * Uses the first record in each group as the representative row.
+ */
+function groupByIssuerName(data: TableDataItem[]): GroupedRecord[] {
     const map = new Map<string, TableDataItem[]>();
 
     for (const item of data) {
-        const key = item.allotmentDate;
+        const key = item.issuerName;   // ← changed from item.allotmentDate
         if (!map.has(key)) {
             map.set(key, []);
         }
         map.get(key)!.push(item);
     }
 
-    // Sort groups by allotmentDate ascending for stable ordering
+    // Sort groups by issuerName ascending for stable ordering
     const sortedKeys = Array.from(map.keys()).sort();
 
     return sortedKeys.map((key) => {
         const records = map.get(key)!;
         return {
-            allotmentDate: key,
+            issuerName: key,           // ← changed from allotmentDate
             count: records.length,
             representativeRow: records[0],
             records,
@@ -473,7 +477,7 @@ export default function RatingAgencyTopParticipantsPage() {
 
     // ── Grouped Data (memoized) ──
     const groupedData = useMemo(() => {
-        return groupByAllotmentDate(tableData);
+        return groupByIssuerName(tableData);   // ← changed function name
     }, [tableData]);
 
     // ── Sorted Grouped Data ──
@@ -647,7 +651,7 @@ export default function RatingAgencyTopParticipantsPage() {
                             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Search Results</h2>
                             {!isLoading && (
                                 <span className="text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">
-                                    {totalCount} securities · {paginatedGroups.length} unique dates
+                                    {totalCount} securities · {paginatedGroups.length} unique issuers
                                 </span>
                             )}
                         </div>
@@ -777,14 +781,14 @@ export default function RatingAgencyTopParticipantsPage() {
                                     </thead>
                                     <tbody>
                                         {paginatedGroups.map((group, groupIndex) => {
-                                            const isExpanded = expandedGroups.has(group.allotmentDate);
+                                            const isExpanded = expandedGroups.has(group.issuerName);
                                             const rep = group.representativeRow;
                                             const groupBgClass = groupIndex % 2 === 0
                                                 ? 'bg-white dark:bg-gray-900'
                                                 : 'bg-gray-50 dark:bg-gray-800';
 
                                             return (
-                                                <React.Fragment key={group.allotmentDate}>
+                                                <React.Fragment key={group.issuerName}>
                                                     {/* Group Header Row — shows all representative values */}
                                                     <tr
                                                         className={`transition-colors cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 ${groupBgClass}`}
@@ -793,7 +797,7 @@ export default function RatingAgencyTopParticipantsPage() {
                                                         <td
                                                             className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 text-center"
                                                             onClick={() => {
-                                                                if (group.count > 1) toggleGroup(group.allotmentDate);
+                                                                if (group.count > 1) toggleGroup(group.issuerName);
                                                                 else isinHandler(rep);
                                                             }}
                                                         >
@@ -818,7 +822,7 @@ export default function RatingAgencyTopParticipantsPage() {
                                                         {/* ISIN — clickable "N ISINs" link */}
                                                         <td
                                                             onClick={() => {
-                                                                if (group.count > 1) toggleGroup(group.allotmentDate);
+                                                                if (group.count > 1) toggleGroup(group.issuerName);
                                                                 else isinHandler(rep);
                                                             }}
                                                             className='border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[140px] underline text-blue-500 decoration-sky-500 cursor-pointer'
@@ -907,7 +911,7 @@ export default function RatingAgencyTopParticipantsPage() {
                                                     {isExpanded && group.records.map((row, rowIndex) => (
                                                         <tr
                                                             key={`${row.isin}-${rowIndex}`}
-                                                            className={`transition-colors ${closingGroups.has(group.allotmentDate)
+                                                            className={`transition-colors ${closingGroups.has(group.issuerName)
                                                                 ? 'dropdown-row-exit'
                                                                 : 'dropdown-row-enter'
                                                                 } ${rowIndex % 2 === 0
@@ -1026,7 +1030,7 @@ export default function RatingAgencyTopParticipantsPage() {
                                         </div>
                                         <span className="text-[10px] text-gray-400 dark:text-gray-500">
                                             Showing {startEntry}–{endEntry} of {totalCount} securities
-                                            ({paginatedGroups.length} groups on this page)
+                                            ({paginatedGroups.length} issuers on this page)
                                         </span>
                                     </div>
 

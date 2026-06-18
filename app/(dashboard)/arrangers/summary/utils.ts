@@ -30,7 +30,7 @@ function capAtCurrentDate(dateStr: string): string {
         const hh = String(now.getHours()).padStart(2, '0');
         const min = String(now.getMinutes()).padStart(2, '0');
         const ss = String(now.getSeconds()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+        return `${yyyy}-${mm}-${dd}`;
     }
     
     return dateStr;
@@ -144,7 +144,7 @@ export const formatDate = (year: number, month: number, day: number, time = '00:
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const dd = String(date.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd} ${time}`;
+    return `${yyyy}-${mm}-${dd}`;
 };
 
 export const getFinancialYearRange = (fy: string): DateRange => {

@@ -201,7 +201,7 @@ interface TableDataItem {
 }
 
 interface GroupedRecord {
-    allotmentDate: string;
+    issuerName: string;
     count: number;
     representativeRow: TableDataItem;
     records: TableDataItem[];
@@ -239,24 +239,28 @@ const TABLE_COLUMNS = [
  * Groups raw table data by allotmentDate.
  * Uses the first record in each group as the representative row.
  */
-function groupByAllotmentDate(data: TableDataItem[]): GroupedRecord[] {
+/**
+ * Groups raw table data by issuerName.
+ * Uses the first record in each group as the representative row.
+ */
+function groupByIssuerName(data: TableDataItem[]): GroupedRecord[] {
     const map = new Map<string, TableDataItem[]>();
 
     for (const item of data) {
-        const key = item.allotmentDate;
+        const key = item.issuerName;   // ← changed from item.allotmentDate
         if (!map.has(key)) {
             map.set(key, []);
         }
         map.get(key)!.push(item);
     }
 
-    // Sort groups by allotmentDate ascending for stable ordering
+    // Sort groups by issuerName ascending for stable ordering
     const sortedKeys = Array.from(map.keys()).sort();
 
     return sortedKeys.map((key) => {
         const records = map.get(key)!;
         return {
-            allotmentDate: key,
+            issuerName: key,           // ← changed from allotmentDate
             count: records.length,
             representativeRow: records[0],
             records,
@@ -379,25 +383,25 @@ export default function ArrangerTopParticipantsPage() {
         }
     };
 
-    const toggleGroup = (allotmentDate: string) => {
+    const toggleGroup = (issuerName: string) => {
         setExpandedGroups((prev) => {
             const next = new Set(prev);
-            if (next.has(allotmentDate)) {
+            if (next.has(issuerName)) {
                 // Group is closing, add to closing set and play exit animation
-                setClosingGroups((closing) => new Set([...closing, allotmentDate]));
+                setClosingGroups((closing) => new Set([...closing, issuerName]));
                 // Remove from expanded after animation completes (400ms)
                 setTimeout(() => {
-                    next.delete(allotmentDate);
+                    next.delete(issuerName);
                     setExpandedGroups(new Set(next));
                     setClosingGroups((closing) => {
                         const updated = new Set(closing);
-                        updated.delete(allotmentDate);
+                        updated.delete(issuerName);
                         return updated;
                     });
                 }, 400);
             } else {
                 // Group is opening
-                next.add(allotmentDate);
+                next.add(issuerName);
             }
             return next;
         });
@@ -427,29 +431,32 @@ export default function ArrangerTopParticipantsPage() {
 
             const result = await fetchArrangerTopParticipantsData(requestBody);
 
+            console.log('result', result);
+
+
             if (result?.success) {
                 const mapped: TableDataItem[] = result.data.map((item: any) => ({
                     issuerId: item?.issuerId ?? '-',
-                    issuerName: item?.issuer_name ?? '-',
+                    issuerName: item?.issuerName ?? '-',
                     isin: item?.isin ?? '-',
-                    securityName: item?.security_name ?? '-',
-                    securityType: item?.security_type ?? '-',
-                    modeOfIssue: item?.mode_issue ?? '-',
-                    allotmentDate: formatDate(item?.allotment_date),
-                    maturityDate: formatDate(item?.maturity_date),
-                    couponRate: item?.coupon_rate ?? '-',
-                    issueSize: item?.issue_size ?? null,
-                    faceValue: item?.face_value ?? null,
+                    securityName: item?.securityName ?? '-',
+                    securityType: item?.securityType ?? '-',
+                    modeOfIssue: item?.modeIssue ?? '-',
+                    allotmentDate: formatDate(item?.allotmentDate),
+                    maturityDate: formatDate(item?.maturityDate),
+                    couponRate: item?.couponRate ?? '-',
+                    issueSize: item?.issueSize ?? null,
+                    faceValue: item?.faceValue ?? null,
                     rating: item?.rating ?? '-',
-                    creditRatingAgency: item?.agency_name ?? '-',
-                    debentureTrustee: item?.debenture_trustee_name ?? '-',
-                    registrar: item?.registrar_detail ?? '-',
-                    arranger: item?.arranger_name ?? '-',
+                    creditRatingAgency: item?.agencyName ?? '-',
+                    debentureTrustee: item?.debentureTrusteeName ?? '-',
+                    registrar: item?.registrarDetail ?? '-',
+                    arranger: item?.arrangerName ?? '-',
                     seniority: item?.seniority ?? '-',
-                    taxFree: item?.tax_free ?? '-',
-                    securedFlag: item?.secured_flag ?? '-',
-                    listingStatus: item?.listing_status ?? '-',
-                    issuerMasterId: item?.issuer_master_id ?? '-',
+                    taxFree: item?.taxFree ?? '-',
+                    securedFlag: item?.securedFlag ?? '-',
+                    listingStatus: item?.listingStatus ?? '-',
+                    issuerMasterId: item?.issuerMasterId ?? '-',
                 }));
 
                 setTableData(mapped);
@@ -473,7 +480,7 @@ export default function ArrangerTopParticipantsPage() {
 
     // ── Grouped Data (memoized) ──
     const groupedData = useMemo(() => {
-        return groupByAllotmentDate(tableData);
+        return groupByIssuerName(tableData);   // ← changed function name
     }, [tableData]);
 
     // ── Sorted Grouped Data ──
@@ -612,7 +619,7 @@ export default function ArrangerTopParticipantsPage() {
                         <div className="flex flex-col gap-1">
                             <label className="text-[9px] text-gray-400">Total Records</label>
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                                {isLoading ? '...' : totalCount}
+                                {isLoading ? '...' : paginatedGroups?.length || '0'}
                             </span>
                         </div>
                     </div>
@@ -647,7 +654,7 @@ export default function ArrangerTopParticipantsPage() {
                             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Search Results</h2>
                             {!isLoading && (
                                 <span className="text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">
-                                    {totalCount} securities · {paginatedGroups.length} unique dates
+                                    {totalCount} securities · {paginatedGroups.length} unique issuers
                                 </span>
                             )}
                         </div>
@@ -777,14 +784,14 @@ export default function ArrangerTopParticipantsPage() {
                                     </thead>
                                     <tbody>
                                         {paginatedGroups.map((group, groupIndex) => {
-                                            const isExpanded = expandedGroups.has(group.allotmentDate);
+                                            const isExpanded = expandedGroups.has(group.issuerName);
                                             const rep = group.representativeRow;
                                             const groupBgClass = groupIndex % 2 === 0
                                                 ? 'bg-white dark:bg-gray-900'
                                                 : 'bg-gray-50 dark:bg-gray-800';
 
                                             return (
-                                                <React.Fragment key={group.allotmentDate}>
+                                                <React.Fragment key={group.issuerName}>
                                                     {/* Group Header Row — shows all representative values */}
                                                     <tr
                                                         className={`transition-colors cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 ${groupBgClass}`}
@@ -793,7 +800,7 @@ export default function ArrangerTopParticipantsPage() {
                                                         <td
                                                             className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 text-center"
                                                             onClick={() => {
-                                                                if (group.count > 1) toggleGroup(group.allotmentDate);
+                                                                if (group.count > 1) toggleGroup(group.issuerName);
                                                                 else isinHandler(rep);
                                                             }}
                                                         >
@@ -818,7 +825,7 @@ export default function ArrangerTopParticipantsPage() {
                                                         {/* ISIN — clickable "N ISINs" link */}
                                                         <td
                                                             onClick={() => {
-                                                                if (group.count > 1) toggleGroup(group.allotmentDate);
+                                                                if (group.count > 1) toggleGroup(group.issuerName);
                                                                 else isinHandler(rep);
                                                             }}
                                                             className='border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[140px] underline text-blue-500 decoration-sky-500 cursor-pointer'
@@ -907,7 +914,7 @@ export default function ArrangerTopParticipantsPage() {
                                                     {isExpanded && group.records.map((row, rowIndex) => (
                                                         <tr
                                                             key={`${row.isin}-${rowIndex}`}
-                                                            className={`transition-colors ${closingGroups.has(group.allotmentDate)
+                                                            className={`transition-colors ${closingGroups.has(group.issuerName)
                                                                 ? 'dropdown-row-exit'
                                                                 : 'dropdown-row-enter'
                                                                 } ${rowIndex % 2 === 0
@@ -1026,7 +1033,7 @@ export default function ArrangerTopParticipantsPage() {
                                         </div>
                                         <span className="text-[10px] text-gray-400 dark:text-gray-500">
                                             Showing {startEntry}–{endEntry} of {totalCount} securities
-                                            ({paginatedGroups.length} groups on this page)
+                                            ({paginatedGroups.length} issuers on this page)
                                         </span>
                                     </div>
 

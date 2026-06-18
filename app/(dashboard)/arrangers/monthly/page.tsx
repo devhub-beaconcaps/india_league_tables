@@ -316,7 +316,7 @@ function getQuarterlyData(
 
     return quarters.map((quarter) => {
         const quarterMonths = monthlyData.filter((month) =>
-            quarter.months.includes(month.monthNumber),
+            quarter.months.includes(Number(month.monthNumber)),
         );
 
         return {
@@ -1045,6 +1045,11 @@ export default function MonthWiseSummary() {
     const quarterlyData = useMemo(() => {
         return getQuarterlyData(comparisonData);
     }, [comparisonData]);
+console.log('quarterlyData', quarterlyData);
+console.log('comparisonData',comparisonData);
+
+
+
 
 
     // ─────────────────────────────────────────────────────────

@@ -288,6 +288,9 @@ export default function IssuerListPage() {
 
             const result: PaginatedApiResponse = await fetchIssuerMonthlyDetailedData(requestBody);
 
+            console.log('result',result);
+            
+
             if (result?.success) {
                 const mapped: TableDataItem[] = result.data.map((item: any) => ({
                     issuerId: item?.issuerId || '-',

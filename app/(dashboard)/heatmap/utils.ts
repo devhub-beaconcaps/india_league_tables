@@ -32,62 +32,59 @@ export function formatDate(year: number, month: number, day: number, time: strin
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, "0");
     const dd = String(date.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd} ${time}`;
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+/**
+ * Helper to ensure the calculated date does not exceed the current moment.
+ */
+function capDateToNow(dateString: string): string {
+    const calcDate = new Date(dateString);
+    const now = new Date();
+    return calcDate > now ? now.toISOString().replace("T", " ").substring(0, 19) : dateString;
 }
 
 export function getDateRangeByFrequency(frequency: FrequencyValue, period: SelectedPeriod): DateRange | null {
     const { startYear, endYear } = getCurrentFinancialYear();
 
+    let startDate: string = "";
+    let endDate: string = "";
+
     if (frequency === "Yearly") {
-        return {
-            startDate: formatDate(startYear, 3, 1, "00:00:00"),
-            endDate: formatDate(endYear, 2, 31, "23:59:59"),
-        };
-    }
-
-    if (frequency === "Half-Yearly") {
+        startDate = formatDate(startYear, 3, 1, "00:00:00");
+        endDate = formatDate(endYear, 2, 31, "23:59:59");
+    } else if (frequency === "Half-Yearly") {
         if (period === "H1") {
-            return {
-                startDate: formatDate(startYear, 3, 1, "00:00:00"),
-                endDate: formatDate(startYear, 8, 30, "23:59:59"),
-            };
+            startDate = formatDate(startYear, 3, 1, "00:00:00");
+            endDate = formatDate(startYear, 8, 30, "23:59:59");
         } else {
-            return {
-                startDate: formatDate(startYear, 9, 1, "00:00:00"),
-                endDate: formatDate(endYear, 2, 31, "23:59:59"),
-            };
+            startDate = formatDate(startYear, 9, 1, "00:00:00");
+            endDate = formatDate(endYear, 2, 31, "23:59:59");
         }
-    }
-
-    if (frequency === "Quarterly") {
+    } else if (frequency === "Quarterly") {
         const quarters: Record<string, [number, number]> = {
             Q1: [3, 5],
             Q2: [6, 8],
             Q3: [9, 11],
             Q4: [0, 2],
         };
-
-        const key = period as string;
-        const [startMonth, endMonth] = quarters[key];
+        const [startMonth, endMonth] = quarters[period as string];
         const year = period === "Q4" ? endYear : startYear;
-
-        return {
-            startDate: formatDate(year, startMonth, 1, "00:00:00"),
-            endDate: formatDate(year, endMonth + 1, 0, "23:59:59"),
-        };
-    }
-
-    if (frequency === "Monthly" && period !== null) {
+        startDate = formatDate(year, startMonth, 1, "00:00:00");
+        endDate = formatDate(year, endMonth + 1, 0, "23:59:59");
+    } else if (frequency === "Monthly" && period !== null) {
         const monthIndex = Number(period);
         const year = monthIndex <= 2 ? endYear : startYear;
-
-        return {
-            startDate: formatDate(year, monthIndex, 1, "00:00:00"),
-            endDate: formatDate(year, monthIndex + 1, 0, "23:59:59"),
-        };
+        startDate = formatDate(year, monthIndex, 1, "00:00:00");
+        endDate = formatDate(year, monthIndex + 1, 0, "23:59:59");
+    } else {
+        return null;
     }
 
-    return null;
+    return {
+        startDate,
+        endDate: capDateToNow(endDate),
+    };
 }
 
 export const formatData = (data: RawEntityItem[]): FormattedEntityItem[] => {

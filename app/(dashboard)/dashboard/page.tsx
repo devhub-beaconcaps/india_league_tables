@@ -303,6 +303,9 @@ export default function Dashboard() {
     }));
   }, [SpecificAgencyData]);
 
+  // console.log('sanitizedAgencyData', sanitizedAgencyData);
+
+
   const sanitizedSectorsData = useMemo((): SectorData[] => {
     if (!SpecificSectorsData) return [];
     return SpecificSectorsData.map(item => ({
@@ -946,7 +949,13 @@ export default function Dashboard() {
                             <Cell key={`cell-${i}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                        <Tooltip
+                          contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                          formatter={(value, name, props) => [
+                            value,              // The value (rating_no)
+                            props.payload.label // The custom label you want to show
+                          ]}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1">

@@ -70,7 +70,7 @@ import {
     formatMarketShareData,
     getFinancialYears,
     getDateRange,
-    getMonthDates,
+    getCurrYearMonthDates,
     formatRatingsData,
 } from './utils';
 
@@ -484,6 +484,8 @@ export default function IssuerSummary() {
 
             console.log('table: ', table);
             console.log('sectors', sectors);
+            console.log('currentRedemptions',currentRedemptions);
+            console.log('nextRedemptions',nextRedemptions);
 
             setIssueTableData(formatData(table?.data || []));
             setTotalsData(table?.totals);
@@ -557,8 +559,10 @@ export default function IssuerSummary() {
         const item = data?.payload;
         if (!item) return;
         console.log('Bar data: ', item);
-        const { startDate, endDate } = getMonthDates(item.month, item.year);
+        const { startDate, endDate } = getCurrYearMonthDates(String(item.month), Number(item.year));
         setRedemptionMonthDateRange({ startDate, endDate });
+        console.log('Redemption date range: ', { startDate, endDate });
+        
         router.push('/redemption');
     };
 

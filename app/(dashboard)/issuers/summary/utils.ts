@@ -31,7 +31,7 @@ function capAtCurrentDate(dateStr: string): string {
         const hh = String(now.getHours()).padStart(2, '0');
         const min = String(now.getMinutes()).padStart(2, '0');
         const ss = String(now.getSeconds()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+        return `${yyyy}-${mm}-${dd}`;
     }
     
     return dateStr;
@@ -144,7 +144,7 @@ export const formatDate = (year: number, month: number, day: number, time = '00:
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const dd = String(date.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd} ${time}`;
+    return `${yyyy}-${mm}-${dd}`;
 };
 
 export const getFinancialYearRange = (fy: string): DateRange => {
@@ -266,6 +266,38 @@ export function getMonthDates(month: string, year: number): DateRange {
         `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
     return { startDate: format(start), endDate: format(end) };
+}
+
+export function getCurrYearMonthDates(month: string, year: number): DateRange {
+    // Parse the month string (e.g., "January") to get its zero-based index (0-11)
+    const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
+    const today = new Date();
+
+    // Default start date is the 1st day of the requested month
+    let start = new Date(year, monthIndex, 1);
+
+    // If the requested month and year match the current month and year, update start to today
+    if (today.getFullYear() === year && today.getMonth() === monthIndex) {
+        start = today;
+    }
+
+    // End date is the last day of the requested month 
+    // (Using 0 for the day gets the last day of the previous month, so we add 1 to monthIndex)
+    const end = new Date(year, monthIndex + 1, 0);
+
+    // Helper to format Date objects as "YYYY-MM-DD"
+    const format = (d: Date): string => {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        
+        return `${yyyy}-${mm}-${dd}`;
+    };
+
+    return { 
+        startDate: format(start), 
+        endDate: format(end) 
+    };
 }
 
 export function formatRatingsData(data: RawRatingItem[], creditRatingAgency: string | number): FormattedRatingItem[] {
