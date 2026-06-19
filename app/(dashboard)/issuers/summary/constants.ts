@@ -37,6 +37,7 @@ export const monthOptions: DropdownOption[] = [
 export const valueConventionOptions: DropdownOption[] = [
     { label: 'Crores', value: 'Crores' },
     { label: 'Lakhs', value: 'Lakhs' },
+    { value: 'Billions', label: 'Billions' }
 ];
 
 export const creditAgencyDropdownOptions: DropdownOption[] = creditRatingAgencyOptions.map(item => ({

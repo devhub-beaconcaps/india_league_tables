@@ -30,7 +30,7 @@ interface FinanceTableProps {
   totalsData: TotalsData | null | undefined;
   data: TableRowData[];
   selectedFY: string;
-  valueConvention: "Lakhs" | "Crores" | string;
+  valueConvention: "Lakhs" | "Crores" | "Billions" | string;
   type: string;
 }
 
@@ -79,13 +79,43 @@ function getFinancialYearRanges(rangeStr: string): FinancialYearRanges {
   };
 }
 
+// function formatIssueSize(value: string | number | undefined, convention: string): string {
+//   const numValue: number = parseFloat(String(value || 0));
+//   const formatted = convention === "Lakhs"
+//     ? Number((numValue * 100).toFixed(2)).toLocaleString()
+//     : convention === 'Billions'
+//     ? Number((numValue.toFixed(2)) / 100).toLocaleString()
+//     : Number(numValue.toFixed(2)).toLocaleString();
+//   return `₹${formatted}`;
+// }
+
 function formatIssueSize(value: string | number | undefined, convention: string): string {
-  const numValue: number = parseFloat(String(value || 0));
-  const formatted = convention === "Lakhs"
-    ? Number((numValue * 100).toFixed(2)).toLocaleString()
-    : Number(numValue.toFixed(2)).toLocaleString();
+  // Ensure we have a valid number, default to 0
+  const numValue: number = parseFloat(String(value)) || 0;
+  
+  let scaledValue: number;
+
+  switch (convention) {
+    case "Lakhs":
+      scaledValue = numValue * 100;
+      break;
+    case "Billions":
+      scaledValue = numValue / 100;
+      break;
+    default:
+      scaledValue = numValue;
+  }
+
+  // Use Intl.NumberFormat for cleaner localization and fixed decimals
+  const formatted = new Intl.NumberFormat('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(scaledValue);
+
   return `₹${formatted}`;
 }
+
+
 
 function calculateTotalDeals(data: TableRowData[], key: "deals" | "prevDeals"): number {
   return data.reduce((acc: number, row: TableRowData) => {

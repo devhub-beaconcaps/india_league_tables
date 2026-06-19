@@ -5,7 +5,7 @@ export type HalfYearlyPeriod = 'H1' | 'H2';
 export type QuarterlyPeriod = 'Q1' | 'Q2' | 'Q3' | 'Q4';
 export type SelectedPeriod = HalfYearlyPeriod | QuarterlyPeriod | number | null;
 export type IssueType = 'size' | 'count';
-export type ValueConvention = 'Crores' | 'Lakhs';
+export type ValueConvention = 'Crores' | 'Billions' | 'Lakhs';
 
 export interface DateRange {
     startDate: string;
