@@ -63,7 +63,7 @@ interface FilterOptions {
     creditRatingAgency: string[];
     modeOfIssue: string[];
     seniority: string[];
-    taxFree: string[];
+    // taxFree: string[];
     listingStatus: string[];
     securedFlag: string[];
     creditRating: string[];
@@ -80,7 +80,7 @@ interface ApiFilters {
     creditRatingAgency: string;
     modeOfIssue: string;
     seniority: string;
-    taxFree: string;
+    // taxFree: string;
     listingStatus: string;
     securedFlag: string;
     rating: string;
@@ -141,7 +141,7 @@ const DEFAULT_FILTERS: ApiFilters = {
     creditRatingAgency: '',
     modeOfIssue: '',
     seniority: '',
-    taxFree: '',
+    // taxFree: '',
     listingStatus: '',
     securedFlag: '',
     rating: '',
@@ -1049,7 +1049,7 @@ export default function IssuerMonthWiseSummary() {
             creditRatingAgency: [],
             modeOfIssue: [],
             seniority: [],
-            taxFree: [],
+            // taxFree: [],
             listingStatus: [],
             securedFlag: [],
             creditRating: [],
@@ -1273,7 +1273,7 @@ export default function IssuerMonthWiseSummary() {
             creditRatingAgency: 'Credit Rating Agency',
             modeOfIssue: 'Mode Of Issue',
             seniority: 'Seniority',
-            taxFree: 'Tax Free',
+            // taxFree: 'Tax Free',
             listingStatus: 'Listing Status',
             securedFlag: 'Secured Flag',
             rating: 'Rating',
@@ -1673,24 +1673,6 @@ export default function IssuerMonthWiseSummary() {
                                     />
 
                                     <FilterSelect
-                                        label="Tax Free"
-                                        value={
-                                            primaryFilters.taxFree
-                                        }
-                                        options={
-                                            filterOptions.taxFree
-                                        }
-                                        onChange={(value) =>
-                                            setPrimaryFilters(
-                                                (prev) => ({
-                                                    ...prev,
-                                                    taxFree: value,
-                                                }),
-                                            )
-                                        }
-                                    />
-
-                                    <FilterSelect
                                         label="Listing Status"
                                         value={
                                             primaryFilters.listingStatus
@@ -1940,27 +1922,6 @@ export default function IssuerMonthWiseSummary() {
                                                     ) => ({
                                                         ...prev,
                                                         seniority:
-                                                            value,
-                                                    }),
-                                                )
-                                            }
-                                        />
-
-                                        <FilterSelect
-                                            label="Tax Free"
-                                            value={
-                                                compareFilters.taxFree
-                                            }
-                                            options={
-                                                filterOptions.taxFree
-                                            }
-                                            onChange={(value) =>
-                                                setCompareFilters(
-                                                    (
-                                                        prev,
-                                                    ) => ({
-                                                        ...prev,
-                                                        taxFree:
                                                             value,
                                                     }),
                                                 )
