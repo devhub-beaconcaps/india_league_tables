@@ -21,7 +21,7 @@ import { useRouter } from 'next/navigation';
 import CustomDropdown from '@/components/CustomDropdown';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
-import { Search, X } from 'lucide-react';
+import { Search, X, ChevronDown, SlidersHorizontal } from 'lucide-react';
 
 // Import types
 import {
@@ -312,6 +312,19 @@ const VerticalXAxisTick = ({ x, y, payload }: any) => {
     );
 };
 
+// ─── Active Filter Chip Component ─────────────────────────────────────────────
+
+function ActiveFilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+    return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-medium rounded-full border border-indigo-100 dark:border-indigo-800">
+            {label}
+            <button onClick={onRemove} className="hover:text-indigo-900 dark:hover:text-indigo-100 transition-colors">
+                <X className="w-3 h-3" />
+            </button>
+        </span>
+    );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function IssuerSummary() {
@@ -324,6 +337,9 @@ export default function IssuerSummary() {
     const router = useRouter();
 
     const [valueConvention, setValueConvention] = useState<ValueConvention>('Crores');
+
+    // ── Collapsible Filters State ──
+    const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
     // ── New Filter States ──
     const [filters, setFilters] = useState<SummaryFilterState>({
@@ -406,6 +422,7 @@ export default function IssuerSummary() {
     const handleSearch = (): void => {
         // Filters are already in state; fetchData will auto-trigger via useEffect
         // Explicit call kept for UX consistency with detailed page
+        setIsFiltersExpanded(false);
     };
 
     const handleReset = (): void => {
@@ -453,6 +470,33 @@ export default function IssuerSummary() {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     }, [issueTableData, selectedFY, issueType]);
+
+    // ── Active Filters Count ──
+    const activeFilterCount = useMemo(() => {
+        return Object.values(filters).filter(v => v !== '').length;
+    }, [filters]);
+
+    const activeFilterChips = useMemo(() => {
+        const chips: { key: keyof SummaryFilterState; label: string }[] = [];
+        const labelMap: Record<keyof SummaryFilterState, string> = {
+            issuerOwnershipType: 'Ownership',
+            issuerNatureType: 'Nature',
+            businessSector: 'Sector',
+            securityType: 'Security',
+            modeOfIssue: 'Mode',
+            creditRatingAgency: 'Agency',
+            creditRating: 'Rating',
+            seniority: 'Seniority',
+            servicedFlag: 'Secured',
+            listingStatus: 'Listing',
+        };
+        (Object.keys(filters) as Array<keyof SummaryFilterState>).forEach((key) => {
+            if (filters[key]) {
+                chips.push({ key, label: `${labelMap[key]}: ${filters[key]}` });
+            }
+        });
+        return chips;
+    }, [filters]);
 
     // ── Fetch Filter Inputs ──
     const fetchFilterInputs = useCallback(async () => {
@@ -597,19 +641,24 @@ export default function IssuerSummary() {
         <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#90969bff" borderRadius="0.5rem">
             <div className="min-h-full p-4 md:p-6 space-y-4 font-sans text-gray-800 dark:text-gray-100">
 
-                {/* ── Page Title ── */}
-                <div className="">
-                    <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Issuer Summary</h1>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 mt-1">Issuer &gt; Summary</p>
-                </div>
+
 
                 {/* ── Sticky Financial Year Filter ── */}
                 <div className="sticky top-0 z-[60] pb-2 bg-[#F0F7FF] dark:bg-[var(--color-background)]">
                     <SectionCard>
                         <div className="flex items-center justify-between flex-wrap gap-3">
-                            <h2 className="text-md font-semibold text-gray-800 dark:text-gray-100">
-                                Financial Year: {selectedFY}
-                            </h2>
+
+                            {/* ── Page Title ── */}
+                            <div className="">
+                                <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Issuer Summary</h1>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 mt-1">Issuer &gt; Summary</p>
+                            </div>
+                            <div>
+                                <h2 className="text-md font-semibold text-gray-800 dark:text-gray-100">
+                                    Financial Year
+                                </h2>
+                                <p className="text-xs text-center text-gray-500 dark:text-gray-400 mb-6 mt-1">{selectedFY}</p>
+                            </div>
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
                                 <div className="w-full sm:w-auto">
                                     <CustomDropdown
@@ -701,128 +750,213 @@ export default function IssuerSummary() {
                 {/* ── Content Wrapper ── */}
                 <div className="">
 
-                    {/* ── Detailed Filters Section ── */}
-                    <SectionCard className="p-5">
-                        {isFiltersLoading ? (
-                            <FilterSkeleton />
-                        ) : (
-                            <>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
-                                    <FilterGroup label="Issuer Ownership Type">
-                                        <CustomDropdown
-                                            options={toOptions(filterOptions.ownershipType)}
-                                            value={filters.issuerOwnershipType}
-                                            onChange={(val) => updateFilter('issuerOwnershipType', val)}
-                                            placeholder="Select Ownership"
-                                        />
-                                    </FilterGroup>
-
-                                    <FilterGroup label="Issuer Nature Type">
-                                        <CustomDropdown
-                                            options={toOptions(filterOptions.nature)}
-                                            value={filters.issuerNatureType}
-                                            onChange={(val) => updateFilter('issuerNatureType', val)}
-                                            placeholder="Select Nature"
-                                        />
-                                    </FilterGroup>
-
-                                    <FilterGroup label="Business Sector">
-                                        <CustomDropdown
-                                            options={toOptions(filterOptions.sector)}
-                                            value={filters.businessSector}
-                                            onChange={(val) => updateFilter('businessSector', val)}
-                                            placeholder="Select Sector"
-                                        />
-                                    </FilterGroup>
-
-                                    <FilterGroup label="Security Type">
-                                        <CustomDropdown
-                                            options={toOptions(filterOptions.securityType)}
-                                            value={filters.securityType}
-                                            onChange={(val) => updateFilter('securityType', val)}
-                                            placeholder="Select Security"
-                                        />
-                                    </FilterGroup>
-
-                                    <FilterGroup label="Mode of Issue">
-                                        <CustomDropdown
-                                            options={toOptions(filterOptions.modeOfIssue)}
-                                            value={filters.modeOfIssue}
-                                            onChange={(val) => updateFilter('modeOfIssue', val)}
-                                            placeholder="Select Mode"
-                                        />
-                                    </FilterGroup>
-
-                                    <FilterGroup label="Credit Rating Agency">
-                                        <CustomDropdown
-                                            options={toOptions(filterOptions.creditRatingAgency)}
-                                            value={filters.creditRatingAgency}
-                                            onChange={(val) => updateFilter('creditRatingAgency', val)}
-                                            placeholder="Select Agency"
-                                        />
-                                    </FilterGroup>
-
-                                    <FilterGroup label="Credit Rating">
-                                        <CustomDropdown
-                                            options={toOptions(filterOptions.creditRating)}
-                                            value={filters.creditRating}
-                                            onChange={(val) => updateFilter('creditRating', val)}
-                                            placeholder="Select Rating"
-                                        />
-                                    </FilterGroup>
-
-                                    <FilterGroup label="Seniority">
-                                        <CustomDropdown
-                                            options={toOptions(filterOptions.seniority)}
-                                            value={filters.seniority}
-                                            onChange={(val) => updateFilter('seniority', val)}
-                                            placeholder="Select Seniority"
-                                        />
-                                    </FilterGroup>
-
-                                    <FilterGroup label="Serviced Flag">
-                                        <CustomDropdown
-                                            options={toOptions(filterOptions.securedFlag)}
-                                            value={filters.servicedFlag}
-                                            onChange={(val) => updateFilter('servicedFlag', val)}
-                                            placeholder="Select Flag"
-                                        />
-                                    </FilterGroup>
-
-                                    <FilterGroup label="Listing Status">
-                                        <CustomDropdown
-                                            options={toOptions(filterOptions.listingStatus)}
-                                            value={filters.listingStatus}
-                                            onChange={(val) => updateFilter('listingStatus', val)}
-                                            placeholder="Select Status"
-                                        />
-                                    </FilterGroup>
+                    {/* ── Collapsible Detailed Filters Section ── */}
+                    <SectionCard className="p-0 overflow-hidden my-3">
+                        {/* Collapsed Header Bar */}
+                        <button
+                            onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+                            className="w-full flex items-center justify-between px-5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30">
+                                    <SlidersHorizontal className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                                 </div>
-
-                                {/* Action Buttons */}
-                                <div className="flex flex-wrap items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                    <button
-                                        onClick={handleSearch}
-                                        className="flex items-center gap-2 bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-6 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md"
-                                    >
-                                        <Search className="w-3.5 h-3.5" />
-                                        Search
-                                    </button>
-
-                                    <button
-                                        onClick={handleReset}
-                                        className="flex items-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
-                                    >
-                                        <X className="w-3.5 h-3.5" />
-                                        Clear
-                                    </button>
+                                <div className="flex flex-col items-start">
+                                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                        Detailed Filters
+                                    </span>
+                                    {activeFilterCount > 0 && (
+                                        <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                                            {activeFilterCount} active
+                                        </span>
+                                    )}
                                 </div>
-                            </>
-                        )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                                {/* Active Filter Chips (visible when collapsed) */}
+                                {!isFiltersExpanded && activeFilterChips.length > 0 && (
+                                    <div className="hidden md:flex items-center gap-1.5 flex-wrap max-w-md">
+                                        {activeFilterChips.slice(0, 3).map((chip) => (
+                                            <ActiveFilterChip
+                                                key={chip.key}
+                                                label={chip.label}
+                                                onRemove={() => updateFilter(chip.key, '')}
+                                            />
+                                        ))}
+                                        {activeFilterChips.length > 3 && (
+                                            <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                                +{activeFilterChips.length - 3} more
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                                <ChevronDown
+                                    className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isFiltersExpanded ? 'rotate-180' : ''}`}
+                                />
+                            </div>
+                        </button>
+
+                        {/* Expanded Filter Content */}
+                        <div
+                            className={`transition-all duration-300 ease-in-out overflow-hidden ${isFiltersExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+                                }`}
+                        >
+                            <div className="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800">
+                                {isFiltersLoading ? (
+                                    <FilterSkeleton />
+                                ) : (
+                                    <>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
+                                            <FilterGroup label="Issuer Ownership Type">
+                                                <CustomDropdown
+                                                    options={toOptions(filterOptions.ownershipType)}
+                                                    value={filters.issuerOwnershipType}
+                                                    onChange={(val) => updateFilter('issuerOwnershipType', val)}
+                                                    placeholder="Select Ownership"
+                                                />
+                                            </FilterGroup>
+
+                                            <FilterGroup label="Issuer Nature Type">
+                                                <CustomDropdown
+                                                    options={toOptions(filterOptions.nature)}
+                                                    value={filters.issuerNatureType}
+                                                    onChange={(val) => updateFilter('issuerNatureType', val)}
+                                                    placeholder="Select Nature"
+                                                />
+                                            </FilterGroup>
+
+                                            <FilterGroup label="Business Sector">
+                                                <CustomDropdown
+                                                    options={toOptions(filterOptions.sector)}
+                                                    value={filters.businessSector}
+                                                    onChange={(val) => updateFilter('businessSector', val)}
+                                                    placeholder="Select Sector"
+                                                />
+                                            </FilterGroup>
+
+                                            <FilterGroup label="Security Type">
+                                                <CustomDropdown
+                                                    options={toOptions(filterOptions.securityType)}
+                                                    value={filters.securityType}
+                                                    onChange={(val) => updateFilter('securityType', val)}
+                                                    placeholder="Select Security"
+                                                />
+                                            </FilterGroup>
+
+                                            <FilterGroup label="Mode of Issue">
+                                                <CustomDropdown
+                                                    options={toOptions(filterOptions.modeOfIssue)}
+                                                    value={filters.modeOfIssue}
+                                                    onChange={(val) => updateFilter('modeOfIssue', val)}
+                                                    placeholder="Select Mode"
+                                                />
+                                            </FilterGroup>
+
+                                            <FilterGroup label="Credit Rating Agency">
+                                                <CustomDropdown
+                                                    options={toOptions(filterOptions.creditRatingAgency)}
+                                                    value={filters.creditRatingAgency}
+                                                    onChange={(val) => updateFilter('creditRatingAgency', val)}
+                                                    placeholder="Select Agency"
+                                                />
+                                            </FilterGroup>
+
+                                            <FilterGroup label="Credit Rating">
+                                                <CustomDropdown
+                                                    options={toOptions(filterOptions.creditRating)}
+                                                    value={filters.creditRating}
+                                                    onChange={(val) => updateFilter('creditRating', val)}
+                                                    placeholder="Select Rating"
+                                                />
+                                            </FilterGroup>
+
+                                            <FilterGroup label="Seniority">
+                                                <CustomDropdown
+                                                    options={toOptions(filterOptions.seniority)}
+                                                    value={filters.seniority}
+                                                    onChange={(val) => updateFilter('seniority', val)}
+                                                    placeholder="Select Seniority"
+                                                />
+                                            </FilterGroup>
+
+                                            <FilterGroup label="Serviced Flag">
+                                                <CustomDropdown
+                                                    options={toOptions(filterOptions.securedFlag)}
+                                                    value={filters.servicedFlag}
+                                                    onChange={(val) => updateFilter('servicedFlag', val)}
+                                                    placeholder="Select Flag"
+                                                />
+                                            </FilterGroup>
+
+                                            <FilterGroup label="Listing Status">
+                                                <CustomDropdown
+                                                    options={toOptions(filterOptions.listingStatus)}
+                                                    value={filters.listingStatus}
+                                                    onChange={(val) => updateFilter('listingStatus', val)}
+                                                    placeholder="Select Status"
+                                                />
+                                            </FilterGroup>
+                                        </div>
+
+                                        {/* Active Filter Chips in expanded view */}
+                                        {activeFilterChips.length > 0 && (
+                                            <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                                <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                    Active:
+                                                </span>
+                                                {activeFilterChips.map((chip) => (
+                                                    <ActiveFilterChip
+                                                        key={chip.key}
+                                                        label={chip.label}
+                                                        onRemove={() => updateFilter(chip.key, '')}
+                                                    />
+                                                ))}
+                                                <button
+                                                    onClick={() => setFilters({
+                                                        issuerOwnershipType: '',
+                                                        issuerNatureType: '',
+                                                        businessSector: '',
+                                                        securityType: '',
+                                                        modeOfIssue: '',
+                                                        creditRatingAgency: '',
+                                                        creditRating: '',
+                                                        seniority: '',
+                                                        servicedFlag: '',
+                                                        listingStatus: '',
+                                                    })}
+                                                    className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
+                                                >
+                                                    Clear all
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {/* Action Buttons */}
+                                        <div className="flex flex-wrap items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                            <button
+                                                onClick={handleSearch}
+                                                className="flex items-center gap-2 bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-6 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md"
+                                            >
+                                                <Search className="w-3.5 h-3.5" />
+                                                Search
+                                            </button>
+
+                                            <button
+                                                onClick={handleReset}
+                                                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                                Clear
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
                     </SectionCard>
 
                     {/* ── Top 10 Issuers Table ── */}
-                    <SectionCard>
+                    <SectionCard className='my-3'>
                         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                                 Top 10 Issuers by {issueType === 'size' ? 'Issue size' : 'No of Issues'} (Rupees in {valueConvention})
@@ -891,7 +1025,7 @@ export default function IssuerSummary() {
 
                     {/* ── Sector + Market Share Row ── */}
                     <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
-                        <SectionCard>
+                        <SectionCard className=' my-3'>
                             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
                                 Top 10 Business Sectors by Issue Size
                             </h2>
@@ -960,7 +1094,7 @@ export default function IssuerSummary() {
                             )}
                         </SectionCard>
 
-                        <SectionCard>
+                        <SectionCard className=' my-3'>
                             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
                                 Market Share Among Top 10 Issuers<br />
                                 <span className="font-normal text-gray-500 dark:text-gray-400">(By Size)</span>
@@ -1011,14 +1145,14 @@ export default function IssuerSummary() {
                     </div>
 
                     {/* ── Corporate Bond Trend ── */}
-                    <SectionCard>
+                    <SectionCard className='my-3'>
                         <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
                             Corporate Bond Outstanding Trends Analysis : {selectedFY}
                         </h2>
                         {isOutstandingLoading ? (
                             <ChartSkeleton height={300} />
                         ) : outstandingData.length > 0 ? (
-                            <DualAxisChart data={outstandingData}  />
+                            <DualAxisChart data={outstandingData} />
                         ) : (
                             <NoDataState message="No outstanding trend data available" />
                         )}
@@ -1030,7 +1164,7 @@ export default function IssuerSummary() {
                             { title: 'Current Financial Year', data: debtScheduleCurrentData, loading: isDebtLoading },
                             { title: 'Next Financial Year', data: debtScheduleNextData, loading: isDebtLoading },
                         ].map(({ title, data, loading }) => (
-                            <SectionCard key={title}>
+                            <SectionCard className=' my-3' key={title}>
                                 <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">
                                     Debt Redemption Schedule - {title}
                                 </h2>
@@ -1077,7 +1211,7 @@ export default function IssuerSummary() {
                     </div>
 
                     {/* ── Credit Ratings ── */}
-                    <SectionCard>
+                    <SectionCard className='my-3'>
                         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Credit Ratings</h2>
                             {filters.creditRatingAgency && (
