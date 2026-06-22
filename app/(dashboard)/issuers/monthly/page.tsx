@@ -114,7 +114,7 @@ function generateFinancialYearOptions(count: number = 3) {
         const fyEndDate = `${endYear}-03-31`;
 
         options.push({
-            label: `${startYear} (${fyRange})`,
+            label: `FY ${fyRange}`,
             startDate: `${startYear}-04-01`,
             endDate: fyEndDate > today ? today : fyEndDate,
         });
