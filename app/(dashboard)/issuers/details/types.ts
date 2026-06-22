@@ -11,7 +11,6 @@ export interface DateRange {
 }
 
 export interface FilterState {
-    issuerName: string | number;
     issuerOwnershipType: string | number;
     issuerNatureType: string | number;
     businessSector: string | number;
@@ -24,8 +23,6 @@ export interface FilterState {
     seniority: string | number;
     servicedFlag: string | number;
     listingStatus: string | number;
-    taxFree: string | number;
-    dealSizeInCr: string | number;
 }
 
 export interface TableDataItem {

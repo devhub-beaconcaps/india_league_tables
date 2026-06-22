@@ -1396,7 +1396,7 @@ export default function IssuerMonthWiseSummary() {
 
                 {/* FILTERS */}
 
-                <SectionCard className="p-0 overflow-hidden">
+                <SectionCard className="p-0 sticky top-0 z-[60] overflow-hidden">
                     {/* ── Collapsible Header ── */}
                     <button
                         onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
