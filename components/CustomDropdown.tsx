@@ -7,13 +7,18 @@ interface Option {
   label: string;
 }
 
+interface OptionGroup {
+  label: string;
+  options: Option[];
+}
+
 interface CustomDropdownProps {
   label?: string;
-  options: Option[];
+  options: Option[] | OptionGroup[];
   value: string | number;
   onChange: (value: string | number) => void;
   width?: string;
-  placeholder?: string; 
+  placeholder?: string;
 }
 
 export default function CustomDropdown({
@@ -25,9 +30,19 @@ export default function CustomDropdown({
   placeholder = "Select",
 }: CustomDropdownProps) {
   const [open, setOpen] = useState<boolean>(false);
+  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const selectedOption = options.find((opt) => opt.value === value);
+  const isGrouped =
+    options.length > 0 &&
+    "options" in (options[0] as any);
+
+  const flatOptions: Option[] =
+    options.length > 0 && "options" in options[0]
+      ? (options as OptionGroup[]).flatMap(group => group.options)
+      : (options as Option[]);
+
+  const selectedOption = flatOptions.find(opt => opt.value === value);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -48,7 +63,7 @@ export default function CustomDropdown({
 
       <div
         onClick={() => setOpen(!open)}
-        className={`text-[9px] border border-gray-200 dark:border-gray-600 rounded-[12px] w-full sm:${width} px-3 py-1.5 bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200 cursor-pointer flex justify-between items-center`}
+        className={`text-xs border border-gray-200 dark:border-gray-600 rounded-[12px] w-full sm:${width} px-3 py-1.5 bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200 cursor-pointer flex justify-between items-center`}
       >
         {selectedOption?.label ?? placeholder ?? "Select"}
 
@@ -58,19 +73,119 @@ export default function CustomDropdown({
       </div>
 
       {open && (
-        <ul className={`absolute z-50 mt-1 w-full sm:${width} bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-600 rounded-[12px] shadow-lg max-h-40 overflow-y-auto text-[9px]`}>
-          {options.map((opt) => (
-            <li
-              key={opt.value}
-              onClick={() => {
-                onChange(opt.value);
-                setOpen(false);
-              }}
-              className="px-3 py-1.5 cursor-pointer text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-[8px]"
-            >
-              {opt.label}
-            </li>
-          ))}
+        <ul
+          className="absolute z-50 mt-1 w-[140px] bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg overflow-visible text-[11px]"
+        onMouseLeave={() => setHoveredGroup(null)}
+        >
+          {options.length > 0 && "options" in options[0] ? (
+            (options as OptionGroup[]).map(group => (
+
+  <div
+    key={group.label}
+    className="relative"
+    onMouseEnter={() => setHoveredGroup(group.label)}
+  >
+
+    {/* Parent Item */}
+
+    <div
+      className="
+        flex
+        justify-between
+        items-center
+        px-4
+        py-3
+        cursor-pointer
+        hover:bg-gray-100
+        dark:hover:bg-gray-700
+      "
+    >
+      <span>{group.label}</span>
+
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+      >
+        <path
+          d="M9 6L15 12L9 18"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+
+    </div>
+
+    {/* Fly-out submenu */}
+
+    {hoveredGroup === group.label && (
+
+      <div
+        className="
+          absolute
+          top-0
+          left-full
+          w-36
+          bg-white
+          dark:bg-[#1a1a2e]
+          border
+          border-gray-200
+          dark:border-gray-700
+          rounded-xl
+          shadow-xl
+          overflow-hidden
+          z-[99999]
+        "
+      >
+
+        {group.options.map(option => (
+
+          <div
+            key={option.value}
+            onClick={() => {
+              onChange(option.value);
+              setOpen(false);
+              setHoveredGroup(null);
+            }}
+            className="
+              px-4
+              py-3
+              whitespace-nowrap
+              cursor-pointer
+              hover:bg-gray-100
+              dark:hover:bg-gray-700
+            "
+          >
+            {option.label}
+          </div>
+
+        ))}
+
+      </div>
+
+    )}
+
+  </div>
+
+))
+          ) : (
+            (options as Option[]).map(opt => (
+              <li
+                key={opt.value}
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                  setHoveredGroup(null);
+                }}
+                className="px-3 py-1.5 cursor-pointer text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                {opt.label}
+              </li>
+            ))
+          )}
         </ul>
       )}
     </div>

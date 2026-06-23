@@ -9,6 +9,7 @@ import CustomDropdown from '@/components/CustomDropdown';
 import { Search, Download, X, ChevronDown, ChevronUp, Calendar, SlidersHorizontal } from 'lucide-react';
 import { FilterOption, DateRange, FilterState, TableDataItem } from './types';
 import { fetchIssueDetailsData, fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
+import { log } from 'node:console';
 
 // ─── API Configuration ─────────────────────────────────────────────────────
 
@@ -50,6 +51,55 @@ function getCurrentFinancialYearDates() {
         startDate: formatLocalDate(startDate),
         endDate: formatLocalDate(finalEndDate)
     };
+}
+
+function formatLocalDate(date: Date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function getYearOptions() {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+
+    const formatLocalDate = (date: Date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
+    const today = formatLocalDate(now);
+
+    const financialYears = [];
+    const calendarYears = [];
+
+    for (let i = 0; i < 5; i++) {
+        const year = currentYear - i;
+
+        const fyEnd = `${year + 1}-03-31`;
+        const cyEnd = `${year}-12-31`;
+
+        financialYears.push({
+            value: `FY-${year}`,
+            label: `FY ${year}-${String(year + 1).slice(-2)}`,
+            startDate: `${year}-04-01`,
+            endDate: fyEnd > today ? today : fyEnd,
+            group: 'Financial Year',
+        });
+
+        calendarYears.push({
+            value: `CY-${year}`,
+            label: `CY ${year}`,
+            startDate: `${year}-01-01`,
+            endDate: cyEnd > today ? today : cyEnd,
+            group: 'Calendar Year',
+        });
+    }
+
+    return [...financialYears, ...calendarYears];
 }
 
 const DEFAULT_DATES = getCurrentFinancialYearDates();
@@ -294,6 +344,8 @@ export default function DetailedAnalysis() {
     // ── Collapsible Filters State ──
     const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
+    const [selectedYear, setSelectedYear] = useState('');
+
     // Filter states
     const [filters, setFilters] = useState<FilterState>({
         issuerOwnershipType: '',
@@ -340,6 +392,8 @@ export default function DetailedAnalysis() {
     const [visibleColumns, setVisibleColumns] = useState<string[]>(defaultColumns);
     const [isColumnMenuOpen, setIsColumnMenuOpen] = useState<boolean>(false);
 
+    const yearOptions = useMemo(() => getYearOptions(), []);
+
     const filteredColumns = useMemo<Column[]>(() => {
         return allColumns.filter(col => visibleColumns.includes(col.accessor));
     }, [visibleColumns]);
@@ -367,6 +421,17 @@ export default function DetailedAnalysis() {
     const updateFilter = useCallback((key: keyof FilterState, value: string | number) => {
         setFilters(prev => ({ ...prev, [key]: value }));
     }, []);
+
+    const handleYearChange = (value: string) => {
+        setSelectedYear(value);
+
+        const option = yearOptions.find(y => y.value === value);
+
+        if (!option) return;
+
+        updateFilter('fromAllotmentDate', option.startDate);
+        updateFilter('toAllotmentDate', option.endDate);
+    };
 
     // ─── API Functions ─────────────────────────────────────────────────────
 
@@ -462,11 +527,30 @@ export default function DetailedAnalysis() {
 
     // ── Active Filters Count ──
     const activeFilterCount = useMemo(() => {
-        return Object.values(filters).filter(v => v !== '' && v !== DEFAULT_DATES.startDate && v !== DEFAULT_DATES.endDate).length;
-    }, [filters]);
+        let count = 0;
+
+        Object.entries(filters).forEach(([key, value]) => {
+            if (!value) return;
+
+            if (
+                !selectedYear &&
+                (
+                    (key === 'fromAllotmentDate' && value === DEFAULT_DATES.startDate) ||
+                    (key === 'toAllotmentDate' && value === DEFAULT_DATES.endDate)
+                )
+            ) {
+                return;
+            }
+
+            count++;
+        });
+
+        return count;
+    }, [filters, selectedYear]);
 
     const activeFilterChips = useMemo(() => {
         const chips: { key: keyof FilterState; label: string }[] = [];
+
         const labelMap: Record<keyof FilterState, string> = {
             issuerOwnershipType: 'Ownership',
             issuerNatureType: 'Nature',
@@ -481,15 +565,36 @@ export default function DetailedAnalysis() {
             servicedFlag: 'Secured',
             listingStatus: 'Listing',
         };
+
         (Object.keys(filters) as Array<keyof FilterState>).forEach((key) => {
             const value = filters[key];
-            // Skip default date values
-            if (value && value !== '' && value !== DEFAULT_DATES.startDate && value !== DEFAULT_DATES.endDate) {
-                chips.push({ key, label: `${labelMap[key]}: ${value}` });
+
+            if (!value) return;
+
+            // Hide default dates only when NO year is selected
+            if (
+                !selectedYear &&
+                (
+                    (key === 'fromAllotmentDate' && value === DEFAULT_DATES.startDate) ||
+                    (key === 'toAllotmentDate' && value === DEFAULT_DATES.endDate)
+                )
+            ) {
+                return;
             }
+
+            const displayValue =
+                key === 'fromAllotmentDate' || key === 'toAllotmentDate'
+                    ? formatDate(value as string)
+                    : value;
+
+            chips.push({
+                key,
+                label: `${labelMap[key]}: ${displayValue}`,
+            });
         });
+
         return chips;
-    }, [filters]);
+    }, [filters, selectedYear]);
 
     // Initial fetch for filter inputs
     useEffect(() => {
@@ -504,7 +609,7 @@ export default function DetailedAnalysis() {
     // Handle search
     const handleSearch = () => {
         setCurrentPage(1);
-        setIsFiltersExpanded(false); 
+        setIsFiltersExpanded(false);
         fetchData();
     };
 
@@ -525,6 +630,7 @@ export default function DetailedAnalysis() {
             listingStatus: '',
         });
         setSearchQuery('');
+        setSelectedYear('');
         setCurrentPage(1);
         setVisibleColumns(defaultColumns);
         setIsFiltersExpanded(false); // ← ADD THIS
@@ -650,6 +756,49 @@ export default function DetailedAnalysis() {
         }));
     };
 
+    const totalPages: number = Math.ceil(totalCount / pageSize);
+
+    const getPageNumbers = (): (number | string)[] => {
+        const pages: (number | string)[] = [];
+
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            if (currentPage <= 4) {
+                pages.push(1, 2, 3, 4, 5, "...", totalPages);
+            } else if (currentPage >= totalPages - 3) {
+                pages.push(
+                    1,
+                    "...",
+                    totalPages - 4,
+                    totalPages - 3,
+                    totalPages - 2,
+                    totalPages - 1,
+                    totalPages
+                );
+            } else {
+                pages.push(
+                    1,
+                    "...",
+                    currentPage - 1,
+                    currentPage,
+                    currentPage + 1,
+                    "...",
+                    totalPages
+                );
+            }
+        }
+
+        return pages;
+    };
+
+    const startEntry: number =
+        totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+
+    const endEntry: number = Math.min(currentPage * pageSize, totalCount);
+
     return (
         <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#90969bff" borderRadius="0.5rem">
             <div className="min-h-full p-4 md:p-6 space-y-4 font-sans text-gray-800 dark:text-gray-100">
@@ -662,7 +811,6 @@ export default function DetailedAnalysis() {
                     </p>
                 </div>
 
-                {/* ── Filters Section ── */}
                 {/* ── Filters Section ── */}
                 <SectionCard className="p-0 overflow-hidden">
                     {/* Collapsed Header Bar */}
@@ -748,6 +896,43 @@ export default function DetailedAnalysis() {
                                             />
                                         </FilterGroup>
 
+                                        <FilterGroup label="Security Type">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.securityType)}
+                                                value={filters.securityType}
+                                                onChange={(val) => updateFilter('securityType', val)}
+                                                placeholder="Select Security"
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="Years">
+                                            <CustomDropdown
+                                                options={[
+                                                    {
+                                                        label: "Financial Year",
+                                                        options: yearOptions
+                                                            .filter(x => x.group === "Financial Year")
+                                                            .map(x => ({
+                                                                value: x.value,
+                                                                label: x.label,
+                                                            }))
+                                                    },
+                                                    {
+                                                        label: "Calendar Year",
+                                                        options: yearOptions
+                                                            .filter(x => x.group === "Calendar Year")
+                                                            .map(x => ({
+                                                                value: x.value,
+                                                                label: `CY ${x.startDate.slice(0, 4)}`,
+                                                            })),
+                                                    },
+                                                ]}
+                                                value={selectedYear}
+                                                onChange={(val) => handleYearChange(val as string)}
+                                                placeholder="Select Year"
+                                            />
+                                        </FilterGroup>
+
                                         <FilterGroup label="From Allotment Date">
                                             <DateInput
                                                 value={filters.fromAllotmentDate}
@@ -759,15 +944,6 @@ export default function DetailedAnalysis() {
                                             <DateInput
                                                 value={filters.toAllotmentDate}
                                                 onChange={(val) => updateFilter('toAllotmentDate', val)}
-                                            />
-                                        </FilterGroup>
-
-                                        <FilterGroup label="Security Type">
-                                            <CustomDropdown
-                                                options={toOptions(filterOptions.securityType)}
-                                                value={filters.securityType}
-                                                onChange={(val) => updateFilter('securityType', val)}
-                                                placeholder="Select Security"
                                             />
                                         </FilterGroup>
 
@@ -824,6 +1000,8 @@ export default function DetailedAnalysis() {
                                                 placeholder="Select Status"
                                             />
                                         </FilterGroup>
+
+
                                     </div>
 
                                     {/* Active Filter Chips in expanded view */}
@@ -840,26 +1018,31 @@ export default function DetailedAnalysis() {
                                                 />
                                             ))}
                                             <button
-                                                onClick={() => setFilters({
-                                                    issuerOwnershipType: '',
-                                                    issuerNatureType: '',
-                                                    businessSector: '',
-                                                    fromAllotmentDate: DEFAULT_DATES.startDate,
-                                                    toAllotmentDate: DEFAULT_DATES.endDate,
-                                                    securityType: '',
-                                                    modeOfIssue: '',
-                                                    creditRatingAgency: '',
-                                                    creditRating: '',
-                                                    seniority: '',
-                                                    servicedFlag: '',
-                                                    listingStatus: '',
-                                                })}
+                                                onClick={() => {
+                                                    setSelectedYear('');
+
+                                                    setFilters({
+                                                        issuerOwnershipType: '',
+                                                        issuerNatureType: '',
+                                                        businessSector: '',
+                                                        fromAllotmentDate: DEFAULT_DATES.startDate,
+                                                        toAllotmentDate: DEFAULT_DATES.endDate,
+                                                        securityType: '',
+                                                        modeOfIssue: '',
+                                                        creditRatingAgency: '',
+                                                        creditRating: '',
+                                                        seniority: '',
+                                                        servicedFlag: '',
+                                                        listingStatus: '',
+                                                    });
+                                                }}
                                                 className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
                                             >
                                                 Clear all
                                             </button>
                                         </div>
                                     )}
+
 
                                     {/* Action Buttons */}
                                     <div className="flex flex-wrap items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
@@ -1011,64 +1194,104 @@ export default function DetailedAnalysis() {
 
                                 {/* Pagination */}
                                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[10px] text-gray-500 dark:text-gray-400">Show</span>
-                                        <select
-                                            value={pageSize}
-                                            onChange={(e) => {
-                                                setPageSize(Number(e.target.value));
-                                                setCurrentPage(1);
-                                            }}
-                                            className="h-7 px-2 text-[10px] bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#423CAB]"
-                                        >
-                                            <option value={10}>10</option>
-                                            <option value={25}>25</option>
-                                            <option value={50}>50</option>
-                                            <option value={100}>100</option>
-                                        </select>
-                                        <span className="text-[10px] text-gray-500 dark:text-gray-400">entries</span>
-                                    </div>
+                                    <div className="flex items-center gap-6">
 
+                                        <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                            Showing {startEntry} to {endEntry} of {totalCount} entries
+                                        </span>
+
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                Show
+                                            </span>
+
+                                            <select
+                                                value={pageSize}
+                                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                                                    setPageSize(Number(e.target.value));
+                                                    setCurrentPage(1);
+                                                }}
+                                                className="h-7 px-2 text-[10px] bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#423CAB]"
+                                            >
+                                                <option value={10}>10</option>
+                                                <option value={25}>25</option>
+                                                <option value={50}>50</option>
+                                                <option value={100}>100</option>
+                                            </select>
+
+                                            <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                entries
+                                            </span>
+                                        </div>
+
+                                    </div>
                                     <div className="flex items-center gap-1">
+
+                                        {/* First */}
+                                        <button
+                                            onClick={() => setCurrentPage(1)}
+                                            disabled={currentPage === 1}
+                                            className="px-2 py-1 rounded disabled:opacity-40"
+                                        >
+                                            &laquo;
+                                        </button>
+
+                                        {/* Previous */}
                                         <button
                                             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                             disabled={currentPage === 1}
-                                            className="px-3 py-1.5 text-[10px] font-medium rounded-md border border-gray-200 dark:border-gray-700 
-                                                text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 
-                                                disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            className="px-2 py-1 rounded disabled:opacity-40"
                                         >
-                                            Previous
+                                            &lsaquo;
                                         </button>
 
-                                        {[...Array(Math.min(5, Math.ceil(totalCount / pageSize)))].map((_, i) => {
-                                            const page = i + 1;
-                                            const isActive = page === currentPage;
+                                        {getPageNumbers().map((page, index) => {
+
+                                            if (page === "...") {
+                                                return (
+                                                    <span
+                                                        key={index}
+                                                        className="px-2 text-gray-500"
+                                                    >
+                                                        ...
+                                                    </span>
+                                                );
+                                            }
+
                                             return (
                                                 <button
                                                     key={page}
-                                                    onClick={() => setCurrentPage(page)}
-                                                    className={`
-                                                        px-3 py-1.5 text-[10px] font-medium rounded-md transition-colors
-                                                        ${isActive
-                                                            ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
-                                                            : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                                                        }
-                                                    `}
+                                                    onClick={() => setCurrentPage(page as number)}
+                                                    className={`px-3 py-1 rounded text-sm ${currentPage === page
+                                                            ? "bg-[#423CAB] text-white"
+                                                            : "border border-gray-300 dark:border-gray-700"
+                                                        }`}
                                                 >
                                                     {page}
                                                 </button>
                                             );
                                         })}
 
+                                        {/* Next */}
                                         <button
-                                            onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalCount / pageSize), prev + 1))}
-                                            disabled={currentPage >= Math.ceil(totalCount / pageSize)}
-                                            className="px-3 py-1.5 text-[10px] font-medium rounded-md border border-gray-200 dark:border-gray-700 
-                                                text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 
-                                                disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            onClick={() =>
+                                                setCurrentPage(prev => Math.min(totalPages, prev + 1))
+                                            }
+                                            disabled={currentPage === totalPages}
+                                            className="px-2 py-1 rounded disabled:opacity-40"
                                         >
-                                            Next
+                                            &rsaquo;
                                         </button>
+
+                                        {/* Last */}
+                                        <button
+                                            onClick={() => setCurrentPage(totalPages)}
+                                            disabled={currentPage === totalPages}
+                                            className="px-2 py-1 rounded disabled:opacity-40"
+                                        >
+                                            &raquo;
+                                        </button>
+
                                     </div>
                                 </div>
                             </div>
