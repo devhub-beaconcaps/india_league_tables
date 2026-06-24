@@ -27,6 +27,7 @@ interface StackedChartProps {
   data: StackedChartDataItem[];
   height?: number;
   title?: string;
+  valueConvention?: 'Crores' | 'Lakhs' | 'Billions';
 }
 
 interface TransformedData {
@@ -57,6 +58,30 @@ const SECTOR_COLORS = [
   '#84cc16',   // Lime
 ];
 
+// ─── Value Formatting Helpers ────────────────────────────────────────────────
+
+const formatValueByConvention = (value: number, convention: 'Crores' | 'Lakhs' | 'Billions' = 'Crores'): string => {
+  if (convention === 'Billions') {
+    return `${(value / 100).toFixed(2)}B`;
+  }
+  if (convention === 'Crores') {
+    return `${value.toLocaleString()} Cr`;
+  }
+  // Lakhs
+  return `${(value * 100).toLocaleString()} L`;
+};
+
+const formatYAxisTick = (value: number, convention: 'Crores' | 'Lakhs' | 'Billions' = 'Crores'): string => {
+  if (convention === 'Billions') {
+    return value >= 100 ? `${(value / 100).toFixed(0)}B` : `${(value / 100).toFixed(1)}B`;
+  }
+  if (convention === 'Crores') {
+    return value >= 1000 ? `${(value / 1000).toFixed(0)}k` : String(value);
+  }
+  // Lakhs
+  return value >= 100 ? `${(value / 100).toFixed(0)}k L` : `${value} L`;
+};
+
 // ─── Helper Functions ───────────────────────────────────────────────────────
 
 const getShortForm = (name: string, maxLength: number = 12): string => {
@@ -64,17 +89,34 @@ const getShortForm = (name: string, maxLength: number = 12): string => {
   return name.substring(0, maxLength) + '...';
 };
 
-const formatValue = (value: number): string => {
-  if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
-  return String(value);
+const formatValue = (value: number, convention: 'Crores' | 'Lakhs' | 'Billions' = 'Crores'): string => {
+  return formatValueByConvention(value, convention);
+};
+
+// ─── Custom X-axis tick that stacks words vertically ────────────────────────
+
+const VerticalXAxisTick = ({ x, y, payload }: any) => {
+  const words = String(payload?.value ?? '').split(/[\s-]+/);
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text textAnchor="middle" fill="#9ca3af" fontSize={9}>
+        {words.map((word: string, index: number) => (
+          <tspan key={index} x={0} dy={index === 0 ? 0 : 11}>
+            {word}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
 };
 
 // ─── Custom Tooltip ──────────────────────────────────────────────────────────
 
-const CustomTooltip = ({ active, payload, label }: {
+const CustomTooltip = ({ active, payload, label, valueConvention = 'Crores' }: {
   active?: boolean;
   payload?: TooltipPayloadItem[];
   label?: string;
+  valueConvention?: 'Crores' | 'Lakhs' | 'Billions';
 }) => {
   if (!active || !payload || !payload.length) return null;
 
@@ -114,7 +156,7 @@ const CustomTooltip = ({ active, payload, label }: {
               </span>
             </div>
             <span className="text-[10px] font-semibold text-gray-800 dark:text-gray-200">
-              {formatValue(item.value)} Cr
+              {formatValue(item.value, valueConvention)}
             </span>
           </div>
         ))}
@@ -122,7 +164,7 @@ const CustomTooltip = ({ active, payload, label }: {
       <div className="mt-2 pt-1 border-t border-gray-100 dark:border-gray-700 flex justify-between">
         <span className="text-[10px] text-gray-500 dark:text-gray-400">Total</span>
         <span className="text-[10px] font-bold text-gray-800 dark:text-gray-200">
-          {formatValue(validItems.reduce((sum, item) => sum + item.value, 0))} Cr
+          {formatValue(validItems.reduce((sum, item) => sum + item.value, 0), valueConvention)}
         </span>
       </div>
     </div>
@@ -136,6 +178,7 @@ export default function StackedChart({
   data,
   height = 280,
   title = 'Issuer Sector Distribution',
+  valueConvention = 'Crores',
 }: StackedChartProps) {
   // Transform data for stacked bar chart
   const { chartData, sectors, colors } = useMemo(() => {
@@ -210,21 +253,18 @@ export default function StackedChart({
           />
           <XAxis
             dataKey="issuer_name"
-            tick={{ fontSize: 9, fill: '#9ca3af' }}
-            tickFormatter={(v: string) => getShortForm(v, 14)}
+            tick={<VerticalXAxisTick />}
             tickMargin={12}
             interval={0}
-            angle={-35}
-            textAnchor="end"
             height={60}
           />
           <YAxis
             tick={{ fontSize: 9, fill: '#9ca3af' }}
-            tickFormatter={(v: number) => formatValue(v)}
+            tickFormatter={(v: number) => formatYAxisTick(v, valueConvention)}
             width={50}
           />
           <Tooltip
-            content={<CustomTooltip />}
+            content={<CustomTooltip valueConvention={valueConvention} />}
           />
 
           {sectors.map((sector, index) => (

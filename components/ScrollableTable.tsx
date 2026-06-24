@@ -6,18 +6,26 @@ import React from 'react';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
-
 interface ScrollableTableProps {
   pageType: string;
   selectedFY: string;
   data: FormattedIssuerItem[];
+  valueConvention?: 'Crores' | 'Lakhs' | 'Billions';
 }
 
 // ─── Format Helpers ─────────────────────────────────────────────────────────
 
-const formatCurrency = (value: number): string => {
-  const formatted = value >= 1000 ? `${(value / 1000).toFixed(2)}k` : value.toFixed(2);
-  return `₹${formatted}`;
+const formatCurrency = (value: number, convention: 'Crores' | 'Lakhs' | 'Billions' = 'Crores'): string => {
+
+    if (convention === 'Billions') {
+        return `${(value / 100).toFixed(2)}B`;
+    }
+    if (convention === 'Lakhs') {
+        return `${(value * 100).toLocaleString()} L`;
+    }
+
+    return `${value.toLocaleString()} Cr`;
+    
 };
 
 function formatNumber(value: number): string {
@@ -26,7 +34,7 @@ function formatNumber(value: number): string {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ScrollableTable({ data, selectedFY, pageType }: ScrollableTableProps) {
+export default function ScrollableTable({ data, selectedFY, pageType, valueConvention = 'Crores' }: ScrollableTableProps) {
 
   const router = useRouter();
 
@@ -35,6 +43,7 @@ export default function ScrollableTable({ data, selectedFY, pageType }: Scrollab
     router.push(`/${pageType}/top-participants?id=${encodeURIComponent(id)}&fy=${selectedFY}`);
   }
 
+  const sizeLabel = valueConvention === 'Billions' ? 'Size (B)' : valueConvention === 'Lakhs' ? 'Size (L)' : 'Size (Cr)';
 
   return (
     <div className="flex flex-col h-full">
@@ -45,7 +54,7 @@ export default function ScrollableTable({ data, selectedFY, pageType }: Scrollab
             <tr className="bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white">
               <th className="px-3 py-2 text-left font-semibold w-[60px]">Rank</th>
               <th className="px-3 py-2 text-left font-semibold">Name</th>
-              <th className="px-3 py-2 text-right font-semibold w-[100px]">Size (Cr)</th>
+              <th className="px-3 py-2 text-right font-semibold w-[100px]">{sizeLabel}</th>
               <th className="px-3 py-2 text-right font-semibold w-[80px]">Deals</th>
             </tr>
           </thead>
@@ -73,7 +82,7 @@ export default function ScrollableTable({ data, selectedFY, pageType }: Scrollab
                   {row?.name}
                 </td>
                 <td className="px-3 py-2.5 text-right w-[100px] font-medium text-gray-700 dark:text-gray-300">
-                  {formatCurrency(row?.issueSize)}
+                  {formatCurrency(row?.issueSize, valueConvention)}
                 </td>
                 <td className="px-3 py-2.5 text-right w-[80px] text-gray-600 dark:text-gray-400">
                   <span onClick={() => handleClick(row.id)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline font-medium" >
