@@ -808,7 +808,7 @@ export default function DetailedAnalysis() {
                 </div>
 
                 {/* ── Filters Section ── */}
-                <SectionCard className="p-0 overflow-hidden">
+                <SectionCard className="p-0">
                     {/* Collapsed Header Bar */}
                     <button
                         onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
@@ -854,7 +854,7 @@ export default function DetailedAnalysis() {
 
                     {/* Expanded Filter Content */}
                     <div
-                        className={`transition-all duration-300 ease-in-out overflow-hidden ${isFiltersExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+                        className={`transition-all duration-300 ease-in-out ${isFiltersExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
                             }`}
                     >
                         <div className="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800">
