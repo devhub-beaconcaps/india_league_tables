@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import CustomDropdown from '@/components/CustomDropdown';
-import { Search, Download, X, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
+import { Search, Download, X, ChevronDown, ChevronUp, Calendar, SlidersHorizontal } from 'lucide-react';
 
 import { FilterOption, FilterState, TableDataItem } from './types';
 import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
@@ -17,10 +17,10 @@ import { fetchArrangersDetailsData } from '@/features/arrangers/services';
 function getCurrentFinancialYearDates() {
   const now = new Date();
   const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth(); 
+  const currentMonth = now.getMonth();
 
-  let startYear:any;
-  let endYear:any;
+  let startYear: any;
+  let endYear: any;
 
   // Determine financial year bounds
   if (currentMonth >= 3) { // April is 3
@@ -38,7 +38,7 @@ function getCurrentFinancialYearDates() {
   const finalEndDate = endDate > now ? now : endDate;
 
   // Helper to format date as YYYY-MM-DD using LOCAL time
-  const formatLocalDate = (date) => {
+  const formatLocalDate = (date: Date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
@@ -51,12 +51,60 @@ function getCurrentFinancialYearDates() {
   };
 }
 
+function formatLocalDate(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getYearOptions() {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  const formatLocalDate = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const today = formatLocalDate(now);
+
+  const financialYears = [];
+  const calendarYears = [];
+
+  for (let i = 0; i < 5; i++) {
+    const year = currentYear - i;
+
+    const fyEnd = `${year + 1}-03-31`;
+    const cyEnd = `${year}-12-31`;
+
+    financialYears.push({
+      value: `FY-${year}`,
+      label: `FY ${year}-${String(year + 1).slice(-2)}`,
+      startDate: `${year}-04-01`,
+      endDate: fyEnd > today ? today : fyEnd,
+      group: 'Financial Year',
+    });
+
+    calendarYears.push({
+      value: `CY-${year}`,
+      label: `CY ${year}`,
+      startDate: `${year}-01-01`,
+      endDate: cyEnd > today ? today : cyEnd,
+      group: 'Calendar Year',
+    });
+  }
+
+  return [...financialYears, ...calendarYears];
+}
+
 const DEFAULT_DATES = getCurrentFinancialYearDates();
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 interface FilterInputsResponse {
-    taxFree: string[];
     ownershipType: string[];
     nature: string[];
     sector: string[];
@@ -99,7 +147,6 @@ const allColumns: Column[] = [
     { header: 'Seniority', accessor: 'seniority' },
     { header: 'Secured Flag', accessor: 'securedFlag' },
     { header: 'Listing Status', accessor: 'listingStatus' },
-    { header: 'Tax Free', accessor: 'taxFree' },
     { header: 'Issue Size', accessor: 'issueSize' },
     { header: 'Security Type', accessor: 'securityType' },
     { header: 'Mode of Issue', accessor: 'modeOfIssue' },
@@ -122,7 +169,6 @@ const defaultColumns: string[] = [
     'seniority',
     'securedFlag',
     'listingStatus',
-    'taxFree',
     'issueSize',
     'securityType',
     'modeOfIssue',
@@ -260,6 +306,28 @@ const TextInput = ({
     />
 );
 
+function ActiveFilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+    return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-medium rounded-full border border-indigo-100 dark:border-indigo-800">
+            {label}
+            <button onClick={onRemove} className="hover:text-indigo-900 dark:hover:text-indigo-100 transition-colors">
+                <X className="w-3 h-3" />
+            </button>
+        </span>
+    );
+}
+
+const formatDate = (dateString: string | number | null): string => {
+    if (!dateString || dateString === '-') return '-';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return String(dateString);
+    return date.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    });
+};
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function DetailedAnalysis() {
@@ -270,14 +338,19 @@ export default function DetailedAnalysis() {
         router.push(`/specific-issuer/${item?.id}`);
     };
 
+    // ── Collapsible Filters State ──
+    const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+
+    const [selectedYear, setSelectedYear] = useState('');
+
     // Filter states
     const [filters, setFilters] = useState<FilterState>({
         arranger: '',
         issuerOwnershipType: '',
         issuerNatureType: '',
         businessSector: '',
-        fromAllotmentDate: DEFAULT_DATES.startDate,  // 2026-04-01
-        toAllotmentDate: DEFAULT_DATES.endDate,        // 2026-05-07
+        fromAllotmentDate: DEFAULT_DATES.startDate,
+        toAllotmentDate: DEFAULT_DATES.endDate,
         securityType: '',
         modeOfIssue: '',
         creditRatingAgency: '',
@@ -285,12 +358,9 @@ export default function DetailedAnalysis() {
         seniority: '',
         servicedFlag: '',
         listingStatus: '',
-        taxFree: '',
-        dealSizeInCr: '',
     });
     // Filter options states
     const [filterOptions, setFilterOptions] = useState<FilterInputsResponse>({
-        taxFree: [],
         ownershipType: [],
         nature: [],
         sector: [],
@@ -319,6 +389,8 @@ export default function DetailedAnalysis() {
     const [visibleColumns, setVisibleColumns] = useState<string[]>(defaultColumns);
     const [isColumnMenuOpen, setIsColumnMenuOpen] = useState<boolean>(false);
 
+    const yearOptions = useMemo(() => getYearOptions(), []);
+
     const filteredColumns = useMemo<Column[]>(() => {
         return allColumns.filter(col => visibleColumns.includes(col.accessor));
     }, [visibleColumns]);
@@ -346,6 +418,17 @@ export default function DetailedAnalysis() {
     const updateFilter = useCallback((key: keyof FilterState, value: string | number) => {
         setFilters(prev => ({ ...prev, [key]: value }));
     }, []);
+
+    const handleYearChange = (value: string) => {
+        setSelectedYear(value);
+
+        const option = yearOptions.find(y => y.value === value);
+
+        if (!option) return;
+
+        updateFilter('fromAllotmentDate', option.startDate);
+        updateFilter('toAllotmentDate', option.endDate);
+    };
 
     // ─── API Functions ─────────────────────────────────────────────────────
 
@@ -384,19 +467,18 @@ export default function DetailedAnalysis() {
                 endDate: filters.toAllotmentDate || DEFAULT_DATES.endDate,
                 limit: pageSize,
                 offset: offset,
+                search: searchQuery,
                 arranger: filters.arranger,
                 rating: filters.creditRating,
                 registrar: '',
                 seniority: filters.seniority,
                 securityType: filters.securityType,
-                taxFree: filters.taxFree,
                 securedFlag: filters.servicedFlag,
                 sector: filters.businessSector,
                 trustee: '',
                 nature: filters.issuerNatureType,
                 ownershipType: filters.issuerOwnershipType,
                 creditRatingAgency: filters.creditRatingAgency,
-                dealSize: filters.dealSizeInCr,
                 listingStatus: filters.listingStatus,
                 modeOfIssue: filters.modeOfIssue
             };
@@ -417,7 +499,6 @@ export default function DetailedAnalysis() {
                 seniority: item.seniority || '-',
                 securedFlag: item.securedFlag || '-',
                 listingStatus: item.listingStatus || '-',
-                taxFree: item.taxFree || '-',
                 issueSize: item.issueSize || 0,
                 securityName: item.securityName || '-',
                 securityType: item.securityType || '-',
@@ -438,7 +519,79 @@ export default function DetailedAnalysis() {
         } finally {
             setIsLoading(false);
         }
-    }, [filters, currentPage, pageSize]);
+    }, [filters, currentPage, pageSize, searchQuery]);
+
+    // ── Active Filters Count ──
+    const activeFilterCount = useMemo(() => {
+        let count = 0;
+
+        Object.entries(filters).forEach(([key, value]) => {
+            if (!value) return;
+
+            if (
+                !selectedYear &&
+                (
+                    (key === 'fromAllotmentDate' && value === DEFAULT_DATES.startDate) ||
+                    (key === 'toAllotmentDate' && value === DEFAULT_DATES.endDate)
+                )
+            ) {
+                return;
+            }
+
+            count++;
+        });
+
+        return count;
+    }, [filters, selectedYear]);
+
+    const activeFilterChips = useMemo(() => {
+        const chips: { key: keyof FilterState; label: string }[] = [];
+
+        const labelMap: Record<keyof FilterState, string> = {
+            arranger: 'Arranger',
+            issuerOwnershipType: 'Ownership',
+            issuerNatureType: 'Nature',
+            businessSector: 'Sector',
+            fromAllotmentDate: 'From Date',
+            toAllotmentDate: 'To Date',
+            securityType: 'Security',
+            modeOfIssue: 'Mode',
+            creditRatingAgency: 'Agency',
+            creditRating: 'Rating',
+            seniority: 'Seniority',
+            servicedFlag: 'Secured',
+            listingStatus: 'Listing',
+        };
+
+        (Object.keys(filters) as Array<keyof FilterState>).forEach((key) => {
+            const value = filters[key];
+
+            if (!value) return;
+
+            // Hide default dates only when NO year is selected
+            if (
+                !selectedYear &&
+                (
+                    (key === 'fromAllotmentDate' && value === DEFAULT_DATES.startDate) ||
+                    (key === 'toAllotmentDate' && value === DEFAULT_DATES.endDate)
+                )
+            ) {
+                return;
+            }
+
+            const displayValue =
+                key === 'fromAllotmentDate' || key === 'toAllotmentDate'
+                    ? formatDate(value as string)
+                    : value;
+
+            chips.push({
+                key,
+                label: `${labelMap[key]}: ${displayValue}`,
+            });
+        });
+
+        return chips;
+    }, [filters, selectedYear]);
 
     // Initial fetch for filter inputs
     useEffect(() => {
@@ -453,6 +606,7 @@ export default function DetailedAnalysis() {
     // Handle search
     const handleSearch = () => {
         setCurrentPage(1);
+        setIsFiltersExpanded(false);
         fetchData();
     };
 
@@ -472,12 +626,12 @@ export default function DetailedAnalysis() {
             seniority: '',
             servicedFlag: '',
             listingStatus: '',
-            taxFree: '',
-            dealSizeInCr: '',
         });
         setSearchQuery('');
+        setSelectedYear('');
         setCurrentPage(1);
         setVisibleColumns(defaultColumns);
+        setIsFiltersExpanded(false);
         setTimeout(fetchData, 0);
     };
 
@@ -578,10 +732,15 @@ export default function DetailedAnalysis() {
 
         if (accessor === 'issueValue' || accessor === 'faceValue') {
             return (
-                <span className="block">
+                <span className="text-right block">
                     {formatCurrency(value as number)}
                 </span>
             );
+        }
+
+        // Format date columns
+        if (accessor === 'allotmentDate' || accessor === 'dateOfMaturity') {
+            return formatDate(value as string);
         }
 
         return value;
@@ -595,9 +754,52 @@ export default function DetailedAnalysis() {
         }));
     };
 
+    const totalPages: number = Math.ceil(totalCount / pageSize);
+
+    const getPageNumbers = (): (number | string)[] => {
+        const pages: (number | string)[] = [];
+
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            if (currentPage <= 4) {
+                pages.push(1, 2, 3, 4, 5, "...", totalPages);
+            } else if (currentPage >= totalPages - 3) {
+                pages.push(
+                    1,
+                    "...",
+                    totalPages - 4,
+                    totalPages - 3,
+                    totalPages - 2,
+                    totalPages - 1,
+                    totalPages
+                );
+            } else {
+                pages.push(
+                    1,
+                    "...",
+                    currentPage - 1,
+                    currentPage,
+                    currentPage + 1,
+                    "...",
+                    totalPages
+                );
+            }
+        }
+
+        return pages;
+    };
+
+    const startEntry: number =
+        totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+
+    const endEntry: number = Math.min(currentPage * pageSize, totalCount);
+
     return (
         <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#90969bff" borderRadius="0.5rem">
-            <div className="min-h-full space-y-4 font-sans text-gray-800 dark:text-gray-100">
+            <div className="min-h-full p-4 md:p-6 space-y-4 font-sans text-gray-800 dark:text-gray-100">
 
                 {/* ── Page Title & Breadcrumb ── */}
                 <div>
@@ -608,173 +810,274 @@ export default function DetailedAnalysis() {
                 </div>
 
                 {/* ── Filters Section ── */}
-                <SectionCard className="p-5">
-                    {isFiltersLoading ? (
-                        <FilterSkeleton />
-                    ) : (
-                        <>
-                            {/* Filter Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
-                                <FilterGroup label="Arranger Name">
-                                    <TextInput
-                                        value={filters.arranger}
-                                        onChange={(val) => updateFilter('arranger', val)}
-                                        placeholder="Enter Arranger Name"
-                                        type="text"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Issuer Ownership Type">
-                                    <CustomDropdown
-                                        options={toOptions(filterOptions.ownershipType)}
-                                        value={filters.issuerOwnershipType}
-                                        onChange={(val) => updateFilter('issuerOwnershipType', val)}
-                                        placeholder="Select Ownership"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Issuer Nature Type">
-                                    <CustomDropdown
-                                        options={toOptions(filterOptions.nature)}
-                                        value={filters.issuerNatureType}
-                                        onChange={(val) => updateFilter('issuerNatureType', val)}
-                                        placeholder="Select Nature"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Business Sector">
-                                    <CustomDropdown
-                                        options={toOptions(filterOptions.sector)}
-                                        value={filters.businessSector}
-                                        onChange={(val) => updateFilter('businessSector', val)}
-                                        placeholder="Select Sector"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="From Allotment Date">
-                                    <DateInput
-                                        value={filters.fromAllotmentDate}
-                                        onChange={(val) => updateFilter('fromAllotmentDate', val)}
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="To Allotment Date">
-                                    <DateInput
-                                        value={filters.toAllotmentDate}
-                                        onChange={(val) => updateFilter('toAllotmentDate', val)}
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Security Type">
-                                    <CustomDropdown
-                                        options={toOptions(filterOptions.securityType)}
-                                        value={filters.securityType}
-                                        onChange={(val) => updateFilter('securityType', val)}
-                                        placeholder="Select Security"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Mode of Issue">
-                                    <CustomDropdown
-                                        options={toOptions(filterOptions.modeOfIssue)}
-                                        value={filters.modeOfIssue}
-                                        onChange={(val) => updateFilter('modeOfIssue', val)}
-                                        placeholder="Select Mode"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Credit Rating Agency">
-                                    <CustomDropdown
-                                        options={toOptions(filterOptions.creditRatingAgency)}
-                                        value={filters.creditRatingAgency}
-                                        onChange={(val) => updateFilter('creditRatingAgency', val)}
-                                        placeholder="Select Agency"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Credit Rating">
-                                    <CustomDropdown
-                                        options={toOptions(filterOptions.creditRating)}
-                                        value={filters.creditRating}
-                                        onChange={(val) => updateFilter('creditRating', val)}
-                                        placeholder="Select Rating"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Seniority">
-                                    <CustomDropdown
-                                        options={toOptions(filterOptions.seniority)}
-                                        value={filters.seniority}
-                                        onChange={(val) => updateFilter('seniority', val)}
-                                        placeholder="Select Seniority"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Serviced Flag">
-                                    <CustomDropdown
-                                        options={toOptions(filterOptions.securedFlag)}
-                                        value={filters.servicedFlag}
-                                        onChange={(val) => updateFilter('servicedFlag', val)}
-                                        placeholder="Select Flag"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Listing Status">
-                                    <CustomDropdown
-                                        options={toOptions(filterOptions.listingStatus)}
-                                        value={filters.listingStatus}
-                                        onChange={(val) => updateFilter('listingStatus', val)}
-                                        placeholder="Select Status"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Tax Free">
-                                    <CustomDropdown
-                                        options={toOptions(filterOptions.taxFree)}
-                                        value={filters.taxFree}
-                                        onChange={(val) => updateFilter('taxFree', val)}
-                                        placeholder="Select Tax Status"
-                                    />
-                                </FilterGroup>
-
-                                <FilterGroup label="Deal Size (in Cr)">
-                                    <TextInput
-                                        value={filters.dealSizeInCr}
-                                        onChange={(val) => updateFilter('dealSizeInCr', val)}
-                                        placeholder="Enter Size"
-                                        type="number"
-                                    />
-                                </FilterGroup>
+                <SectionCard className="p-0 overflow-hidden">
+                    {/* Collapsed Header Bar */}
+                    <button
+                        onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+                        className="w-full cursor-pointer flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30">
+                                <SlidersHorizontal className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                             </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex flex-wrap items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                <button
-                                    onClick={handleSearch}
-                                    className="flex items-center gap-2 bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-6 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md"
-                                >
-                                    <Search className="w-3.5 h-3.5" />
-                                    Search
-                                </button>
-
-                                <button
-                                    onClick={handleExport}
-                                    className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
-                                >
-                                    <Download className="w-3.5 h-3.5" />
-                                    Export
-                                </button>
-
-                                <button
-                                    onClick={handleReset}
-                                    className="flex items-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
-                                >
-                                    <X className="w-3.5 h-3.5" />
-                                    Clear
-                                </button>
+                            <div className="flex flex-col items-start">
+                                <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                    Detailed Filters
+                                </span>
+                                {activeFilterCount > 0 && (
+                                    <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                                        {activeFilterCount} active
+                                    </span>
+                                )}
                             </div>
-                        </>
-                    )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                            {!isFiltersExpanded && activeFilterChips.length > 0 && (
+                                <div className="hidden md:flex items-center gap-1.5 flex-wrap max-w-md">
+                                    {activeFilterChips.slice(0, 3).map((chip) => (
+                                        <ActiveFilterChip
+                                            key={chip.key}
+                                            label={chip.label}
+                                            onRemove={() => updateFilter(chip.key, '')}
+                                        />
+                                    ))}
+                                    {activeFilterChips.length > 3 && (
+                                        <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                            +{activeFilterChips.length - 3} more
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                            <ChevronDown
+                                className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isFiltersExpanded ? 'rotate-180' : ''}`}
+                            />
+                        </div>
+                    </button>
+
+                    {/* Expanded Filter Content */}
+                    <div
+                        className={`transition-all duration-300 ease-in-out overflow-hidden ${isFiltersExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+                            }`}
+                    >
+                        <div className="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800">
+                            {isFiltersLoading ? (
+                                <FilterSkeleton />
+                            ) : (
+                                <>
+                                    {/* Filter Grid */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
+                                        <FilterGroup label="Arranger Name">
+                                            <TextInput
+                                                value={filters.arranger}
+                                                onChange={(val) => updateFilter('arranger', val)}
+                                                placeholder="Enter Arranger Name"
+                                                type="text"
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="Issuer Ownership Type">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.ownershipType)}
+                                                value={filters.issuerOwnershipType}
+                                                onChange={(val) => updateFilter('issuerOwnershipType', val)}
+                                                placeholder="Select Ownership"
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="Issuer Nature Type">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.nature)}
+                                                value={filters.issuerNatureType}
+                                                onChange={(val) => updateFilter('issuerNatureType', val)}
+                                                placeholder="Select Nature"
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="Business Sector">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.sector)}
+                                                value={filters.businessSector}
+                                                onChange={(val) => updateFilter('businessSector', val)}
+                                                placeholder="Select Sector"
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="Years">
+                                            <CustomDropdown
+                                                options={[
+                                                    {
+                                                        label: "Financial Year",
+                                                        options: yearOptions
+                                                            .filter(x => x.group === "Financial Year")
+                                                            .map(x => ({
+                                                                value: x.value,
+                                                                label: x.label,
+                                                            }))
+                                                    },
+                                                    {
+                                                        label: "Calendar Year",
+                                                        options: yearOptions
+                                                            .filter(x => x.group === "Calendar Year")
+                                                            .map(x => ({
+                                                                value: x.value,
+                                                                label: `CY ${x.startDate.slice(0, 4)}`,
+                                                            })),
+                                                    },
+                                                ]}
+                                                value={selectedYear}
+                                                onChange={(val) => handleYearChange(val as string)}
+                                                placeholder="Select Year"
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="From Allotment Date">
+                                            <DateInput
+                                                value={filters.fromAllotmentDate}
+                                                onChange={(val) => updateFilter('fromAllotmentDate', val)}
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="To Allotment Date">
+                                            <DateInput
+                                                value={filters.toAllotmentDate}
+                                                onChange={(val) => updateFilter('toAllotmentDate', val)}
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="Security Type">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.securityType)}
+                                                value={filters.securityType}
+                                                onChange={(val) => updateFilter('securityType', val)}
+                                                placeholder="Select Security"
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="Mode of Issue">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.modeOfIssue)}
+                                                value={filters.modeOfIssue}
+                                                onChange={(val) => updateFilter('modeOfIssue', val)}
+                                                placeholder="Select Mode"
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="Credit Rating Agency">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.creditRatingAgency)}
+                                                value={filters.creditRatingAgency}
+                                                onChange={(val) => updateFilter('creditRatingAgency', val)}
+                                                placeholder="Select Agency"
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="Credit Rating">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.creditRating)}
+                                                value={filters.creditRating}
+                                                onChange={(val) => updateFilter('creditRating', val)}
+                                                placeholder="Select Rating"
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="Seniority">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.seniority)}
+                                                value={filters.seniority}
+                                                onChange={(val) => updateFilter('seniority', val)}
+                                                placeholder="Select Seniority"
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="Serviced Flag">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.securedFlag)}
+                                                value={filters.servicedFlag}
+                                                onChange={(val) => updateFilter('servicedFlag', val)}
+                                                placeholder="Select Flag"
+                                            />
+                                        </FilterGroup>
+
+                                        <FilterGroup label="Listing Status">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.listingStatus)}
+                                                value={filters.listingStatus}
+                                                onChange={(val) => updateFilter('listingStatus', val)}
+                                                placeholder="Select Status"
+                                            />
+                                        </FilterGroup>
+                                    </div>
+
+                                    {/* Active Filter Chips in expanded view */}
+                                    {activeFilterChips.length > 0 && (
+                                        <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                            <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Active:
+                                            </span>
+                                            {activeFilterChips.map((chip) => (
+                                                <ActiveFilterChip
+                                                    key={chip.key}
+                                                    label={chip.label}
+                                                    onRemove={() => updateFilter(chip.key, '')}
+                                                />
+                                            ))}
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedYear('');
+
+                                                    setFilters({
+                                                        arranger: '',
+                                                        issuerOwnershipType: '',
+                                                        issuerNatureType: '',
+                                                        businessSector: '',
+                                                        fromAllotmentDate: DEFAULT_DATES.startDate,
+                                                        toAllotmentDate: DEFAULT_DATES.endDate,
+                                                        securityType: '',
+                                                        modeOfIssue: '',
+                                                        creditRatingAgency: '',
+                                                        creditRating: '',
+                                                        seniority: '',
+                                                        servicedFlag: '',
+                                                        listingStatus: '',
+                                                    });
+                                                }}
+                                                className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
+                                            >
+                                                Clear all
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Action Buttons */}
+                                    <div className="flex flex-wrap items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                        <button
+                                            onClick={handleSearch}
+                                            className="flex items-center gap-2 bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-6 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md"
+                                        >
+                                            <Search className="w-3.5 h-3.5" />
+                                            Search
+                                        </button>
+
+                                        <button
+                                            onClick={handleExport}
+                                            className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
+                                        >
+                                            <Download className="w-3.5 h-3.5" />
+                                            Export
+                                        </button>
+
+                                        <button
+                                            onClick={handleReset}
+                                            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                            Clear
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
                 </SectionCard>
 
                 {/* ── Data Table Section ── */}
@@ -799,10 +1102,10 @@ export default function DetailedAnalysis() {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                    placeholder="Search ISIN..."
+                                    placeholder="Search ISIN or issuers..."
                                     className="w-full h-6 px-3 py-1.5 text-xs bg-gray-50 dark:bg-[#0f0f1a] border border-gray-200 dark:border-gray-700 rounded-lg 
-                                        text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]
-                                        placeholder:text-gray-400 dark:placeholder:text-gray-500"
+        text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]
+        placeholder:text-gray-400 dark:placeholder:text-gray-500"
                                 />
                             </div>
 
@@ -897,64 +1200,104 @@ export default function DetailedAnalysis() {
 
                                 {/* Pagination */}
                                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[10px] text-gray-500 dark:text-gray-400">Show</span>
-                                        <select
-                                            value={pageSize}
-                                            onChange={(e) => {
-                                                setPageSize(Number(e.target.value));
-                                                setCurrentPage(1);
-                                            }}
-                                            className="h-7 px-2 text-[10px] bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#423CAB]"
-                                        >
-                                            <option value={10}>10</option>
-                                            <option value={25}>25</option>
-                                            <option value={50}>50</option>
-                                            <option value={100}>100</option>
-                                        </select>
-                                        <span className="text-[10px] text-gray-500 dark:text-gray-400">entries</span>
-                                    </div>
+                                    <div className="flex items-center gap-6">
 
+                                        <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                            Showing {startEntry} to {endEntry} of {totalCount} entries
+                                        </span>
+
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                Show
+                                            </span>
+
+                                            <select
+                                                value={pageSize}
+                                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                                                    setPageSize(Number(e.target.value));
+                                                    setCurrentPage(1);
+                                                }}
+                                                className="h-7 px-2 text-[10px] bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#423CAB]"
+                                            >
+                                                <option value={10}>10</option>
+                                                <option value={25}>25</option>
+                                                <option value={50}>50</option>
+                                                <option value={100}>100</option>
+                                            </select>
+
+                                            <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                entries
+                                            </span>
+                                        </div>
+
+                                    </div>
                                     <div className="flex items-center gap-1">
+
+                                        {/* First */}
+                                        <button
+                                            onClick={() => setCurrentPage(1)}
+                                            disabled={currentPage === 1}
+                                            className="px-2 py-1 rounded disabled:opacity-40"
+                                        >
+                                            &laquo;
+                                        </button>
+
+                                        {/* Previous */}
                                         <button
                                             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                             disabled={currentPage === 1}
-                                            className="px-3 py-1.5 text-[10px] font-medium rounded-md border border-gray-200 dark:border-gray-700 
-                                                text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 
-                                                disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            className="px-2 py-1 rounded disabled:opacity-40"
                                         >
-                                            Previous
+                                            &lsaquo;
                                         </button>
 
-                                        {[...Array(Math.min(5, Math.ceil(totalCount / pageSize)))].map((_, i) => {
-                                            const page = i + 1;
-                                            const isActive = page === currentPage;
+                                        {getPageNumbers().map((page, index) => {
+
+                                            if (page === "...") {
+                                                return (
+                                                    <span
+                                                        key={index}
+                                                        className="px-2 text-gray-500"
+                                                    >
+                                                        ...
+                                                    </span>
+                                                );
+                                            }
+
                                             return (
                                                 <button
                                                     key={page}
-                                                    onClick={() => setCurrentPage(page)}
-                                                    className={`
-                                                        px-3 py-1.5 text-[10px] font-medium rounded-md transition-colors
-                                                        ${isActive
-                                                            ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
-                                                            : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                                                        }
-                                                    `}
+                                                    onClick={() => setCurrentPage(page as number)}
+                                                    className={`px-3 py-1 rounded text-sm ${currentPage === page
+                                                            ? "bg-[#423CAB] text-white"
+                                                            : "border border-gray-300 dark:border-gray-700"
+                                                        }`}
                                                 >
                                                     {page}
                                                 </button>
                                             );
                                         })}
 
+                                        {/* Next */}
                                         <button
-                                            onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalCount / pageSize), prev + 1))}
-                                            disabled={currentPage >= Math.ceil(totalCount / pageSize)}
-                                            className="px-3 py-1.5 text-[10px] font-medium rounded-md border border-gray-200 dark:border-gray-700 
-                                                text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 
-                                                disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            onClick={() =>
+                                                setCurrentPage(prev => Math.min(totalPages, prev + 1))
+                                            }
+                                            disabled={currentPage === totalPages}
+                                            className="px-2 py-1 rounded disabled:opacity-40"
                                         >
-                                            Next
+                                            &rsaquo;
                                         </button>
+
+                                        {/* Last */}
+                                        <button
+                                            onClick={() => setCurrentPage(totalPages)}
+                                            disabled={currentPage === totalPages}
+                                            className="px-2 py-1 rounded disabled:opacity-40"
+                                        >
+                                            &raquo;
+                                        </button>
+
                                     </div>
                                 </div>
                             </div>

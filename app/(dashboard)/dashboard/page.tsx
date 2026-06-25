@@ -601,7 +601,7 @@ export default function Dashboard() {
 
   return (
     <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#cbe1f2ff" borderRadius="0.5rem">
-      <div className="space-y-5 px-4 sm:px-0">
+      <div className="space-y-5 p-4 md:p-6">
         {/* Page Title */}
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
 

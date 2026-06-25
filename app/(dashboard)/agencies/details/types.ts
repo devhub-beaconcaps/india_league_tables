@@ -24,8 +24,7 @@ export interface FilterState {
     seniority: string | number;
     servicedFlag: string | number;
     listingStatus: string | number;
-    taxFree: string | number;
-    dealSizeInCr: string | number;
+    arranger?: string;
 }
 
 export interface TableDataItem {
@@ -48,7 +47,6 @@ export interface TableDataItem {
     seniority: string;
     securedFlag: string;
     listingStatus: string;
-    taxFree: string;
     trustee:string;
     issueSize: number;
     ownershipType: string;
