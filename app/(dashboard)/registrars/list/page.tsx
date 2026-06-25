@@ -53,53 +53,80 @@ function getCurrentFinancialYear(): string {
     }
 }
 
-function getDateRange(period: string, fy: string): { startDate: string; endDate: string } | null {
+function getDateRange(
+    period: string,
+    fy: string
+): { startDate: string; endDate: string } | null {
     const fyData = parseFY(fy);
     if (!fyData) return null;
+
     const { startYear, endYear } = fyData;
     const p = period.toLowerCase().trim();
 
     let startDate: string;
     let endDate: string;
 
-    // ── Quarters ──
-    if (p === 'q1') {
+    // ---------- Full Financial Year ----------
+    if (p === 'fy') {
+        startDate = `${startYear}-04-01`;
+        endDate = `${endYear}-03-31`;
+    }
+
+    // ---------- Quarters ----------
+    else if (p === 'q1') {
         startDate = `${startYear}-04-01`;
         endDate = `${startYear}-06-30`;
-    } else if (p === 'q2') {
+    }
+    else if (p === 'q2') {
         startDate = `${startYear}-07-01`;
         endDate = `${startYear}-09-30`;
-    } else if (p === 'q3') {
+    }
+    else if (p === 'q3') {
         startDate = `${startYear}-10-01`;
         endDate = `${startYear}-12-31`;
-    } else if (p === 'q4') {
+    }
+    else if (p === 'q4') {
         startDate = `${endYear}-01-01`;
         endDate = `${endYear}-03-31`;
-    } else {
-        // ── Months ──
+    }
+
+    // ---------- Month ----------
+    else {
         const monthNum = getMonthNumber(p);
+
         if (monthNum === null) return null;
 
-        const year = monthNum >= 4 && monthNum <= 12 ? startYear : endYear;
+        const year =
+            monthNum >= 4 && monthNum <= 12
+                ? startYear
+                : endYear;
+
         const lastDay = getLastDayOfMonth(year, monthNum);
+
         const mm = monthNum.toString().padStart(2, '0');
 
         startDate = `${year}-${mm}-01`;
         endDate = `${year}-${mm}-${lastDay}`;
     }
 
-    // Clamp endDate to today if it's in the future
+    // ---------- Clamp End Date To Today ----------
     const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    const todayStr =
+        `${today.getFullYear()}-${String(
+            today.getMonth() + 1
+        ).padStart(2, '0')}-${String(
+            today.getDate()
+        ).padStart(2, '0')}`;
 
     if (endDate > todayStr) {
         endDate = todayStr;
     }
 
-    return { startDate, endDate };
+    return {
+        startDate,
+        endDate,
+    };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -227,7 +254,7 @@ function NoDataState({ message = 'No data available', subMessage }: { message?: 
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
 
-export default function IssuerListPage() {
+export default function RegistrarsListPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const period = searchParams.get('period') || 'Q1';
@@ -520,7 +547,7 @@ export default function IssuerListPage() {
                         <div className="flex flex-col gap-1">
                             <label className="text-[9px] text-gray-400">Period</label>
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                                {period || '—'}
+                                {String(period).toLocaleUpperCase() || '—'}
                             </span>
                         </div>
                         <div className="flex flex-col gap-1">
