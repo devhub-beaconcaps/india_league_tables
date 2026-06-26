@@ -382,6 +382,7 @@ function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention
                             value={selectedRatingRegistrar}
                             onChange={(val) => setSelectedRatingRegistrar(String(val))}
                             placeholder="Select Registrar"
+                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                         />
                     </div>
                 </div>

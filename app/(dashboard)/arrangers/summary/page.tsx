@@ -381,6 +381,7 @@ function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention
                             value={selectedRatingArranger}
                             onChange={(val) => setSelectedRatingArranger(String(val))}
                             placeholder="Select Arranger"
+                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                         />
                     </div>
                 </div>

@@ -368,6 +368,7 @@ function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention
                         value={selectedRatingTrustee}
                         onChange={(val) => setSelectedRatingTrustee(String(val))}
                         placeholder="Select Trustee"
+                        menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                     />
                 </div>
             </div>

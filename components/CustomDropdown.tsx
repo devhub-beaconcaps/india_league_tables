@@ -18,6 +18,7 @@ interface CustomDropdownProps {
   value: string | number;
   onChange: (value: string | number) => void;
   width?: string;
+  menuClassName?: string;
   placeholder?: string;
 }
 
@@ -27,6 +28,7 @@ export default function CustomDropdown({
   value,
   onChange,
   width = "w-[7rem]",
+  menuClassName = "",
   placeholder = "Select",
 }: CustomDropdownProps) {
   const [open, setOpen] = useState<boolean>(false);
@@ -65,7 +67,7 @@ export default function CustomDropdown({
         onClick={() => setOpen(!open)}
         className={`text-xs border border-gray-200 dark:border-gray-600 rounded-[12px] w-full sm:${width} px-3 py-1.5 bg-white dark:bg-[#1a1a2e] text-gray-700 dark:text-gray-200 cursor-pointer flex justify-between items-center`}
       >
-        {selectedOption?.label ?? placeholder ?? "Select"}
+        <span className="truncate">{selectedOption?.label ?? placeholder ?? "Select"}</span>
 
         <span className={`ml-2 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}>
           ▾
@@ -74,7 +76,7 @@ export default function CustomDropdown({
 
       {open && (
         <ul
-          className="absolute z-50 mt-1 w-[140px] bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg overflow-visible text-[11px]"
+          className={`absolute z-50 mt-1 w-[140px] bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg overflow-visible text-[11px] ${menuClassName}`}
         onMouseLeave={() => setHoveredGroup(null)}
         >
           {options.length > 0 && "options" in options[0] ? (
@@ -180,7 +182,8 @@ export default function CustomDropdown({
                   setOpen(false);
                   setHoveredGroup(null);
                 }}
-                className="px-3 py-1.5 cursor-pointer text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="px-3 py-1.5 cursor-pointer text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 truncate"
+                title={String(opt.label)}
               >
                 {opt.label}
               </li>

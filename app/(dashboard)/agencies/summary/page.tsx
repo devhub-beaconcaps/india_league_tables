@@ -1071,6 +1071,7 @@ export default function Summary() {
                                     value={creditRatingAgency}
                                     onChange={(val) => setCreditRatingAgency(val)}
                                     width="min-w-[200px]"
+                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                                 />
                             </div>
                         </div>
