@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell,
@@ -296,6 +296,126 @@ function ActiveFilterChip({ label, onRemove }: { label: string; onRemove: () => 
     );
 }
 
+// ─── Credit Ratings Section (Isolated Component) ─────────────────────────────
+
+// ─── Credit Ratings Section (Isolated Component) ─────────────────────────────
+
+interface CreditRatingsSectionProps {
+    selectedYearsDateRange: DateRange | null;
+    filters: FilterState;
+    valueConvention: ValueConvention;
+    creditRatingAgency: string | number;
+    trusteeOptions: { value: string; label: string }[];
+}
+
+function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention, creditRatingAgency, trusteeOptions }: CreditRatingsSectionProps) {
+    const [ratingData, setRatingData] = useState<FormattedRatingItem[]>([]);
+    const [isRatingLoading, setIsRatingLoading] = useState(true);
+    const [selectedRatingTrustee, setSelectedRatingTrustee] = useState<string>('');
+
+    const prevQueryRef = useRef<string>('');
+
+    useEffect(() => {
+        if (!selectedYearsDateRange) return;
+
+        const fetchData = async (): Promise<void> => {
+            const query: Record<string, any> = {
+                startDate: selectedYearsDateRange.startDate,
+                endDate: selectedYearsDateRange.endDate,
+                id: Number(creditRatingAgency) || 0,
+            };
+
+            const trusteeValue = selectedRatingTrustee || filters.trustee;
+            if (trusteeValue) query.trustee = trusteeValue;
+            if (filters.issuerOwnershipType) query.ownershipType = filters.issuerOwnershipType;
+            if (filters.issuerNatureType) query.nature = filters.issuerNatureType;
+            if (filters.businessSector) query.sector = filters.businessSector;
+            if (filters.securityType) query.securityType = filters.securityType;
+            if (filters.modeOfIssue) query.modeOfIssue = filters.modeOfIssue;
+            if (filters.creditRating) query.rating = filters.creditRating;
+            if (filters.seniority) query.seniority = filters.seniority;
+            if (filters.servicedFlag) query.securedFlag = filters.servicedFlag;
+            if (filters.listingStatus) query.listingStatus = filters.listingStatus;
+
+            const queryKey = JSON.stringify(query);
+            if (prevQueryRef.current === queryKey) return;
+            prevQueryRef.current = queryKey;
+
+            setIsRatingLoading(true);
+
+            try {
+                const Ratings: RawRatingItem[] = await fetchTrusteePageCreditRatingsData(query);
+                setRatingData(formatRatingsData(Ratings || [], creditRatingAgency));
+            } catch (err) {
+                console.error('API Error:', err);
+                setRatingData([]);
+            } finally {
+                setIsRatingLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [selectedYearsDateRange, filters, selectedRatingTrustee, creditRatingAgency]);
+
+    return (
+        <SectionCard className='my-3'>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Credit Ratings</h2>
+                <div className="w-48">
+                    <CustomDropdown
+                        label="Trustee"
+                        options={[{ value: '', label: 'All Trustees' }, ...trusteeOptions]}
+                        value={selectedRatingTrustee}
+                        onChange={(val) => setSelectedRatingTrustee(String(val))}
+                        placeholder="Select Trustee"
+                    />
+                </div>
+            </div>
+
+            {isRatingLoading ? (
+                <PieChartSkeleton />
+            ) : ratingData.length > 0 ? (
+                <div className="flex flex-col items-center justify-center gap-8 flex-wrap">
+                    <div className="relative">
+                        <ResponsiveContainer width={220} height={220}>
+                            <PieChart>
+                                <Pie
+                                    data={ratingData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={55}
+                                    outerRadius={110}
+                                    dataKey="value"
+                                    labelLine={false}
+                                    label={renderLabel}
+                                    startAngle={90}
+                                    endAngle={-270}
+                                >
+                                    {ratingData?.map((entry, i) => (
+                                        <Cell key={i} fill={entry.color} stroke="white" strokeWidth={2} />
+                                    ))}
+                                </Pie>
+                                <Tooltip content={<CustomTooltip valueConvention={valueConvention} />} wrapperStyle={{ fontSize: '10px' }} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    <div className="flex flex-wrap gap-x-6 gap-y-2">
+                        {ratingData?.map((d, i) => (
+                            <div key={i} className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
+                                <span className="text-[10px] text-gray-600 dark:text-gray-400">{d.name}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <NoDataState message="No credit rating data available" subMessage="Try selecting a different trustee or credit rating agency." />
+            )}
+        </SectionCard>
+    );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Summary() {
@@ -315,14 +435,12 @@ export default function Summary() {
     const [listTableData, setListTableData] = useState<FormattedIssuerItem[]>([]);
     const [topSectorsData, setTopSectorsData] = useState<SectorItem[]>([]);
     const [marketShareData, setMarketShareData] = useState<FormattedMarketShareItem[]>([]);
-    const [ratingData, setRatingData] = useState<FormattedRatingItem[]>([]);
     const [totalsData, setTotalsData] = useState<TotalsData | null>(null);
 
     // Loading states
     const [isTableLoading, setIsTableLoading] = useState(true);
     const [isSectorsLoading, setIsSectorsLoading] = useState(true);
     const [isMarketShareLoading, setIsMarketShareLoading] = useState(true);
-    const [isRatingLoading, setIsRatingLoading] = useState(true);
     const [isFiltersLoading, setIsFiltersLoading] = useState(true);
 
     // ─── New Filter States ───────────────────────────────────────────────────
@@ -454,6 +572,16 @@ export default function Summary() {
         return chips;
     }, [filters]);
 
+    // ── Trustee Options for Ratings Dropdown ──
+    const trusteeOptionsForRatings = useMemo(() => {
+        const names = new Set<string>();
+        listTableData.forEach((item) => {
+            const name = (item as any).trustee || (item as any).name || (item as any).issuerName || '';
+            if (name) names.add(name);
+        });
+        return Array.from(names).sort().map(name => ({ value: name, label: name }));
+    }, [listTableData]);
+
     /**
      * Build query payload for the backend.
      * IMPORTANT: Only include properties that have real values.
@@ -561,44 +689,6 @@ export default function Summary() {
 
         fetchData();
     }, [selectedYearsDateRange, issueType, filters, creditRatingAgency, buildQuery]);
-
-    // Fetch ratings data
-    useEffect(() => {
-        if (!selectedYearsDateRange) return;
-
-        const fetchData = async (): Promise<void> => {
-            setIsRatingLoading(true);
-            const query = {
-                startDate: selectedYearsDateRange.startDate,
-                endDate: selectedYearsDateRange.endDate,
-                id: Number(creditRatingAgency) || 0,
-                // Only pass filters if they have real values
-                ...(filters.trustee && { trustee: filters.trustee }),
-                ...(filters.issuerOwnershipType && { ownershipType: filters.issuerOwnershipType }),
-                ...(filters.issuerNatureType && { nature: filters.issuerNatureType }),
-                ...(filters.businessSector && { sector: filters.businessSector }),
-                ...(filters.securityType && { securityType: filters.securityType }),
-                ...(filters.modeOfIssue && { modeOfIssue: filters.modeOfIssue }),
-                ...(filters.creditRating && { rating: filters.creditRating }),
-                ...(filters.seniority && { seniority: filters.seniority }),
-                ...(filters.servicedFlag && { securedFlag: filters.servicedFlag }),
-                ...(filters.listingStatus && { listingStatus: filters.listingStatus }),
-            };
-
-            try {
-                const Ratings: RawRatingItem[] = await fetchTrusteePageCreditRatingsData(query);
-                console.log("rating data", Ratings, creditRatingAgency);
-                setRatingData(formatRatingsData(Ratings || [], creditRatingAgency));
-            } catch (err) {
-                console.error('API Error:', err);
-                setRatingData([]);
-            } finally {
-                setIsRatingLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [selectedYearsDateRange, creditRatingAgency, filters]);
 
     return (
         <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#90969bff" borderRadius="0.5rem">
@@ -1072,62 +1162,14 @@ export default function Summary() {
                         </div>
                     </SectionCard>
 
-                    {/* ── Credit Ratings ── */}
-                    <SectionCard className='my-3'>
-                        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Credit Ratings</h2>
-                            <div className="flex flex-col gap-0.5">
-                                <CustomDropdown
-                                    label="Credit Rating Agency"
-                                    options={creditAgencyDropdownOptions}
-                                    value={creditRatingAgency}
-                                    onChange={(val) => setCreditRatingAgency(val)}
-                                    width="min-w-[200px]"
-                                />
-                            </div>
-                        </div>
-
-                        {isRatingLoading ? (
-                            <PieChartSkeleton />
-                        ) : ratingData.length > 0 ? (
-                            <div className="flex flex-col items-center justify-center gap-8 flex-wrap">
-                                <div className="relative">
-                                    <ResponsiveContainer width={220} height={220}>
-                                        <PieChart>
-                                            <Pie
-                                                data={ratingData}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={55}
-                                                outerRadius={110}
-                                                dataKey="value"
-                                                labelLine={false}
-                                                label={renderLabel}
-                                                startAngle={90}
-                                                endAngle={-270}
-                                            >
-                                                {ratingData?.map((entry, i) => (
-                                                    <Cell key={i} fill={entry.color} stroke="white" strokeWidth={2} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip content={<CustomTooltip valueConvention={valueConvention} />} wrapperStyle={{ fontSize: '10px' }} />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-
-                                <div className="flex flex-wrap gap-x-6 gap-y-2">
-                                    {ratingData?.map((d, i) => (
-                                        <div key={i} className="flex items-center gap-1.5">
-                                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
-                                            <span className="text-[10px] text-gray-600 dark:text-gray-400">{d.name}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : (
-                            <NoDataState message="No credit rating data available" subMessage="Try selecting a different credit rating agency." />
-                        )}
-                    </SectionCard>
+                    {/* ── Credit Ratings (Isolated Component) ── */}
+                    <CreditRatingsSection
+                        selectedYearsDateRange={selectedYearsDateRange}
+                        filters={filters}
+                        valueConvention={valueConvention}
+                        creditRatingAgency={creditRatingAgency}
+                        trusteeOptions={trusteeOptionsForRatings}
+                    />
                 </div>
             </div>
         </SkeletonTheme>

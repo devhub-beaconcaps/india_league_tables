@@ -307,7 +307,7 @@ export function formatRatingsData(data: RawRatingItem[], creditRatingAgency: str
     };
 
     return data?.map((item, index) => ({
-        name: Number(creditRatingAgency) > 0 ? (item.name ?? '') : (item.label ?? ''),
+        name: item.name ?? item.label ?? '',
         value: Number(item.rating_no) || 0,
         color: generateColor(index, data.length),
     }));
