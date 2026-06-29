@@ -609,7 +609,7 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row gap-3 overflow-x-auto pb-2 sm:pb-0">
           {isStatsLoading ? (
             <>
-              {[...Array(6)].map((_, i) => (
+              {[...Array(5)].map((_, i) => (
                 <StatCardSkeleton key={i} />
               ))}
             </>
@@ -625,9 +625,55 @@ export default function Dashboard() {
         </div>
 
         {/* ── Main Content Grid ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-5">
-          {/* LEFT COLUMN */}
-          <div className="space-y-5 order-2 lg:order-1">
+        <div className="space-y-5">
+
+          {/* ── Row 1: Issue Volume Trends (Full Width) ── */}
+          <SectionCard className="p-5">
+            <h2 className="text-md font-semibold text-gray-800 dark:text-white mb-4">Issue Volume Trends</h2>
+            <div className="flex justify-between text-[9px] text-gray-400 mb-2">
+              <span>Issue Size</span>
+              <span>No of Issue</span>
+            </div>
+            {isIssueTrendsLoading ? (
+              <ChartSkeleton height={240} />
+            ) : sanitizedIssuersTrendsData && sanitizedIssuersTrendsData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={sanitizedIssuersTrendsData} margin={{ top: 5, right: 10, left: 10, bottom: 20 }}>
+                  <defs>
+                    <linearGradient id="gradSize" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.05} />
+                    </linearGradient>
+                    <linearGradient id="gradIssue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#EC4899" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#EC4899" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="years" angle={-30} tick={{ fontSize: 9 }} tickMargin={12} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                  <Area yAxisId="left" type="monotone" dataKey="total_issue_size_cr" stroke="#06B6D4" fill="url(#gradSize)" strokeWidth={2} />
+                  <Area yAxisId="right" type="monotone" dataKey="total_no_of_issues" stroke="#EC4899" fill="url(#gradIssue)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <NoDataState message="No trend data available" subMessage="Historical issue volume data will appear here once available." />
+            )}
+            {!isIssueTrendsLoading && sanitizedIssuersTrendsData && sanitizedIssuersTrendsData.length > 0 && (
+              <div className="flex justify-center gap-6 mt-3">
+                <span className="flex items-center gap-1.5 text-[9px] text-gray-500">
+                  <span className="w-3 h-3 rounded-full bg-[#EC4899]" /> No of issue
+                </span>
+                <span className="flex items-center gap-1.5 text-[9px] text-gray-500">
+                  <span className="w-3 h-3 rounded-full bg-[#06B6D4]" /> Issue Size
+                </span>
+              </div>
+            )}
+          </SectionCard>
+
+          {/* ── Row 2: Financial Year Table + Top 10 Issuer Volume Bar Chart (1fr 1fr) ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Financial Year Table */}
             <SectionCard className="p-5">
               <h2 className="text-md font-semibold text-gray-800 dark:text-white mb-4">
@@ -688,7 +734,7 @@ export default function Dashboard() {
 
               {/* Table */}
               <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[500px]">
+                <table className="w-full text-sm min-w-[400px]">
                   {!isTableLoading && tableData && tableData.length > 0 && (
                     <thead>
                       <tr className="text-left text-gray-400 text-[9px] uppercase font-semibold border-b border-gray-100 dark:border-gray-700">
@@ -739,241 +785,195 @@ export default function Dashboard() {
               </div>
             </SectionCard>
 
-            {/* Issue Volume Trends */}
+            {/* Top 10 Issuer Volume Bar Chart */}
             <SectionCard className="p-5">
-              <h2 className="text-md font-semibold text-gray-800 dark:text-white mb-4">Issue Volume Trends</h2>
-              <div className="flex justify-between text-[9px] text-gray-400 mb-2">
-                <span>Issue Size</span>
-                <span>No of Issue</span>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-2">
+                <h3 className="text-sm font-bold text-gray-800 dark:text-white uppercase">Top 10 Issuer Volume (Crores)</h3>
               </div>
-              {isIssueTrendsLoading ? (
+              <div className="flex gap-2 justify-start sm:justify-end mb-3 flex-wrap">
+                {(['ISSUE SIZE', 'NO. OF ISSUES'] as const).map(v => (
+                  <button
+                    key={v}
+                    onClick={() => setBarView(v)}
+                    className={`text-[9px] font-semibold px-2.5 py-1 rounded-full border transition-all ${barView === v
+                      ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white border-[#7C3AED]'
+                      : 'text-gray-400 border-gray-200 dark:border-gray-600'
+                      }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+              {isMonthlyVolumeLoading ? (
                 <ChartSkeleton height={240} />
-              ) : sanitizedIssuersTrendsData && sanitizedIssuersTrendsData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={240}>
-                  <AreaChart data={sanitizedIssuersTrendsData} margin={{ top: 5, right: 10, left: 10, bottom: 20 }}>
-                    <defs>
-                      <linearGradient id="gradSize" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.05} />
-                      </linearGradient>
-                      <linearGradient id="gradIssue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#EC4899" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#EC4899" stopOpacity={0.05} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="years" angle={-30} tick={{ fontSize: 9 }} tickMargin={12} axisLine={false} tickLine={false} />
-                    <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                    <Area yAxisId="left" type="monotone" dataKey="total_issue_size_cr" stroke="#06B6D4" fill="url(#gradSize)" strokeWidth={2} />
-                    <Area yAxisId="right" type="monotone" dataKey="total_no_of_issues" stroke="#EC4899" fill="url(#gradIssue)" strokeWidth={2} />
-                  </AreaChart>
+              ) : sanitizedIssuersVolumeData && sanitizedIssuersVolumeData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={390}>
+                  <BarChart
+                    data={sanitizedIssuersVolumeData}
+                    barSize={10}
+                    barGap={2}
+                    margin={{ top: 5, right: 5, left: -10, bottom: 5 }}
+                  >
+                    <XAxis
+                      dataKey="month_name"
+                      angle={-30}
+                      textAnchor="end"
+                      interval={0}
+                      height={30}
+                      tick={{ fontSize: 8 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 9 }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value: number) =>
+                        barView === 'ISSUE SIZE' ? `₹${value}` : String(value)
+                      }
+                    />
+                    <Tooltip
+                      contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                      formatter={(value: number) =>
+                        barView === 'ISSUE SIZE' ? `₹${value}` : value
+                      }
+                    />
+                    <Bar
+                      dataKey={
+                        barView === 'ISSUE SIZE'
+                          ? 'previous_year_issue_size'
+                          : 'previous_year_issue_count'
+                      }
+                      fill="#423CAB"
+                      radius={[3, 3, 0, 0]}
+                    />
+                    <Bar
+                      dataKey={
+                        barView === 'ISSUE SIZE'
+                          ? 'current_year_issue_size'
+                          : 'current_year_issue_count'
+                      }
+                      fill="#06B6D4"
+                      radius={[3, 3, 0, 0]}
+                    />
+                  </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <NoDataState message="No trend data available" subMessage="Historical issue volume data will appear here once available." />
+                <NoDataState message="No volume data available" subMessage="Monthly issuer volume data will appear here once available." />
               )}
-              {!isIssueTrendsLoading && sanitizedIssuersTrendsData && sanitizedIssuersTrendsData.length > 0 && (
-                <div className="flex justify-center gap-6 mt-3">
-                  <span className="flex items-center gap-1.5 text-[9px] text-gray-500">
-                    <span className="w-3 h-3 rounded-full bg-[#EC4899]" /> No of issue
+              {!isMonthlyVolumeLoading && sanitizedIssuersVolumeData && sanitizedIssuersVolumeData.length > 0 && (
+                <div className="flex justify-center gap-6 mt-2">
+                  <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#423CAB]" /> Previous Year (PY)
                   </span>
-                  <span className="flex items-center gap-1.5 text-[9px] text-gray-500">
-                    <span className="w-3 h-3 rounded-full bg-[#06B6D4]" /> Issue Size
+                  <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#06B6D4]" /> Current Year (CY)
                   </span>
                 </div>
               )}
             </SectionCard>
           </div>
 
-          {/* RIGHT COLUMN */}
-          <div className="space-y-5 order-1 lg:order-2">
-            <SectionCard className='p-5'>
-              {/* Top 10 Issuer Volume Bar Chart */}
-              <div className="p-5 mb-6 border border-gray-200 dark:border-gray-700 rounded-2xl">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-2">
-                  <h3 className="text-sm font-bold text-gray-800 dark:text-white uppercase">Top 10 Issuer Volume (Crores)</h3>
-                </div>
-                <div className="flex gap-2 justify-start sm:justify-end mb-3 flex-wrap">
-                  {(['ISSUE SIZE', 'NO. OF ISSUES'] as const).map(v => (
-                    <button
-                      key={v}
-                      onClick={() => setBarView(v)}
-                      className={`text-[9px] font-semibold px-2.5 py-1 rounded-full border transition-all ${barView === v
-                        ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white border-[#7C3AED]'
-                        : 'text-gray-400 border-gray-200 dark:border-gray-600'
-                        }`}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
-                {isMonthlyVolumeLoading ? (
-                  <ChartSkeleton height={180} />
-                ) : sanitizedIssuersVolumeData && sanitizedIssuersVolumeData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart
-                      data={sanitizedIssuersVolumeData}
-                      barSize={10}
-                      barGap={2}
-                      margin={{ top: 5, right: 5, left: -10, bottom: 5 }}
-                    >
-                      <XAxis
-                        dataKey="month_name"
-                        angle={-30}
-                        textAnchor="end"
-                        interval={0}
-                        height={30}
-                        tick={{ fontSize: 8 }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 9 }}
-                        axisLine={false}
-                        tickLine={false}
-                        tickFormatter={(value: number) =>
-                          barView === 'ISSUE SIZE' ? `₹${value}` : String(value)
+          {/* ── Row 3: Top 10 Issuers By Sector + Credit Rating Agencies (1fr 1fr) ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Top 10 Issuers By Sector */}
+            <SectionCard className="p-5">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-white uppercase mb-3">Top 10 Issuers by Sector</h3>
+              {isSectorsLoading ? (
+                <PieChartSkeleton />
+              ) : sanitizedSectorsData && sanitizedSectorsData.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <PieChart>
+                      <Pie
+                        data={sanitizedSectorsData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={30}
+                        outerRadius={75}
+                        paddingAngle={2}
+                        label={renderCustomizedLabel}
+                        labelLine={false}
+                        dataKey={
+                          barView === 'ISSUE SIZE'
+                            ? 'issue_size'
+                            : 'no_of_issue'
                         }
-                      />
+                        nameKey="business_name"
+                      >
+                        {sanitizedSectorsData?.map((entry, i) => (
+                          <Cell key={`cell-${i}`} fill={entry.color} />
+                        ))}
+                      </Pie>
                       <Tooltip
                         contentStyle={{ fontSize: 11, borderRadius: 8 }}
                         formatter={(value: number) =>
                           barView === 'ISSUE SIZE' ? `₹${value}` : value
                         }
                       />
-                      <Bar
-                        dataKey={
-                          barView === 'ISSUE SIZE'
-                            ? 'previous_year_issue_size'
-                            : 'previous_year_issue_count'
-                        }
-                        fill="#423CAB"
-                        radius={[3, 3, 0, 0]}
-                      />
-                      <Bar
-                        dataKey={
-                          barView === 'ISSUE SIZE'
-                            ? 'current_year_issue_size'
-                            : 'current_year_issue_count'
-                        }
-                        fill="#06B6D4"
-                        radius={[3, 3, 0, 0]}
-                      />
-                    </BarChart>
+                    </PieChart>
                   </ResponsiveContainer>
-                ) : (
-                  <NoDataState message="No volume data available" subMessage="Monthly issuer volume data will appear here once available." />
-                )}
-                {!isMonthlyVolumeLoading && sanitizedIssuersVolumeData && sanitizedIssuersVolumeData.length > 0 && (
-                  <div className="flex justify-center gap-6 mt-2">
-                    <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#EC4899]" /> Previous Year (PY)
-                    </span>
-                    <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#06B6D4]" /> Current Year (CY)
-                    </span>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1">
+                    {sanitizedSectorsData?.map((item, i) => (
+                      <span key={i} className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />
+                        {item?.business_name}
+                      </span>
+                    ))}
                   </div>
-                )}
-              </div>
+                </>
+              ) : (
+                <NoDataState message="No sector data available" subMessage="Sector distribution data will appear here once available." />
+              )}
+            </SectionCard>
 
-              {/* Top 10 Issuers By Sector */}
-              <div className="p-5 mb-6 border border-gray-200 dark:border-gray-700 rounded-2xl">
-                <h3 className="text-sm font-bold text-gray-800 dark:text-white uppercase mb-3">Top 10 Issuers by Sector</h3>
-                {isSectorsLoading ? (
-                  <PieChartSkeleton />
-                ) : sanitizedSectorsData && sanitizedSectorsData.length > 0 ? (
-                  <>
-                    <ResponsiveContainer width="100%" height={180}>
-                      <PieChart>
-                        <Pie
-                          data={sanitizedSectorsData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={30}
-                          outerRadius={75}
-                          paddingAngle={2}
-                          label={renderCustomizedLabel}
-                          labelLine={false}
-                          dataKey={
-                            barView === 'ISSUE SIZE'
-                              ? 'issue_size'
-                              : 'no_of_issue'
-                          }
-                          nameKey="business_name"
-                        >
-                          {sanitizedSectorsData?.map((entry, i) => (
-                            <Cell key={`cell-${i}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{ fontSize: 11, borderRadius: 8 }}
-                          formatter={(value: number) =>
-                            barView === 'ISSUE SIZE' ? `₹${value}` : value
-                          }
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1">
-                      {sanitizedSectorsData?.map((item, i) => (
-                        <span key={i} className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />
-                          {item?.business_name}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <NoDataState message="No sector data available" subMessage="Sector distribution data will appear here once available." />
-                )}
-              </div>
-
-              {/* Credit Rating Agencies */}
-              <div className="p-5 mb-6 border border-gray-200 dark:border-gray-700 rounded-2xl">
-                <h3 className="text-sm font-bold text-gray-800 dark:text-white uppercase mb-3">Credit Rating Agencies</h3>
-                {isAgencyLoading ? (
-                  <PieChartSkeleton />
-                ) : sanitizedAgencyData && sanitizedAgencyData.length > 0 ? (
-                  <>
-                    <ResponsiveContainer width="100%" height={160}>
-                      <PieChart>
-                        <Pie
-                          data={sanitizedAgencyData}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={70}
-                          paddingAngle={2}
-                          label={renderCustomizedLabel}
-                          labelLine={false}
-                          dataKey="rating_no"
-                        >
-                          {sanitizedAgencyData?.map((entry, i) => (
-                            <Cell key={`cell-${i}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{ fontSize: 11, borderRadius: 8 }}
-                          formatter={(value, name, props) => [
-                            value,
-                            props.payload.label
-                          ]}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1">
-                      {sanitizedAgencyData?.map((item, i) => (
-                        <span key={i} className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />
-                          {item?.label}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <NoDataState message="No agency data available" subMessage="Credit rating agency data will appear here once available." />
-                )}
-              </div>
+            {/* Credit Rating Agencies */}
+            <SectionCard className="p-5">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-white uppercase mb-3">Credit Rating Agencies</h3>
+              {isAgencyLoading ? (
+                <PieChartSkeleton />
+              ) : sanitizedAgencyData && sanitizedAgencyData.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <PieChart>
+                      <Pie
+                        data={sanitizedAgencyData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={75}
+                        paddingAngle={2}
+                        label={renderCustomizedLabel}
+                        labelLine={false}
+                        dataKey="rating_no"
+                      >
+                        {sanitizedAgencyData?.map((entry, i) => (
+                          <Cell key={`cell-${i}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                        formatter={(value, name, props) => [
+                          value,
+                          props.payload.label
+                        ]}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1">
+                    {sanitizedAgencyData?.map((item, i) => (
+                      <span key={i} className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />
+                        {item?.label}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <NoDataState message="No agency data available" subMessage="Credit rating agency data will appear here once available." />
+              )}
             </SectionCard>
           </div>
+
         </div>
       </div>
     </SkeletonTheme>
