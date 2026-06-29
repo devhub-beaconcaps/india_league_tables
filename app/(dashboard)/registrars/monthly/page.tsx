@@ -23,6 +23,7 @@ import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
 import { useRouter } from 'next/navigation';
 import { fetchRegistrarMonthlySummaryData } from '@/features/registrars/services';
 import { Search, X, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { SummaryDiagonalCard } from '@/components/SummaryDiagonalCard';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -1037,6 +1038,18 @@ function QuarterWiseTable({
     );
 }
 
+function formatNumberToFourChar(num: number) {
+    // If the number is large, use the k/m/b formatting
+    if (num >= 1000) {
+        if (num < 1000000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
+        if (num < 1000000000) return (num / 1000000).toFixed(1).replace('.0', '') + 'm';
+        return (num / 1000000000).toFixed(1).replace('.0', '') + 'b';
+    }
+
+    // If the number is < 1000, round it to an integer to keep it short
+    return Math.round(num).toString();
+}
+
 // ─────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
@@ -1366,6 +1379,16 @@ export default function MonthWiseSummary() {
         compareFilters.startDate,
         compareFilters.endDate,
     );
+
+    const avgPrimarySize = displayPrimaryData.length
+        ? primaryTotalSize /
+        displayPrimaryData.length
+        : 0;
+
+    const avgCompareSize = displayCompareData.length
+        ? compareTotalSize /
+        displayCompareData.length
+        : 0;
 
     // ─────────────────────────────────────────────────────────
     // RENDER
@@ -2036,178 +2059,72 @@ export default function MonthWiseSummary() {
 
                 {/* SUMMARY */}
 
-                <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${enableCompare ? 'xl:grid-cols-4' : 'xl:grid-cols-3'}`}>
+                <div
+                    className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5`}
+                >
 
-                    {/* Total Issue Count */}
-                    <SectionCard className="my-3 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-16 h-16 bg-[#423CAB]/5 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-[#423CAB]/10" />
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
-                                    Total Issue Count
-                                </p>
-                                <div className="space-y-2">
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-2xl font-bold text-[#423CAB]">
-                                            {primaryTotalCount.toLocaleString()}
-                                        </span>
-                                        <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                                            {primaryYearLabel}
-                                        </span>
-                                    </div>
-                                    {enableCompare && (
-                                        <div className="flex items-baseline gap-2 pt-1 border-t border-gray-100 dark:border-gray-700">
-                                            <span className="text-xl font-bold text-[#06B6D4]">
-                                                {compareTotalCount.toLocaleString()}
-                                            </span>
-                                            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                                                {compareYearLabel}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="w-10 h-10 rounded-xl bg-[#423CAB]/10 flex items-center justify-center">
-                                <svg className="w-5 h-5 text-[#423CAB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </SectionCard>
+                    <SummaryDiagonalCard
+                        title="Total Issue Count"
+                        primaryValue={primaryTotalCount.toLocaleString()}
+                        compareValue={compareTotalCount.toLocaleString()}
+                        primaryNumber={primaryTotalCount}
+                        compareNumber={compareTotalCount}
+                        primaryLabel={primaryYearLabel}
+                        compareLabel={compareYearLabel}
+                        growth={totalCountGrowth}
+                        color="#423CAB"
+                        enableCompare={enableCompare}
+                    />
 
-                    {/* Total Issue Size */}
-                    <SectionCard className="my-3 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-emerald-500/10" />
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
-                                    Total Issue Size
-                                </p>
-                                <div className="space-y-2">
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                                            ₹{formatNumber(primaryTotalSize)}
-                                        </span>
-                                        <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                                            {sizeUnit}
-                                        </span>
-                                    </div>
-                                    <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium block">
-                                        {primaryYearLabel}
-                                    </span>
-                                    {enableCompare && (
-                                        <div className="space-y-1 pt-1 border-t border-gray-100 dark:border-gray-700">
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-xl font-bold text-[#06B6D4]">
-                                                    ₹{formatNumber(compareTotalSize)}
-                                                </span>
-                                                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                                                    {sizeUnit}
-                                                </span>
-                                            </div>
-                                            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium block">
-                                                {compareYearLabel}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                                <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </SectionCard>
+                    <SummaryDiagonalCard
+                        title="Total Issue Size"
+                        primaryValue={`₹${formatNumberToFourChar(primaryTotalSize)}`}
+                        compareValue={`₹${formatNumberToFourChar(compareTotalSize)}`}
+                        primaryNumber={primaryTotalSize}
+                        compareNumber={compareTotalSize}
+                        primaryLabel={primaryYearLabel}
+                        compareLabel={compareYearLabel}
+                        growth={totalSizeGrowth}
+                        color="#059669"
+                        enableCompare={enableCompare}
+                    />
 
-                    {/* Avg Monthly Issue Size */}
-                    <SectionCard className="my-3 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/5 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-amber-500/10" />
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
-                                    Avg Monthly Issue Size
-                                </p>
-                                <div className="space-y-2">
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                                            ₹{displayPrimaryData.length > 0 ? formatNumber(primaryTotalSize / displayPrimaryData.length) : formatNumber(0)}
-                                        </span>
-                                        <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                                            {sizeUnit}
-                                        </span>
-                                    </div>
-                                    <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium block">
-                                        {primaryYearLabel}
-                                    </span>
-                                    {enableCompare && (
-                                        <div className="space-y-1 pt-1 border-t border-gray-100 dark:border-gray-700">
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-xl font-bold text-[#06B6D4]">
-                                                    ₹{displayPrimaryData.length > 0 ? formatNumber(compareTotalSize / displayPrimaryData.length) : formatNumber(0)}
-                                                </span>
-                                                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                                                    {sizeUnit}
-                                                </span>
-                                            </div>
-                                            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium block">
-                                                {compareYearLabel}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                                <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                </svg>
-                            </div>
-                        </div>
-                    </SectionCard>
-
-                    {/* Compare Growth (only when comparing) */}
-                    {enableCompare && (
-                        <SectionCard className="my-3 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 w-16 h-16 bg-violet-500/5 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-violet-500/10" />
-                            <div className="flex items-start justify-between">
-                                <div className="w-full">
-                                    <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
-                                        YoY Growth
-                                    </p>
-                                    <div className="space-y-3">
-                                        {/* Count Growth */}
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${totalCountGrowth >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
-                                                    <svg className={`w-4 h-4 ${totalCountGrowth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={totalCountGrowth >= 0 ? "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" : "M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"} />
-                                                    </svg>
-                                                </div>
-                                                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">Issue Count</span>
-                                            </div>
-                                            <span className={`text-lg font-bold ${totalCountGrowth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-                                                {totalCountGrowth > 0 ? '+' : ''}{totalCountGrowth.toFixed(1)}%
-                                            </span>
-                                        </div>
-                                        {/* Size Growth */}
-                                        <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${totalSizeGrowth >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
-                                                    <svg className={`w-4 h-4 ${totalSizeGrowth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={totalSizeGrowth >= 0 ? "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" : "M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"} />
-                                                    </svg>
-                                                </div>
-                                                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">Issue Size</span>
-                                            </div>
-                                            <span className={`text-lg font-bold ${totalSizeGrowth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-                                                {totalSizeGrowth > 0 ? '+' : ''}{totalSizeGrowth.toFixed(1)}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </SectionCard>
-                    )}
+                    <SummaryDiagonalCard
+                        title="Avg Monthly Issue Size"
+                        primaryValue={`₹${formatNumberToFourChar(avgPrimarySize)}`}
+                        compareValue={`₹${formatNumberToFourChar(avgCompareSize)}`}
+                        primaryNumber={
+                            displayPrimaryData.length
+                                ? primaryTotalSize /
+                                displayPrimaryData.length
+                                : 0
+                        }
+                        compareNumber={
+                            displayCompareData.length
+                                ? compareTotalSize /
+                                displayCompareData.length
+                                : 0
+                        }
+                        primaryLabel={primaryYearLabel}
+                        compareLabel={compareYearLabel}
+                        growth={
+                            compareTotalSize > 0
+                                ? (
+                                    (
+                                        (primaryTotalSize /
+                                            Math.max(displayPrimaryData.length, 1) -
+                                            compareTotalSize /
+                                            Math.max(displayCompareData.length, 1)) /
+                                        (compareTotalSize /
+                                            Math.max(displayCompareData.length, 1))
+                                    ) *
+                                    100
+                                )
+                                : 0
+                        }
+                        color="#D97706"
+                        enableCompare={enableCompare}
+                    />
 
                 </div>
 
