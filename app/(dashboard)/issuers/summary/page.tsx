@@ -751,7 +751,7 @@ export default function IssuerSummary() {
                 <div className="">
 
                     {/* ── Collapsible Detailed Filters Section ── */}
-                    <SectionCard className="p-0 overflow-hidden my-3">
+                    <SectionCard className="p-0">
                         {/* Collapsed Header Bar */}
                         <button
                             onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
@@ -798,7 +798,7 @@ export default function IssuerSummary() {
 
                         {/* Expanded Filter Content */}
                         <div
-                            className={`transition-all duration-300 ease-in-out overflow-hidden ${isFiltersExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+                            className={`transition-all duration-300 ease-in-out ${isFiltersExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
                                 }`}
                         >
                             <div className="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800">
@@ -813,6 +813,7 @@ export default function IssuerSummary() {
                                                     value={filters.issuerOwnershipType}
                                                     onChange={(val) => updateFilter('issuerOwnershipType', val)}
                                                     placeholder="Select Ownership"
+                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                                                 />
                                             </FilterGroup>
 
@@ -822,6 +823,7 @@ export default function IssuerSummary() {
                                                     value={filters.issuerNatureType}
                                                     onChange={(val) => updateFilter('issuerNatureType', val)}
                                                     placeholder="Select Nature"
+                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                                                 />
                                             </FilterGroup>
 
@@ -831,6 +833,7 @@ export default function IssuerSummary() {
                                                     value={filters.businessSector}
                                                     onChange={(val) => updateFilter('businessSector', val)}
                                                     placeholder="Select Sector"
+                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                                                 />
                                             </FilterGroup>
 
@@ -840,6 +843,7 @@ export default function IssuerSummary() {
                                                     value={filters.securityType}
                                                     onChange={(val) => updateFilter('securityType', val)}
                                                     placeholder="Select Security"
+                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                                                 />
                                             </FilterGroup>
 
@@ -849,6 +853,7 @@ export default function IssuerSummary() {
                                                     value={filters.modeOfIssue}
                                                     onChange={(val) => updateFilter('modeOfIssue', val)}
                                                     placeholder="Select Mode"
+                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                                                 />
                                             </FilterGroup>
 
@@ -858,6 +863,7 @@ export default function IssuerSummary() {
                                                     value={filters.creditRatingAgency}
                                                     onChange={(val) => updateFilter('creditRatingAgency', val)}
                                                     placeholder="Select Agency"
+                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                                                 />
                                             </FilterGroup>
 
@@ -867,6 +873,7 @@ export default function IssuerSummary() {
                                                     value={filters.creditRating}
                                                     onChange={(val) => updateFilter('creditRating', val)}
                                                     placeholder="Select Rating"
+                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                                                 />
                                             </FilterGroup>
 
@@ -876,6 +883,7 @@ export default function IssuerSummary() {
                                                     value={filters.seniority}
                                                     onChange={(val) => updateFilter('seniority', val)}
                                                     placeholder="Select Seniority"
+                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                                                 />
                                             </FilterGroup>
 
@@ -885,6 +893,7 @@ export default function IssuerSummary() {
                                                     value={filters.servicedFlag}
                                                     onChange={(val) => updateFilter('servicedFlag', val)}
                                                     placeholder="Select Flag"
+                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                                                 />
                                             </FilterGroup>
 
@@ -894,6 +903,7 @@ export default function IssuerSummary() {
                                                     value={filters.listingStatus}
                                                     onChange={(val) => updateFilter('listingStatus', val)}
                                                     placeholder="Select Status"
+                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
                                                 />
                                             </FilterGroup>
                                         </div>
