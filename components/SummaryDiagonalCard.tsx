@@ -31,6 +31,12 @@ function SectionCard({
     );
 }
 
+const colorMap = {
+    "#423CAB": "dark:text-[#423CAB]",
+    "#059669": "dark:text-[#059669]",
+    "#D97706": "dark:text-[#D97706]"
+};
+
 export const SummaryDiagonalCard = ({
     title,
     primaryValue,
@@ -52,8 +58,7 @@ export const SummaryDiagonalCard = ({
 
                 <div className="flex flex-col justify-center">
                     <span
-                        className="text-3xl font-bold"
-                        style={{ color }}
+                        className={`text-3xl font-bold ${colorMap[color]}`}
                     >
                         {primaryValue}
                     </span>
