@@ -11,93 +11,95 @@ import * as XLSX from 'xlsx';
 import { FilterOption, FilterState, TableDataItem } from './types';
 import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
 import { fetchTrusteePageDetailedData } from '@/features/trustees/services';
+import { motion, AnimatePresence } from 'framer-motion'
+
 
 
 // Helper to get current financial year dates (India: April 1 - March 31)
 function getCurrentFinancialYearDates() {
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
 
-  let startYear;
-  let endYear;
+    let startYear;
+    let endYear;
 
-  // Determine financial year bounds
-  if (currentMonth >= 3) { // April is 3
-    startYear = currentYear;
-    endYear = currentYear + 1;
-  } else {
-    startYear = currentYear - 1;
-    endYear = currentYear;
-  }
+    // Determine financial year bounds
+    if (currentMonth >= 3) { // April is 3
+        startYear = currentYear;
+        endYear = currentYear + 1;
+    } else {
+        startYear = currentYear - 1;
+        endYear = currentYear;
+    }
 
-  const startDate = new Date(startYear, 3, 1);
-  const endDate = new Date(endYear, 2, 31);
+    const startDate = new Date(startYear, 3, 1);
+    const endDate = new Date(endYear, 2, 31);
 
-  // If the financial year end is in the future, use today
-  const finalEndDate = endDate > now ? now : endDate;
+    // If the financial year end is in the future, use today
+    const finalEndDate = endDate > now ? now : endDate;
 
-  // Helper to format date as YYYY-MM-DD using LOCAL time
-  const formatLocalDate = (date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  };
+    // Helper to format date as YYYY-MM-DD using LOCAL time
+    const formatLocalDate = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
 
-  return {
-    startDate: formatLocalDate(startDate),
-    endDate: formatLocalDate(finalEndDate)
-  };
+    return {
+        startDate: formatLocalDate(startDate),
+        endDate: formatLocalDate(finalEndDate)
+    };
 }
 
 function formatLocalDate(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function getYearOptions() {
-  const now = new Date();
-  const currentYear = now.getFullYear();
-
-  const formatLocalDate = (date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
-  };
+}
 
-  const today = formatLocalDate(now);
+function getYearOptions() {
+    const now = new Date();
+    const currentYear = now.getFullYear();
 
-  const financialYears = [];
-  const calendarYears = [];
+    const formatLocalDate = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
 
-  for (let i = 0; i < 5; i++) {
-    const year = currentYear - i;
+    const today = formatLocalDate(now);
 
-    const fyEnd = `${year + 1}-03-31`;
-    const cyEnd = `${year}-12-31`;
+    const financialYears = [];
+    const calendarYears = [];
 
-    financialYears.push({
-      value: `FY-${year}`,
-      label: `FY ${year}-${String(year + 1).slice(-2)}`,
-      startDate: `${year}-04-01`,
-      endDate: fyEnd > today ? today : fyEnd,
-      group: 'Financial Year',
-    });
+    for (let i = 0; i < 5; i++) {
+        const year = currentYear - i;
 
-    calendarYears.push({
-      value: `CY-${year}`,
-      label: `CY ${year}`,
-      startDate: `${year}-01-01`,
-      endDate: cyEnd > today ? today : cyEnd,
-      group: 'Calendar Year',
-    });
-  }
+        const fyEnd = `${year + 1}-03-31`;
+        const cyEnd = `${year}-12-31`;
 
-  return [...financialYears, ...calendarYears];
+        financialYears.push({
+            value: `FY-${year}`,
+            label: `FY ${year}-${String(year + 1).slice(-2)}`,
+            startDate: `${year}-04-01`,
+            endDate: fyEnd > today ? today : fyEnd,
+            group: 'Financial Year',
+        });
+
+        calendarYears.push({
+            value: `CY-${year}`,
+            label: `CY ${year}`,
+            startDate: `${year}-01-01`,
+            endDate: cyEnd > today ? today : cyEnd,
+            group: 'Calendar Year',
+        });
+    }
+
+    return [...financialYears, ...calendarYears];
 }
 
 const DEFAULT_DATES = getCurrentFinancialYearDates();
@@ -853,229 +855,237 @@ export default function DetailedAnalysis() {
                     </button>
 
                     {/* Expanded Filter Content */}
-                    <div
-                        className={`transition-all duration-300 ease-in-out ${isFiltersExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
-                            }`}
-                    >
-                        <div className="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800">
-                            {isFiltersLoading ? (
-                                <FilterSkeleton />
-                            ) : (
-                                <>
-                                    {/* Filter Grid */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
-                                        <FilterGroup label="Trustee Name">
-                                            <TextInput
-                                                value={filters.trustee}
-                                                onChange={(val) => updateFilter('trustee', val)}
-                                                placeholder="Enter Trustee Name"
-                                                type="text"
-                                            />
-                                        </FilterGroup>
 
-                                        <FilterGroup label="Issuer Ownership Type">
-                                            <CustomDropdown
-                                                options={toOptions(filterOptions.ownershipType)}
-                                                value={filters.issuerOwnershipType}
-                                                onChange={(val) => updateFilter('issuerOwnershipType', val)}
-                                                placeholder="Select Ownership"
-                                            />
-                                        </FilterGroup>
+                    <AnimatePresence>
+                        {isFiltersExpanded && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <div className="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800">
+                                    {isFiltersLoading ? (
+                                        <FilterSkeleton />
+                                    ) : (
+                                        <>
+                                            {/* Filter Grid */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
+                                                <FilterGroup label="Trustee Name">
+                                                    <TextInput
+                                                        value={filters.trustee}
+                                                        onChange={(val) => updateFilter('trustee', val)}
+                                                        placeholder="Enter Trustee Name"
+                                                        type="text"
+                                                    />
+                                                </FilterGroup>
 
-                                        <FilterGroup label="Issuer Nature Type">
-                                            <CustomDropdown
-                                                options={toOptions(filterOptions.nature)}
-                                                value={filters.issuerNatureType}
-                                                onChange={(val) => updateFilter('issuerNatureType', val)}
-                                                placeholder="Select Nature"
-                                            />
-                                        </FilterGroup>
+                                                <FilterGroup label="Issuer Ownership Type">
+                                                    <CustomDropdown
+                                                        options={toOptions(filterOptions.ownershipType)}
+                                                        value={filters.issuerOwnershipType}
+                                                        onChange={(val) => updateFilter('issuerOwnershipType', val)}
+                                                        placeholder="Select Ownership"
+                                                    />
+                                                </FilterGroup>
 
-                                        <FilterGroup label="Business Sector">
-                                            <CustomDropdown
-                                                options={toOptions(filterOptions.sector)}
-                                                value={filters.businessSector}
-                                                onChange={(val) => updateFilter('businessSector', val)}
-                                                placeholder="Select Sector"
-                                            />
-                                        </FilterGroup>
+                                                <FilterGroup label="Issuer Nature Type">
+                                                    <CustomDropdown
+                                                        options={toOptions(filterOptions.nature)}
+                                                        value={filters.issuerNatureType}
+                                                        onChange={(val) => updateFilter('issuerNatureType', val)}
+                                                        placeholder="Select Nature"
+                                                    />
+                                                </FilterGroup>
 
-                                        <FilterGroup label="Years">
-                                            <CustomDropdown
-                                                options={[
-                                                    {
-                                                        label: "Financial Year",
-                                                        options: yearOptions
-                                                            .filter(x => x.group === "Financial Year")
-                                                            .map(x => ({
-                                                                value: x.value,
-                                                                label: x.label,
-                                                            }))
-                                                    },
-                                                    {
-                                                        label: "Calendar Year",
-                                                        options: yearOptions
-                                                            .filter(x => x.group === "Calendar Year")
-                                                            .map(x => ({
-                                                                value: x.value,
-                                                                label: `CY ${x.startDate.slice(0, 4)}`,
-                                                            })),
-                                                    },
-                                                ]}
-                                                value={selectedYear}
-                                                onChange={(val) => handleYearChange(val as string)}
-                                                placeholder="Select Year"
-                                            />
-                                        </FilterGroup>
+                                                <FilterGroup label="Business Sector">
+                                                    <CustomDropdown
+                                                        options={toOptions(filterOptions.sector)}
+                                                        value={filters.businessSector}
+                                                        onChange={(val) => updateFilter('businessSector', val)}
+                                                        placeholder="Select Sector"
+                                                    />
+                                                </FilterGroup>
 
-                                        <FilterGroup label="From Allotment Date">
-                                            <DateInput
-                                                value={filters.fromAllotmentDate}
-                                                onChange={(val) => updateFilter('fromAllotmentDate', val)}
-                                            />
-                                        </FilterGroup>
+                                                <FilterGroup label="Years">
+                                                    <CustomDropdown
+                                                        options={[
+                                                            {
+                                                                label: "Financial Year",
+                                                                options: yearOptions
+                                                                    .filter(x => x.group === "Financial Year")
+                                                                    .map(x => ({
+                                                                        value: x.value,
+                                                                        label: x.label,
+                                                                    }))
+                                                            },
+                                                            {
+                                                                label: "Calendar Year",
+                                                                options: yearOptions
+                                                                    .filter(x => x.group === "Calendar Year")
+                                                                    .map(x => ({
+                                                                        value: x.value,
+                                                                        label: `CY ${x.startDate.slice(0, 4)}`,
+                                                                    })),
+                                                            },
+                                                        ]}
+                                                        value={selectedYear}
+                                                        onChange={(val) => handleYearChange(val as string)}
+                                                        placeholder="Select Year"
+                                                    />
+                                                </FilterGroup>
 
-                                        <FilterGroup label="To Allotment Date">
-                                            <DateInput
-                                                value={filters.toAllotmentDate}
-                                                onChange={(val) => updateFilter('toAllotmentDate', val)}
-                                            />
-                                        </FilterGroup>
+                                                <FilterGroup label="From Allotment Date">
+                                                    <DateInput
+                                                        value={filters.fromAllotmentDate}
+                                                        onChange={(val) => updateFilter('fromAllotmentDate', val)}
+                                                    />
+                                                </FilterGroup>
 
-                                        <FilterGroup label="Security Type">
-                                            <CustomDropdown
-                                                options={toOptions(filterOptions.securityType)}
-                                                value={filters.securityType}
-                                                onChange={(val) => updateFilter('securityType', val)}
-                                                placeholder="Select Security"
-                                            />
-                                        </FilterGroup>
+                                                <FilterGroup label="To Allotment Date">
+                                                    <DateInput
+                                                        value={filters.toAllotmentDate}
+                                                        onChange={(val) => updateFilter('toAllotmentDate', val)}
+                                                    />
+                                                </FilterGroup>
 
-                                        <FilterGroup label="Mode of Issue">
-                                            <CustomDropdown
-                                                options={toOptions(filterOptions.modeOfIssue)}
-                                                value={filters.modeOfIssue}
-                                                onChange={(val) => updateFilter('modeOfIssue', val)}
-                                                placeholder="Select Mode"
-                                            />
-                                        </FilterGroup>
+                                                <FilterGroup label="Security Type">
+                                                    <CustomDropdown
+                                                        options={toOptions(filterOptions.securityType)}
+                                                        value={filters.securityType}
+                                                        onChange={(val) => updateFilter('securityType', val)}
+                                                        placeholder="Select Security"
+                                                    />
+                                                </FilterGroup>
 
-                                        <FilterGroup label="Credit Rating Agency">
-                                            <CustomDropdown
-                                                options={toOptions(filterOptions.creditRatingAgency)}
-                                                value={filters.creditRatingAgency}
-                                                onChange={(val) => updateFilter('creditRatingAgency', val)}
-                                                placeholder="Select Agency"
-                                            />
-                                        </FilterGroup>
+                                                <FilterGroup label="Mode of Issue">
+                                                    <CustomDropdown
+                                                        options={toOptions(filterOptions.modeOfIssue)}
+                                                        value={filters.modeOfIssue}
+                                                        onChange={(val) => updateFilter('modeOfIssue', val)}
+                                                        placeholder="Select Mode"
+                                                    />
+                                                </FilterGroup>
 
-                                        <FilterGroup label="Credit Rating">
-                                            <CustomDropdown
-                                                options={toOptions(filterOptions.creditRating)}
-                                                value={filters.creditRating}
-                                                onChange={(val) => updateFilter('creditRating', val)}
-                                                placeholder="Select Rating"
-                                            />
-                                        </FilterGroup>
+                                                <FilterGroup label="Credit Rating Agency">
+                                                    <CustomDropdown
+                                                        options={toOptions(filterOptions.creditRatingAgency)}
+                                                        value={filters.creditRatingAgency}
+                                                        onChange={(val) => updateFilter('creditRatingAgency', val)}
+                                                        placeholder="Select Agency"
+                                                    />
+                                                </FilterGroup>
 
-                                        <FilterGroup label="Seniority">
-                                            <CustomDropdown
-                                                options={toOptions(filterOptions.seniority)}
-                                                value={filters.seniority}
-                                                onChange={(val) => updateFilter('seniority', val)}
-                                                placeholder="Select Seniority"
-                                            />
-                                        </FilterGroup>
+                                                <FilterGroup label="Credit Rating">
+                                                    <CustomDropdown
+                                                        options={toOptions(filterOptions.creditRating)}
+                                                        value={filters.creditRating}
+                                                        onChange={(val) => updateFilter('creditRating', val)}
+                                                        placeholder="Select Rating"
+                                                    />
+                                                </FilterGroup>
 
-                                        <FilterGroup label="Serviced Flag">
-                                            <CustomDropdown
-                                                options={toOptions(filterOptions.securedFlag)}
-                                                value={filters.servicedFlag}
-                                                onChange={(val) => updateFilter('servicedFlag', val)}
-                                                placeholder="Select Flag"
-                                            />
-                                        </FilterGroup>
+                                                <FilterGroup label="Seniority">
+                                                    <CustomDropdown
+                                                        options={toOptions(filterOptions.seniority)}
+                                                        value={filters.seniority}
+                                                        onChange={(val) => updateFilter('seniority', val)}
+                                                        placeholder="Select Seniority"
+                                                    />
+                                                </FilterGroup>
 
-                                        <FilterGroup label="Listing Status">
-                                            <CustomDropdown
-                                                options={toOptions(filterOptions.listingStatus)}
-                                                value={filters.listingStatus}
-                                                onChange={(val) => updateFilter('listingStatus', val)}
-                                                placeholder="Select Status"
-                                            />
-                                        </FilterGroup>
-                                    </div>
+                                                <FilterGroup label="Serviced Flag">
+                                                    <CustomDropdown
+                                                        options={toOptions(filterOptions.securedFlag)}
+                                                        value={filters.servicedFlag}
+                                                        onChange={(val) => updateFilter('servicedFlag', val)}
+                                                        placeholder="Select Flag"
+                                                    />
+                                                </FilterGroup>
 
-                                    {/* Active Filter Chips in expanded view */}
-                                    {activeFilterChips.length > 0 && (
-                                        <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                            <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                Active:
-                                            </span>
-                                            {activeFilterChips.map((chip) => (
-                                                <ActiveFilterChip
-                                                    key={chip.key}
-                                                    label={chip.label}
-                                                    onRemove={() => updateFilter(chip.key, '')}
-                                                />
-                                            ))}
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedYear('');
+                                                <FilterGroup label="Listing Status">
+                                                    <CustomDropdown
+                                                        options={toOptions(filterOptions.listingStatus)}
+                                                        value={filters.listingStatus}
+                                                        onChange={(val) => updateFilter('listingStatus', val)}
+                                                        placeholder="Select Status"
+                                                    />
+                                                </FilterGroup>
+                                            </div>
 
-                                                    setFilters({
-                                                        trustee: '',
-                                                        issuerOwnershipType: '',
-                                                        issuerNatureType: '',
-                                                        businessSector: '',
-                                                        fromAllotmentDate: DEFAULT_DATES.startDate,
-                                                        toAllotmentDate: DEFAULT_DATES.endDate,
-                                                        securityType: '',
-                                                        modeOfIssue: '',
-                                                        creditRatingAgency: '',
-                                                        creditRating: '',
-                                                        seniority: '',
-                                                        servicedFlag: '',
-                                                        listingStatus: '',
-                                                    });
-                                                }}
-                                                className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
-                                            >
-                                                Clear all
-                                            </button>
-                                        </div>
+                                            {/* Active Filter Chips in expanded view */}
+                                            {activeFilterChips.length > 0 && (
+                                                <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                                    <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                        Active:
+                                                    </span>
+                                                    {activeFilterChips.map((chip) => (
+                                                        <ActiveFilterChip
+                                                            key={chip.key}
+                                                            label={chip.label}
+                                                            onRemove={() => updateFilter(chip.key, '')}
+                                                        />
+                                                    ))}
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedYear('');
+
+                                                            setFilters({
+                                                                trustee: '',
+                                                                issuerOwnershipType: '',
+                                                                issuerNatureType: '',
+                                                                businessSector: '',
+                                                                fromAllotmentDate: DEFAULT_DATES.startDate,
+                                                                toAllotmentDate: DEFAULT_DATES.endDate,
+                                                                securityType: '',
+                                                                modeOfIssue: '',
+                                                                creditRatingAgency: '',
+                                                                creditRating: '',
+                                                                seniority: '',
+                                                                servicedFlag: '',
+                                                                listingStatus: '',
+                                                            });
+                                                        }}
+                                                        className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
+                                                    >
+                                                        Clear all
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Action Buttons */}
+                                            <div className="flex flex-wrap items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                                <button
+                                                    onClick={handleSearch}
+                                                    className="flex items-center gap-2 bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-6 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md"
+                                                >
+                                                    <Search className="w-3.5 h-3.5" />
+                                                    Search
+                                                </button>
+
+                                                <button
+                                                    onClick={handleExport}
+                                                    className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
+                                                >
+                                                    <Download className="w-3.5 h-3.5" />
+                                                    Export
+                                                </button>
+
+                                                <button
+                                                    onClick={handleReset}
+                                                    className="flex items-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
+                                                >
+                                                    <X className="w-3.5 h-3.5" />
+                                                    Clear
+                                                </button>
+                                            </div>
+                                        </>
                                     )}
+                                </div>
+                            </motion.div>
+                        )}
 
-                                    {/* Action Buttons */}
-                                    <div className="flex flex-wrap items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                        <button
-                                            onClick={handleSearch}
-                                            className="flex items-center gap-2 bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-6 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md"
-                                        >
-                                            <Search className="w-3.5 h-3.5" />
-                                            Search
-                                        </button>
-
-                                        <button
-                                            onClick={handleExport}
-                                            className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
-                                        >
-                                            <Download className="w-3.5 h-3.5" />
-                                            Export
-                                        </button>
-
-                                        <button
-                                            onClick={handleReset}
-                                            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
-                                        >
-                                            <X className="w-3.5 h-3.5" />
-                                            Clear
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
+                    </AnimatePresence>
                 </SectionCard>
 
                 {/* ── Data Table Section ── */}
@@ -1184,9 +1194,8 @@ export default function DetailedAnalysis() {
                                                 {filteredColumns.map((column) => (
                                                     <td
                                                         key={column.accessor}
-                                                        className={`border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200 ${
-                                                            column.accessor === 'issueValue' || column.accessor === 'faceValue' ? 'text-right' : ''
-                                                        }`}
+                                                        className={`border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200 ${column.accessor === 'issueValue' || column.accessor === 'faceValue' ? 'text-right' : ''
+                                                            }`}
                                                     >
                                                         {renderCell(row, column.accessor)}
                                                     </td>
@@ -1267,8 +1276,8 @@ export default function DetailedAnalysis() {
                                                     key={page}
                                                     onClick={() => setCurrentPage(page as number)}
                                                     className={`px-3 py-1 rounded text-sm ${currentPage === page
-                                                            ? "bg-[#423CAB] text-white"
-                                                            : "border border-gray-300 dark:border-gray-700"
+                                                        ? "bg-[#423CAB] text-white"
+                                                        : "border border-gray-300 dark:border-gray-700"
                                                         }`}
                                                 >
                                                     {page}
