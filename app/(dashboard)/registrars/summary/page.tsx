@@ -59,6 +59,8 @@ import StackedChart from '@/components/charts/StackedChart';
 import ScrollableTable from '@/components/ScrollableTable';
 import { fetchRegistrarPageCreditRatingsData, fetchRegistrarPageData } from '@/features/registrars/services';
 import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
+import { motion, AnimatePresence } from 'framer-motion'
+
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -858,182 +860,190 @@ export default function Summary() {
                         </button>
 
                         {/* Expanded Filter Content */}
-                        <div
-                            className={`transition-all duration-300 ease-in-out ${isFiltersExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
-                                }`}
-                        >
-                            <div className="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800">
-                                {isFiltersLoading ? (
-                                    <FilterSkeleton />
-                                ) : (
-                                    <>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
-                                            <FilterGroup label="Registrar Name">
-                                                <TextInput
-                                                    value={filters.registrar}
-                                                    onChange={(val) => updateFilter('registrar', val)}
-                                                    placeholder="Enter Registrar Name"
-                                                    type="text"
-                                                />
-                                            </FilterGroup>
 
-                                            <FilterGroup label="Issuer Ownership Type">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.ownershipType)}
-                                                    value={filters.issuerOwnershipType}
-                                                    onChange={(val) => updateFilter('issuerOwnershipType', val)}
-                                                    placeholder="Select Ownership"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                        <AnimatePresence>
+                            {isFiltersExpanded && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    <div className="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800">
+                                        {isFiltersLoading ? (
+                                            <FilterSkeleton />
+                                        ) : (
+                                            <>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
+                                                    <FilterGroup label="Registrar Name">
+                                                        <TextInput
+                                                            value={filters.registrar}
+                                                            onChange={(val) => updateFilter('registrar', val)}
+                                                            placeholder="Enter Registrar Name"
+                                                            type="text"
+                                                        />
+                                                    </FilterGroup>
 
-                                            <FilterGroup label="Issuer Nature Type">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.nature)}
-                                                    value={filters.issuerNatureType}
-                                                    onChange={(val) => updateFilter('issuerNatureType', val)}
-                                                    placeholder="Select Nature"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                                    <FilterGroup label="Issuer Ownership Type">
+                                                        <CustomDropdown
+                                                            options={toOptions(filterOptions.ownershipType)}
+                                                            value={filters.issuerOwnershipType}
+                                                            onChange={(val) => updateFilter('issuerOwnershipType', val)}
+                                                            placeholder="Select Ownership"
+                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                        />
+                                                    </FilterGroup>
 
-                                            <FilterGroup label="Business Sector">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.sector)}
-                                                    value={filters.businessSector}
-                                                    onChange={(val) => updateFilter('businessSector', val)}
-                                                    placeholder="Select Sector"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                                    <FilterGroup label="Issuer Nature Type">
+                                                        <CustomDropdown
+                                                            options={toOptions(filterOptions.nature)}
+                                                            value={filters.issuerNatureType}
+                                                            onChange={(val) => updateFilter('issuerNatureType', val)}
+                                                            placeholder="Select Nature"
+                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                        />
+                                                    </FilterGroup>
 
-                                            <FilterGroup label="Security Type">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.securityType)}
-                                                    value={filters.securityType}
-                                                    onChange={(val) => updateFilter('securityType', val)}
-                                                    placeholder="Select Security"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                                    <FilterGroup label="Business Sector">
+                                                        <CustomDropdown
+                                                            options={toOptions(filterOptions.sector)}
+                                                            value={filters.businessSector}
+                                                            onChange={(val) => updateFilter('businessSector', val)}
+                                                            placeholder="Select Sector"
+                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                        />
+                                                    </FilterGroup>
 
-                                            <FilterGroup label="Mode of Issue">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.modeOfIssue)}
-                                                    value={filters.modeOfIssue}
-                                                    onChange={(val) => updateFilter('modeOfIssue', val)}
-                                                    placeholder="Select Mode"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                                    <FilterGroup label="Security Type">
+                                                        <CustomDropdown
+                                                            options={toOptions(filterOptions.securityType)}
+                                                            value={filters.securityType}
+                                                            onChange={(val) => updateFilter('securityType', val)}
+                                                            placeholder="Select Security"
+                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                        />
+                                                    </FilterGroup>
 
-                                            <FilterGroup label="Credit Rating Agency">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.creditRatingAgency)}
-                                                    value={filters.creditRatingAgency}
-                                                    onChange={(val) => updateFilter('creditRatingAgency', val)}
-                                                    placeholder="Select Agency"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                                    <FilterGroup label="Mode of Issue">
+                                                        <CustomDropdown
+                                                            options={toOptions(filterOptions.modeOfIssue)}
+                                                            value={filters.modeOfIssue}
+                                                            onChange={(val) => updateFilter('modeOfIssue', val)}
+                                                            placeholder="Select Mode"
+                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                        />
+                                                    </FilterGroup>
 
-                                            <FilterGroup label="Credit Rating">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.creditRating)}
-                                                    value={filters.creditRating}
-                                                    onChange={(val) => updateFilter('creditRating', val)}
-                                                    placeholder="Select Rating"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                                    <FilterGroup label="Credit Rating Agency">
+                                                        <CustomDropdown
+                                                            options={toOptions(filterOptions.creditRatingAgency)}
+                                                            value={filters.creditRatingAgency}
+                                                            onChange={(val) => updateFilter('creditRatingAgency', val)}
+                                                            placeholder="Select Agency"
+                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                        />
+                                                    </FilterGroup>
 
-                                            <FilterGroup label="Seniority">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.seniority)}
-                                                    value={filters.seniority}
-                                                    onChange={(val) => updateFilter('seniority', val)}
-                                                    placeholder="Select Seniority"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                                    <FilterGroup label="Credit Rating">
+                                                        <CustomDropdown
+                                                            options={toOptions(filterOptions.creditRating)}
+                                                            value={filters.creditRating}
+                                                            onChange={(val) => updateFilter('creditRating', val)}
+                                                            placeholder="Select Rating"
+                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                        />
+                                                    </FilterGroup>
 
-                                            <FilterGroup label="Serviced Flag">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.securedFlag)}
-                                                    value={filters.servicedFlag}
-                                                    onChange={(val) => updateFilter('servicedFlag', val)}
-                                                    placeholder="Select Flag"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                                    <FilterGroup label="Seniority">
+                                                        <CustomDropdown
+                                                            options={toOptions(filterOptions.seniority)}
+                                                            value={filters.seniority}
+                                                            onChange={(val) => updateFilter('seniority', val)}
+                                                            placeholder="Select Seniority"
+                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                        />
+                                                    </FilterGroup>
 
-                                            <FilterGroup label="Listing Status">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.listingStatus)}
-                                                    value={filters.listingStatus}
-                                                    onChange={(val) => updateFilter('listingStatus', val)}
-                                                    placeholder="Select Status"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
-                                        </div>
+                                                    <FilterGroup label="Serviced Flag">
+                                                        <CustomDropdown
+                                                            options={toOptions(filterOptions.securedFlag)}
+                                                            value={filters.servicedFlag}
+                                                            onChange={(val) => updateFilter('servicedFlag', val)}
+                                                            placeholder="Select Flag"
+                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                        />
+                                                    </FilterGroup>
 
-                                        {/* Active Filter Chips in expanded view */}
-                                        {activeFilterChips.length > 0 && (
-                                            <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                                <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                    Active:
-                                                </span>
-                                                {activeFilterChips.map((chip) => (
-                                                    <ActiveFilterChip
-                                                        key={chip.key}
-                                                        label={chip.label}
-                                                        onRemove={() => updateFilter(chip.key, '')}
-                                                    />
-                                                ))}
-                                                <button
-                                                    onClick={() => setFilters({
-                                                        registrar: '',
-                                                        issuerOwnershipType: '',
-                                                        issuerNatureType: '',
-                                                        businessSector: '',
-                                                        securityType: '',
-                                                        modeOfIssue: '',
-                                                        creditRatingAgency: '',
-                                                        creditRating: '',
-                                                        seniority: '',
-                                                        servicedFlag: '',
-                                                        listingStatus: '',
-                                                    })}
-                                                    className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
-                                                >
-                                                    Clear all
-                                                </button>
-                                            </div>
+                                                    <FilterGroup label="Listing Status">
+                                                        <CustomDropdown
+                                                            options={toOptions(filterOptions.listingStatus)}
+                                                            value={filters.listingStatus}
+                                                            onChange={(val) => updateFilter('listingStatus', val)}
+                                                            placeholder="Select Status"
+                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                        />
+                                                    </FilterGroup>
+                                                </div>
+
+                                                {/* Active Filter Chips in expanded view */}
+                                                {activeFilterChips.length > 0 && (
+                                                    <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                            Active:
+                                                        </span>
+                                                        {activeFilterChips.map((chip) => (
+                                                            <ActiveFilterChip
+                                                                key={chip.key}
+                                                                label={chip.label}
+                                                                onRemove={() => updateFilter(chip.key, '')}
+                                                            />
+                                                        ))}
+                                                        <button
+                                                            onClick={() => setFilters({
+                                                                registrar: '',
+                                                                issuerOwnershipType: '',
+                                                                issuerNatureType: '',
+                                                                businessSector: '',
+                                                                securityType: '',
+                                                                modeOfIssue: '',
+                                                                creditRatingAgency: '',
+                                                                creditRating: '',
+                                                                seniority: '',
+                                                                servicedFlag: '',
+                                                                listingStatus: '',
+                                                            })}
+                                                            className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
+                                                        >
+                                                            Clear all
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {/* Action Buttons */}
+                                                <div className="flex flex-wrap items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                                    <button
+                                                        onClick={handleSearch}
+                                                        className="flex items-center gap-2 bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-6 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md"
+                                                    >
+                                                        <Search className="w-3.5 h-3.5" />
+                                                        Search
+                                                    </button>
+
+                                                    <button
+                                                        onClick={handleReset}
+                                                        className="flex items-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
+                                                    >
+                                                        <X className="w-3.5 h-3.5" />
+                                                        Clear
+                                                    </button>
+                                                </div>
+                                            </>
                                         )}
+                                    </div>
+                                </motion.div>
+                            )}
 
-                                        {/* Action Buttons */}
-                                        <div className="flex flex-wrap items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                            <button
-                                                onClick={handleSearch}
-                                                className="flex items-center gap-2 bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-6 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md"
-                                            >
-                                                <Search className="w-3.5 h-3.5" />
-                                                Search
-                                            </button>
-
-                                            <button
-                                                onClick={handleReset}
-                                                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
-                                            >
-                                                <X className="w-3.5 h-3.5" />
-                                                Clear
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </div>
+                        </AnimatePresence>
                     </SectionCard>
 
                     {/* ── Top 10 Registrars Table ── */}

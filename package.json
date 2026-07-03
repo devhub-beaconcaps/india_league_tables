@@ -26,6 +26,7 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.2.1",
     "file-saver": "^2.0.5",
+    "framer-motion": "^12.42.2",
     "langchain": "^0.3.31",
     "lucide-react": "^0.574.0",
     "next": "15.3.1",
