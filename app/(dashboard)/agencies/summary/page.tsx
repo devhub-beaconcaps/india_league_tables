@@ -412,30 +412,99 @@ export default function Summary() {
         });
     };
 
+
+    function getFinancialYearRanges(rangeStr: string) {
+        const [start, end] = rangeStr.split("-").map(Number);
+
+        const currentYearRange: string = `${start}-${String(end).slice(-2)}`;
+        const previousYearRange: string = `${start - 1}-${String(end - 1).slice(-2)}`;
+
+        return {
+            currentYearRange,
+            previousYearRange,
+        };
+    }
+
+
     const handleExportCSV = useCallback(() => {
         if (!issueTableData.length) return;
 
-        const headers = Object.keys(issueTableData[0]);
-        const rows = issueTableData.map((row) =>
-            headers.map((header) => {
-                const cell = (row as Record<string, any>)[header];
-                const str = String(cell ?? '');
-                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                    return `"${str.replace(/"/g, '""')}"`;
-                }
-                return str;
-            }).join(',')
+        // const previousFY = getPreviousFY(selectedFY);
+
+        const { currentYearRange, previousYearRange } = getFinancialYearRanges(selectedFY);
+
+        const exportData = issueTableData.map((row) => ({
+            RatingAgency: row.name,
+
+            [`${currentYearRange}\r\nIssue Size`]: row.issueSize,
+            [`${currentYearRange}\r\nDeals`]: row.deals,
+            [`${currentYearRange}\r\nMarket Share (%)`]: row.mktShare,
+            [`${currentYearRange}\r\nRank`]: row.rank,
+
+            [`${previousYearRange}\r\nIssue Size`]: row.prevSize,
+            [`${previousYearRange}\r\nDeals`]: row.prevDeals,
+            [`${previousYearRange}\r\nMarket Share (%)`]: row.prevMkt,
+            [`${previousYearRange}\r\nRank`]: row.prevRank,
+
+            "YoY (%)": row.yoy,
+        }));
+
+        const headers = Object.keys(exportData[0]);
+
+        const rows = exportData.map((row) =>
+            headers
+                .map((header) => {
+                    const cell = row[header as keyof typeof row];
+                    const str = String(cell ?? "");
+
+                    if (
+                        str.includes(",") ||
+                        str.includes('"') ||
+                        str.includes("\n")
+                    ) {
+                        return `"${str.replace(/"/g, '""')}"`;
+                    }
+
+                    return str;
+                })
+                .join(",")
         );
 
-        const csv = [headers.join(','), ...rows].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
+        const headerRow = headers
+            .map((header) => {
+                const str = String(header);
+
+                if (
+                    str.includes(",") ||
+                    str.includes('"') ||
+                    str.includes("\n") ||
+                    str.includes("\r")
+                ) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                }
+
+                return str;
+            })
+            .join(",");
+
+        const csv = [headerRow, ...rows].join("\n");
+
+        // const csv = [headers.join(","), ...rows].join("\n");
+
+        const blob = new Blob([csv], {
+            type: "text/csv;charset=utf-8;",
+        });
+
+        const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
+
         link.href = url;
-        link.download = `top_rating_agencies_${selectedFY}_${issueType}.csv`;
+        link.download = `top_agencies_${selectedFY}_${issueType}.csv`;
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+
         URL.revokeObjectURL(url);
     }, [issueTableData, selectedFY, issueType]);
 
