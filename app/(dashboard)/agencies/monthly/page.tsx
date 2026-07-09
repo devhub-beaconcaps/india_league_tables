@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
 
 import {
     AreaChart,
@@ -20,12 +19,12 @@ import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
 
-import { useRouter } from 'next/navigation';
 import { fetchRatingAgencyMonthlySummaryData } from '@/features/ratingAgencies/services';
 import { Search, X, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { SummaryDiagonalCard } from '@/components/SummaryDiagonalCard';
 import MonthWiseTable from '@/components/MonthWiseTable';
 import QuarterWiseTable from '@/components/QuarterWiseTable';
+import CustomDropdown from '@/components/CustomDropdown';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -73,20 +72,17 @@ interface FilterOptions {
     creditRating: string[];
 }
 
-interface ApiFilters {
-    startDate: string;
-    endDate: string;
-
-    ownershipType: string;
-    sector: string;
-    nature: string;
-    securityType: string;
-    creditRatingAgency: string;
-    modeOfIssue: string;
-    seniority: string;
-    listingStatus: string;
-    securedFlag: string;
-    rating: string;
+interface SummaryFilterState {
+    ownershipType: string[];
+    sector: string[];
+    nature: string[];
+    securityType: string[];
+    creditRatingAgency: string[];
+    modeOfIssue: string[];
+    seniority: string[];
+    listingStatus: string[];
+    securedFlag: string[];
+    rating: string[];
 }
 
 type SizeUnit = 'Crores' | 'Lakhs' | 'Billions';
@@ -125,26 +121,28 @@ function generateFinancialYearOptions(count: number = 3) {
     return options;
 }
 
-const FINANCIAL_YEAR_OPTIONS = generateFinancialYearOptions(3);
+const FINANCIAL_YEAR_OPTIONS = generateFinancialYearOptions(5);
+
+const fyDropdownOptions = FINANCIAL_YEAR_OPTIONS.map(item => ({
+    value: item.label,
+    label: item.label,
+}));
 
 // ─────────────────────────────────────────────────────────────
 // DEFAULT FILTERS
 // ─────────────────────────────────────────────────────────────
 
-const DEFAULT_FILTERS: ApiFilters = {
-    startDate: FINANCIAL_YEAR_OPTIONS[0].startDate,
-    endDate: FINANCIAL_YEAR_OPTIONS[0].endDate,
-
-    ownershipType: '',
-    sector: '',
-    nature: '',
-    securityType: '',
-    creditRatingAgency: '',
-    modeOfIssue: '',
-    seniority: '',
-    listingStatus: '',
-    securedFlag: '',
-    rating: '',
+const DEFAULT_FILTERS: SummaryFilterState = {
+    ownershipType: [],
+    sector: [],
+    nature: [],
+    securityType: [],
+    creditRatingAgency: [],
+    modeOfIssue: [],
+    seniority: [],
+    listingStatus: [],
+    securedFlag: [],
+    rating: [],
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -199,36 +197,21 @@ function NoDataState({
     );
 }
 
-function FilterSelect({
+function FilterGroup({
     label,
-    value,
-    options,
-    onChange,
+    children,
+    className = ''
 }: {
     label: string;
-    value: string;
-    options: string[];
-    onChange: (value: string) => void;
+    children: React.ReactNode;
+    className?: string
 }) {
     return (
-        <div className="flex flex-col gap-1">
-            <label className="text-[9px] text-gray-400 block mb-1">
+        <div className={`flex flex-col gap-1.5 ${className}`}>
+            <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {label}
             </label>
-
-            <select
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
-            >
-                <option value="" className="text-gray-700 dark:text-gray-200">All</option>
-
-                {options?.map((item) => (
-                    <option key={item} value={item} className="text-gray-700 dark:text-gray-200">
-                        {item}
-                    </option>
-                ))}
-            </select>
+            {children}
         </div>
     );
 }
@@ -415,18 +398,20 @@ export default function AgenciesMonthWiseSummary() {
     // ─────────────────────────────────────────────────────────
 
     const [primaryFilters, setPrimaryFilters] =
-        useState<ApiFilters>(DEFAULT_FILTERS);
+        useState<SummaryFilterState>(DEFAULT_FILTERS);
+
+    const [primaryStartDate, setPrimaryStartDate] = useState<string>(FINANCIAL_YEAR_OPTIONS[0].startDate);
+    const [primaryEndDate, setPrimaryEndDate] = useState<string>(FINANCIAL_YEAR_OPTIONS[0].endDate);
 
     // ─────────────────────────────────────────────────────────
     // COMPARE FILTERS (defaults to previous FY)
     // ─────────────────────────────────────────────────────────
 
     const [compareFilters, setCompareFilters] =
-        useState<ApiFilters>({
-            ...DEFAULT_FILTERS,
-            startDate: FINANCIAL_YEAR_OPTIONS[1].startDate,
-            endDate: FINANCIAL_YEAR_OPTIONS[1].endDate,
-        });
+        useState<SummaryFilterState>(DEFAULT_FILTERS);
+
+    const [compareStartDate, setCompareStartDate] = useState<string>(FINANCIAL_YEAR_OPTIONS[1].startDate);
+    const [compareEndDate, setCompareEndDate] = useState<string>(FINANCIAL_YEAR_OPTIONS[1].endDate);
 
     // ─────────────────────────────────────────────────────────
     // DATA STATES
@@ -459,8 +444,8 @@ export default function AgenciesMonthWiseSummary() {
     const fetchFilterOptions = useCallback(async () => {
         try {
             const query = {
-                startDate: primaryFilters.startDate,
-                endDate: primaryFilters.endDate,
+                startDate: primaryStartDate,
+                endDate: primaryEndDate,
             };
 
             const res = await fetchIssueDetailsFilterInputsData(query);
@@ -471,7 +456,7 @@ export default function AgenciesMonthWiseSummary() {
         } catch (error) {
             console.error(error);
         }
-    }, [primaryFilters.startDate, primaryFilters.endDate]);
+    }, [primaryStartDate, primaryEndDate]);
 
     useEffect(() => {
         fetchFilterOptions();
@@ -485,7 +470,20 @@ export default function AgenciesMonthWiseSummary() {
         try {
             setIsLoading(true);
 
-            const res = await fetchRatingAgencyMonthlySummaryData(primaryFilters);
+            const res = await fetchRatingAgencyMonthlySummaryData({
+                startDate: primaryStartDate,
+                endDate: primaryEndDate,
+                ownershipType: primaryFilters.ownershipType,
+                sector: primaryFilters.sector,
+                nature: primaryFilters.nature,
+                securityType: primaryFilters.securityType,
+                creditRatingAgency: primaryFilters.creditRatingAgency,
+                modeOfIssue: primaryFilters.modeOfIssue,
+                seniority: primaryFilters.seniority,
+                listingStatus: primaryFilters.listingStatus,
+                securedFlag: primaryFilters.securedFlag,
+                rating: primaryFilters.rating,
+            });
 
             console.log('primary data', res?.data);
 
@@ -495,7 +493,7 @@ export default function AgenciesMonthWiseSummary() {
         } finally {
             setIsLoading(false);
         }
-    }, [primaryFilters]);
+    }, [primaryStartDate, primaryEndDate, primaryFilters]);
 
     useEffect(() => {
         fetchPrimaryData();
@@ -507,7 +505,20 @@ export default function AgenciesMonthWiseSummary() {
 
     const fetchCompareData = useCallback(async () => {
         try {
-            const res = await fetchRatingAgencyMonthlySummaryData(compareFilters);
+            const res = await fetchRatingAgencyMonthlySummaryData({
+                startDate: compareStartDate,
+                endDate: compareEndDate,
+                ownershipType: compareFilters.ownershipType,
+                sector: compareFilters.sector,
+                nature: compareFilters.nature,
+                securityType: compareFilters.securityType,
+                creditRatingAgency: compareFilters.creditRatingAgency,
+                modeOfIssue: compareFilters.modeOfIssue,
+                seniority: compareFilters.seniority,
+                listingStatus: compareFilters.listingStatus,
+                securedFlag: compareFilters.securedFlag,
+                rating: compareFilters.rating,
+            });
 
             console.log('compare data', res?.data);
 
@@ -515,13 +526,13 @@ export default function AgenciesMonthWiseSummary() {
         } catch (error) {
             console.error(error);
         }
-    }, [compareFilters]);
+    }, [compareStartDate, compareEndDate, compareFilters]);
 
     useEffect(() => {
         if (enableCompare) {
             fetchCompareData();
         }
-    }, [compareFilters, enableCompare, fetchCompareData]);
+    }, [compareStartDate, compareEndDate, compareFilters, enableCompare, fetchCompareData]);
 
     // ─────────────────────────────────────────────────────────
     // CHART DATA
@@ -583,7 +594,7 @@ export default function AgenciesMonthWiseSummary() {
                 compareTotalCount) *
             100
             : 0;
-    }, [comparisonData]);
+    }, [primaryTotalCount, compareTotalCount]);
 
     const totalSizeGrowth = useMemo(() => {
         return compareTotalSize > 0
@@ -591,22 +602,35 @@ export default function AgenciesMonthWiseSummary() {
                 compareTotalSize) *
             100
             : 0;
-    }, [comparisonData]);
+    }, [primaryTotalSize, compareTotalSize]);
+
+    const avgPrimarySize = displayPrimaryData.length
+        ? primaryTotalSize /
+        displayPrimaryData.length
+        : 0;
+
+    const avgCompareSize = displayCompareData.length
+        ? compareTotalSize /
+        displayCompareData.length
+        : 0;
 
     // ─────────────────────────────────────────────────────────
     // ACTIVE FILTER CHIPS LOGIC
     // ─────────────────────────────────────────────────────────
 
     const activeFilterCount = useMemo(() => {
-        return Object.entries(primaryFilters).filter(([key, value]) => {
-            if (['startDate', 'endDate'].includes(key)) return false;
-            return value !== '';
-        }).length;
+        return Object.values(primaryFilters).reduce((acc, arr) => acc + arr.length, 0);
     }, [primaryFilters]);
 
+    const compareActiveFilterCount = useMemo(() => {
+        return Object.values(compareFilters).reduce((acc, arr) => acc + arr.length, 0);
+    }, [compareFilters]);
+
+    const totalActiveFilterCount = activeFilterCount + compareActiveFilterCount;
+
     const activeFilterChips = useMemo(() => {
-        const chips: { key: keyof ApiFilters; label: string }[] = [];
-        const labelMap: Record<string, string> = {
+        const chips: { key: keyof SummaryFilterState; label: string; index: number; type: 'primary' | 'compare' }[] = [];
+        const labelMap: Record<keyof SummaryFilterState, string> = {
             ownershipType: 'Ownership',
             sector: 'Sector',
             nature: 'Nature',
@@ -618,14 +642,35 @@ export default function AgenciesMonthWiseSummary() {
             securedFlag: 'Secured Flag',
             rating: 'Rating',
         };
-        (Object.keys(primaryFilters) as Array<keyof ApiFilters>).forEach((key) => {
-            const value = primaryFilters[key];
-            if (value && !['startDate', 'endDate'].includes(key as string)) {
-                chips.push({ key, label: `${labelMap[key as string]}: ${value}` });
-            }
+
+        // Primary filters
+        (Object.keys(primaryFilters) as Array<keyof SummaryFilterState>).forEach((key) => {
+            primaryFilters[key].forEach((val, idx) => {
+                chips.push({ key, index: idx, type: 'primary', label: `${labelMap[key]}: ${val}` });
+            });
         });
+
+        // Compare filters
+        (Object.keys(compareFilters) as Array<keyof SummaryFilterState>).forEach((key) => {
+            compareFilters[key].forEach((val, idx) => {
+                chips.push({ key, index: idx, type: 'compare', label: `Compare ${labelMap[key]}: ${val}` });
+            });
+        });
+
         return chips;
-    }, [primaryFilters]);
+    }, [primaryFilters, compareFilters]);
+
+    const updateFilter = useCallback((type: 'primary' | 'compare', key: keyof SummaryFilterState, value: string[]) => {
+        if (type === 'primary') {
+            setPrimaryFilters(prev => ({ ...prev, [key]: value }));
+        } else {
+            setCompareFilters(prev => ({ ...prev, [key]: value }));
+        }
+    }, []);
+
+    const toOptions = (items: string[]): { value: string; label: string }[] => {
+        return items.map(item => ({ value: item, label: item }));
+    };
 
     // ─────────────────────────────────────────────────────────
     // TOOLTIP COMPONENT (unit-aware)
@@ -670,28 +715,21 @@ export default function AgenciesMonthWiseSummary() {
         if (!selectedYear) return;
 
         if (type === 'primary') {
-            setPrimaryFilters((prev) => ({
-                ...prev,
-                startDate: selectedYear.startDate,
-                endDate: selectedYear.endDate,
-            }));
+            setPrimaryStartDate(selectedYear.startDate);
+            setPrimaryEndDate(selectedYear.endDate);
         } else {
-            setCompareFilters((prev) => ({
-                ...prev,
-                startDate: selectedYear.startDate,
-                endDate: selectedYear.endDate,
-            }));
+            setCompareStartDate(selectedYear.startDate);
+            setCompareEndDate(selectedYear.endDate);
         }
     };
 
     const handleResetFilters = () => {
         setPrimaryFilters(DEFAULT_FILTERS);
-
-        setCompareFilters({
-            ...DEFAULT_FILTERS,
-            startDate: FINANCIAL_YEAR_OPTIONS[1].startDate,
-            endDate: FINANCIAL_YEAR_OPTIONS[1].endDate,
-        });
+        setCompareFilters(DEFAULT_FILTERS);
+        setPrimaryStartDate(FINANCIAL_YEAR_OPTIONS[0].startDate);
+        setPrimaryEndDate(FINANCIAL_YEAR_OPTIONS[0].endDate);
+        setCompareStartDate(FINANCIAL_YEAR_OPTIONS[1].startDate);
+        setCompareEndDate(FINANCIAL_YEAR_OPTIONS[1].endDate);
     };
 
     const handleSearch = () => {
@@ -699,32 +737,22 @@ export default function AgenciesMonthWiseSummary() {
     };
 
     const clearAllPrimaryDropdowns = () => {
-        setPrimaryFilters((prev) => ({
-            ...DEFAULT_FILTERS,
-            startDate: prev.startDate,
-            endDate: prev.endDate,
-        }));
+        setPrimaryFilters(DEFAULT_FILTERS);
+    };
+
+    const clearAllCompareDropdowns = () => {
+        setCompareFilters(DEFAULT_FILTERS);
     };
 
     const primaryYearLabel = getFinancialYearLabel(
-        primaryFilters.startDate,
-        primaryFilters.endDate,
+        primaryStartDate,
+        primaryEndDate,
     );
 
     const compareYearLabel = getFinancialYearLabel(
-        compareFilters.startDate,
-        compareFilters.endDate,
+        compareStartDate,
+        compareEndDate,
     );
-
-    const avgPrimarySize = displayPrimaryData.length
-        ? primaryTotalSize /
-        displayPrimaryData.length
-        : 0;
-
-    const avgCompareSize = displayCompareData.length
-        ? compareTotalSize /
-        displayCompareData.length
-        : 0;
 
     // ─────────────────────────────────────────────────────────
     // RENDER
@@ -760,9 +788,9 @@ export default function AgenciesMonthWiseSummary() {
                                 <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                                     Filters
                                 </span>
-                                {activeFilterCount > 0 && (
+                                {totalActiveFilterCount > 0 && (
                                     <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
-                                        {activeFilterCount} active
+                                        {totalActiveFilterCount} active
                                     </span>
                                 )}
                             </div>
@@ -772,14 +800,14 @@ export default function AgenciesMonthWiseSummary() {
                                 <div className="hidden md:flex items-center gap-1.5 flex-wrap max-w-md">
                                     {activeFilterChips.slice(0, 3).map((chip) => (
                                         <ActiveFilterChip
-                                            key={chip.key}
+                                            key={`${chip.type}-${chip.key}-${chip.index}`}
                                             label={chip.label}
-                                            onRemove={() =>
-                                                setPrimaryFilters((prev) => ({
-                                                    ...prev,
-                                                    [chip.key]: '',
-                                                }))
-                                            }
+                                            onRemove={() => {
+                                                const newValues = chip.type === 'primary'
+                                                    ? primaryFilters[chip.key].filter((_, i) => i !== chip.index)
+                                                    : compareFilters[chip.key].filter((_, i) => i !== chip.index);
+                                                updateFilter(chip.type, chip.key, newValues);
+                                            }}
                                         />
                                     ))}
                                     {activeFilterChips.length > 3 && (
@@ -853,230 +881,116 @@ export default function AgenciesMonthWiseSummary() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
 
-                                    {/* FINANCIAL YEAR */}
+                                    <FilterGroup label="Financial Year">
+                                        <CustomDropdown
+                                            options={fyDropdownOptions}
+                                            value={getFinancialYearLabel(primaryStartDate, primaryEndDate)}
+                                            onChange={(val) => handleFinancialYearChange(String(val[0] || ''), 'primary')}
+                                            placeholder="Select FY"
+                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                            multiSelect={false}
+                                        />
+                                    </FilterGroup>
 
-                                    <div className="flex flex-col gap-1">
-                                        <label className="text-[9px] text-gray-400 block mb-1">
-                                            Financial Year
-                                        </label>
+                                    <FilterGroup label="Ownership Type">
+                                        <CustomDropdown
+                                            options={toOptions(filterOptions.ownershipType)}
+                                            value={primaryFilters.ownershipType}
+                                            onChange={(val) => updateFilter('primary', 'ownershipType', val as string[])}
+                                            placeholder="Select Ownership"
+                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                        />
+                                    </FilterGroup>
 
-                                        <select
-                                            value={getFinancialYearLabel(
-                                                primaryFilters.startDate,
-                                                primaryFilters.endDate,
-                                            )}
-                                            onChange={(e) =>
-                                                handleFinancialYearChange(
-                                                    e.target.value,
-                                                    'primary',
-                                                )
-                                            }
-                                            className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
-                                        >
-                                            {FINANCIAL_YEAR_OPTIONS.map(
-                                                (item) => (
-                                                    <option
-                                                        key={
-                                                            item.label
-                                                        }
-                                                        value={
-                                                            item.label
-                                                        }
-                                                        className="text-gray-700 dark:text-gray-200"
-                                                    >
-                                                        {item.label}
-                                                    </option>
-                                                ),
-                                            )}
-                                        </select>
-                                    </div>
+                                    <FilterGroup label="Sector">
+                                        <CustomDropdown
+                                            options={toOptions(filterOptions.sector)}
+                                            value={primaryFilters.sector}
+                                            onChange={(val) => updateFilter('primary', 'sector', val as string[])}
+                                            placeholder="Select Sector"
+                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                        />
+                                    </FilterGroup>
 
-                                    <FilterSelect
-                                        label="Ownership Type"
-                                        value={
-                                            primaryFilters.ownershipType
-                                        }
-                                        options={
-                                            filterOptions.ownershipType
-                                        }
-                                        onChange={(value) =>
-                                            setPrimaryFilters(
-                                                (prev) => ({
-                                                    ...prev,
-                                                    ownershipType:
-                                                        value,
-                                                }),
-                                            )
-                                        }
-                                    />
+                                    <FilterGroup label="Nature">
+                                        <CustomDropdown
+                                            options={toOptions(filterOptions.nature)}
+                                            value={primaryFilters.nature}
+                                            onChange={(val) => updateFilter('primary', 'nature', val as string[])}
+                                            placeholder="Select Nature"
+                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                        />
+                                    </FilterGroup>
 
-                                    <FilterSelect
-                                        label="Sector"
-                                        value={
-                                            primaryFilters.sector
-                                        }
-                                        options={
-                                            filterOptions.sector
-                                        }
-                                        onChange={(value) =>
-                                            setPrimaryFilters(
-                                                (prev) => ({
-                                                    ...prev,
-                                                    sector: value,
-                                                }),
-                                            )
-                                        }
-                                    />
+                                    <FilterGroup label="Security Type">
+                                        <CustomDropdown
+                                            options={toOptions(filterOptions.securityType)}
+                                            value={primaryFilters.securityType}
+                                            onChange={(val) => updateFilter('primary', 'securityType', val as string[])}
+                                            placeholder="Select Security"
+                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                        />
+                                    </FilterGroup>
 
-                                    <FilterSelect
-                                        label="Nature"
-                                        value={
-                                            primaryFilters.nature
-                                        }
-                                        options={
-                                            filterOptions.nature
-                                        }
-                                        onChange={(value) =>
-                                            setPrimaryFilters(
-                                                (prev) => ({
-                                                    ...prev,
-                                                    nature: value,
-                                                }),
-                                            )
-                                        }
-                                    />
+                                    <FilterGroup label="Credit Rating Agency">
+                                        <CustomDropdown
+                                            options={toOptions(filterOptions.creditRatingAgency)}
+                                            value={primaryFilters.creditRatingAgency}
+                                            onChange={(val) => updateFilter('primary', 'creditRatingAgency', val as string[])}
+                                            placeholder="Select Agency"
+                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                        />
+                                    </FilterGroup>
 
-                                    <FilterSelect
-                                        label="Security Type"
-                                        value={
-                                            primaryFilters.securityType
-                                        }
-                                        options={
-                                            filterOptions.securityType
-                                        }
-                                        onChange={(value) =>
-                                            setPrimaryFilters(
-                                                (prev) => ({
-                                                    ...prev,
-                                                    securityType:
-                                                        value,
-                                                }),
-                                            )
-                                        }
-                                    />
+                                    <FilterGroup label="Mode Of Issue">
+                                        <CustomDropdown
+                                            options={toOptions(filterOptions.modeOfIssue)}
+                                            value={primaryFilters.modeOfIssue}
+                                            onChange={(val) => updateFilter('primary', 'modeOfIssue', val as string[])}
+                                            placeholder="Select Mode"
+                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                        />
+                                    </FilterGroup>
 
-                                    <FilterSelect
-                                        label="Credit Rating Agency"
-                                        value={
-                                            primaryFilters.creditRatingAgency
-                                        }
-                                        options={
-                                            filterOptions.creditRatingAgency
-                                        }
-                                        onChange={(value) =>
-                                            setPrimaryFilters(
-                                                (prev) => ({
-                                                    ...prev,
-                                                    creditRatingAgency:
-                                                        value,
-                                                }),
-                                            )
-                                        }
-                                    />
+                                    <FilterGroup label="Seniority">
+                                        <CustomDropdown
+                                            options={toOptions(filterOptions.seniority)}
+                                            value={primaryFilters.seniority}
+                                            onChange={(val) => updateFilter('primary', 'seniority', val as string[])}
+                                            placeholder="Select Seniority"
+                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                        />
+                                    </FilterGroup>
 
-                                    <FilterSelect
-                                        label="Mode Of Issue"
-                                        value={
-                                            primaryFilters.modeOfIssue
-                                        }
-                                        options={
-                                            filterOptions.modeOfIssue
-                                        }
-                                        onChange={(value) =>
-                                            setPrimaryFilters(
-                                                (prev) => ({
-                                                    ...prev,
-                                                    modeOfIssue:
-                                                        value,
-                                                }),
-                                            )
-                                        }
-                                    />
+                                    <FilterGroup label="Listing Status">
+                                        <CustomDropdown
+                                            options={toOptions(filterOptions.listingStatus)}
+                                            value={primaryFilters.listingStatus}
+                                            onChange={(val) => updateFilter('primary', 'listingStatus', val as string[])}
+                                            placeholder="Select Status"
+                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                        />
+                                    </FilterGroup>
 
-                                    <FilterSelect
-                                        label="Seniority"
-                                        value={
-                                            primaryFilters.seniority
-                                        }
-                                        options={
-                                            filterOptions.seniority
-                                        }
-                                        onChange={(value) =>
-                                            setPrimaryFilters(
-                                                (prev) => ({
-                                                    ...prev,
-                                                    seniority:
-                                                        value,
-                                                }),
-                                            )
-                                        }
-                                    />
+                                    <FilterGroup label="Secured Flag">
+                                        <CustomDropdown
+                                            options={toOptions(filterOptions.securedFlag)}
+                                            value={primaryFilters.securedFlag}
+                                            onChange={(val) => updateFilter('primary', 'securedFlag', val as string[])}
+                                            placeholder="Select Flag"
+                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                        />
+                                    </FilterGroup>
 
-                                    <FilterSelect
-                                        label="Listing Status"
-                                        value={
-                                            primaryFilters.listingStatus
-                                        }
-                                        options={
-                                            filterOptions.listingStatus
-                                        }
-                                        onChange={(value) =>
-                                            setPrimaryFilters(
-                                                (prev) => ({
-                                                    ...prev,
-                                                    listingStatus:
-                                                        value,
-                                                }),
-                                            )
-                                        }
-                                    />
-
-                                    <FilterSelect
-                                        label="Secured Flag"
-                                        value={
-                                            primaryFilters.securedFlag
-                                        }
-                                        options={
-                                            filterOptions.securedFlag
-                                        }
-                                        onChange={(value) =>
-                                            setPrimaryFilters(
-                                                (prev) => ({
-                                                    ...prev,
-                                                    securedFlag:
-                                                        value,
-                                                }),
-                                            )
-                                        }
-                                    />
-
-                                    <FilterSelect
-                                        label="Rating"
-                                        value={
-                                            primaryFilters.rating
-                                        }
-                                        options={
-                                            filterOptions.creditRating
-                                        }
-                                        onChange={(value) =>
-                                            setPrimaryFilters(
-                                                (prev) => ({
-                                                    ...prev,
-                                                    rating: value,
-                                                }),
-                                            )
-                                        }
-                                    />
+                                    <FilterGroup label="Rating">
+                                        <CustomDropdown
+                                            options={toOptions(filterOptions.creditRating)}
+                                            value={primaryFilters.rating}
+                                            onChange={(val) => updateFilter('primary', 'rating', val as string[])}
+                                            placeholder="Select Rating"
+                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                        />
+                                    </FilterGroup>
                                 </div>
                             </div>
 
@@ -1091,282 +1005,198 @@ export default function AgenciesMonthWiseSummary() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
 
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-[9px] text-gray-400 block mb-1">
-                                                Compare Financial Year
-                                            </label>
+                                        <FilterGroup label="Compare Financial Year">
+                                            <CustomDropdown
+                                                options={fyDropdownOptions}
+                                                value={getFinancialYearLabel(compareStartDate, compareEndDate)}
+                                                onChange={(val) => handleFinancialYearChange(String(val[0] || ''), 'compare')}
+                                                placeholder="Select FY"
+                                                menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                multiSelect={false}
+                                            />
+                                        </FilterGroup>
 
-                                            <select
-                                                value={getFinancialYearLabel(
-                                                    compareFilters.startDate,
-                                                    compareFilters.endDate,
-                                                )}
-                                                onChange={(e) =>
-                                                    handleFinancialYearChange(
-                                                        e.target.value,
-                                                        'compare',
-                                                    )
-                                                }
-                                                className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
-                                            >
-                                                {FINANCIAL_YEAR_OPTIONS.map(
-                                                    (
-                                                        item,
-                                                    ) => (
-                                                        <option
-                                                            key={
-                                                                item.label
-                                                            }
-                                                            value={
-                                                                item.label
-                                                            }
-                                                            className="text-gray-700 dark:text-gray-200"
-                                                        >
-                                                            {
-                                                                item.label
-                                                            }
-                                                        </option>
-                                                    ),
-                                                )}
-                                            </select>
-                                        </div>
+                                        <FilterGroup label="Ownership Type">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.ownershipType)}
+                                                value={compareFilters.ownershipType}
+                                                onChange={(val) => updateFilter('compare', 'ownershipType', val as string[])}
+                                                placeholder="Select Ownership"
+                                                menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                            />
+                                        </FilterGroup>
 
-                                        <FilterSelect
-                                            label="Ownership Type"
-                                            value={
-                                                compareFilters.ownershipType
-                                            }
-                                            options={
-                                                filterOptions.ownershipType
-                                            }
-                                            onChange={(value) =>
-                                                setCompareFilters(
-                                                    (
-                                                        prev,
-                                                    ) => ({
-                                                        ...prev,
-                                                        ownershipType:
-                                                            value,
-                                                    }),
-                                                )
-                                            }
-                                        />
+                                        <FilterGroup label="Sector">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.sector)}
+                                                value={compareFilters.sector}
+                                                onChange={(val) => updateFilter('compare', 'sector', val as string[])}
+                                                placeholder="Select Sector"
+                                                menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                            />
+                                        </FilterGroup>
 
-                                        <FilterSelect
-                                            label="Sector"
-                                            value={
-                                                compareFilters.sector
-                                            }
-                                            options={
-                                                filterOptions.sector
-                                            }
-                                            onChange={(value) =>
-                                                setCompareFilters(
-                                                    (
-                                                        prev,
-                                                    ) => ({
-                                                        ...prev,
-                                                        sector:
-                                                            value,
-                                                    }),
-                                                )
-                                            }
-                                        />
+                                        <FilterGroup label="Nature">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.nature)}
+                                                value={compareFilters.nature}
+                                                onChange={(val) => updateFilter('compare', 'nature', val as string[])}
+                                                placeholder="Select Nature"
+                                                menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                            />
+                                        </FilterGroup>
 
-                                        <FilterSelect
-                                            label="Nature"
-                                            value={
-                                                compareFilters.nature
-                                            }
-                                            options={
-                                                filterOptions.nature
-                                            }
-                                            onChange={(value) =>
-                                                setCompareFilters(
-                                                    (
-                                                        prev,
-                                                    ) => ({
-                                                        ...prev,
-                                                        nature:
-                                                            value,
-                                                    }),
-                                                )
-                                            }
-                                        />
+                                        <FilterGroup label="Security Type">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.securityType)}
+                                                value={compareFilters.securityType}
+                                                onChange={(val) => updateFilter('compare', 'securityType', val as string[])}
+                                                placeholder="Select Security"
+                                                menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                            />
+                                        </FilterGroup>
 
-                                        <FilterSelect
-                                            label="Security Type"
-                                            value={
-                                                compareFilters.securityType
-                                            }
-                                            options={
-                                                filterOptions.securityType
-                                            }
-                                            onChange={(value) =>
-                                                setCompareFilters(
-                                                    (
-                                                        prev,
-                                                    ) => ({
-                                                        ...prev,
-                                                        securityType:
-                                                            value,
-                                                    }),
-                                                )
-                                            }
-                                        />
+                                        <FilterGroup label="Credit Rating Agency">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.creditRatingAgency)}
+                                                value={compareFilters.creditRatingAgency}
+                                                onChange={(val) => updateFilter('compare', 'creditRatingAgency', val as string[])}
+                                                placeholder="Select Agency"
+                                                menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                            />
+                                        </FilterGroup>
 
-                                        <FilterSelect
-                                            label="Credit Rating Agency"
-                                            value={
-                                                compareFilters.creditRatingAgency
-                                            }
-                                            options={
-                                                filterOptions.creditRatingAgency
-                                            }
-                                            onChange={(value) =>
-                                                setCompareFilters(
-                                                    (
-                                                        prev,
-                                                    ) => ({
-                                                        ...prev,
-                                                        creditRatingAgency:
-                                                            value,
-                                                    }),
-                                                )
-                                            }
-                                        />
+                                        <FilterGroup label="Mode Of Issue">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.modeOfIssue)}
+                                                value={compareFilters.modeOfIssue}
+                                                onChange={(val) => updateFilter('compare', 'modeOfIssue', val as string[])}
+                                                placeholder="Select Mode"
+                                                menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                            />
+                                        </FilterGroup>
 
-                                        <FilterSelect
-                                            label="Mode Of Issue"
-                                            value={
-                                                compareFilters.modeOfIssue
-                                            }
-                                            options={
-                                                filterOptions.modeOfIssue
-                                            }
-                                            onChange={(value) =>
-                                                setCompareFilters(
-                                                    (
-                                                        prev,
-                                                    ) => ({
-                                                        ...prev,
-                                                        modeOfIssue:
-                                                            value,
-                                                    }),
-                                                )
-                                            }
-                                        />
+                                        <FilterGroup label="Seniority">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.seniority)}
+                                                value={compareFilters.seniority}
+                                                onChange={(val) => updateFilter('compare', 'seniority', val as string[])}
+                                                placeholder="Select Seniority"
+                                                menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                            />
+                                        </FilterGroup>
 
-                                        <FilterSelect
-                                            label="Seniority"
-                                            value={
-                                                compareFilters.seniority
-                                            }
-                                            options={
-                                                filterOptions.seniority
-                                            }
-                                            onChange={(value) =>
-                                                setCompareFilters(
-                                                    (
-                                                        prev,
-                                                    ) => ({
-                                                        ...prev,
-                                                        seniority:
-                                                            value,
-                                                    }),
-                                                )
-                                            }
-                                        />
+                                        <FilterGroup label="Listing Status">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.listingStatus)}
+                                                value={compareFilters.listingStatus}
+                                                onChange={(val) => updateFilter('compare', 'listingStatus', val as string[])}
+                                                placeholder="Select Status"
+                                                menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                            />
+                                        </FilterGroup>
 
-                                        <FilterSelect
-                                            label="Listing Status"
-                                            value={
-                                                compareFilters.listingStatus
-                                            }
-                                            options={
-                                                filterOptions.listingStatus
-                                            }
-                                            onChange={(value) =>
-                                                setCompareFilters(
-                                                    (
-                                                        prev,
-                                                    ) => ({
-                                                        ...prev,
-                                                        listingStatus:
-                                                            value,
-                                                    }),
-                                                )
-                                            }
-                                        />
+                                        <FilterGroup label="Secured Flag">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.securedFlag)}
+                                                value={compareFilters.securedFlag}
+                                                onChange={(val) => updateFilter('compare', 'securedFlag', val as string[])}
+                                                placeholder="Select Flag"
+                                                menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                            />
+                                        </FilterGroup>
 
-                                        <FilterSelect
-                                            label="Secured Flag"
-                                            value={
-                                                compareFilters.securedFlag
-                                            }
-                                            options={
-                                                filterOptions.securedFlag
-                                            }
-                                            onChange={(value) =>
-                                                setCompareFilters(
-                                                    (
-                                                        prev,
-                                                    ) => ({
-                                                        ...prev,
-                                                        securedFlag:
-                                                            value,
-                                                    }),
-                                                )
-                                            }
-                                        />
-
-                                        <FilterSelect
-                                            label="Rating"
-                                            value={
-                                                compareFilters.rating
-                                            }
-                                            options={
-                                                filterOptions.creditRating
-                                            }
-                                            onChange={(value) =>
-                                                setCompareFilters(
-                                                    (
-                                                        prev,
-                                                    ) => ({
-                                                        ...prev,
-                                                        rating:
-                                                            value,
-                                                    }),
-                                                )
-                                            }
-                                        />
+                                        <FilterGroup label="Rating">
+                                            <CustomDropdown
+                                                options={toOptions(filterOptions.creditRating)}
+                                                value={compareFilters.rating}
+                                                onChange={(val) => updateFilter('compare', 'rating', val as string[])}
+                                                placeholder="Select Rating"
+                                                menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                            />
+                                        </FilterGroup>
                                     </div>
+
+                                    {/* Compare Active Filter Chips */}
+                                    {compareActiveFilterCount > 0 && (
+                                        <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                            <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Compare Active:
+                                            </span>
+                                            {(Object.keys(compareFilters) as Array<keyof SummaryFilterState>).map((key) =>
+                                                compareFilters[key].map((val, idx) => {
+                                                    const labelMap: Record<keyof SummaryFilterState, string> = {
+                                                        ownershipType: 'Ownership',
+                                                        sector: 'Sector',
+                                                        nature: 'Nature',
+                                                        securityType: 'Security Type',
+                                                        creditRatingAgency: 'Credit Rating Agency',
+                                                        modeOfIssue: 'Mode Of Issue',
+                                                        seniority: 'Seniority',
+                                                        listingStatus: 'Listing Status',
+                                                        securedFlag: 'Secured Flag',
+                                                        rating: 'Rating',
+                                                    };
+                                                    return (
+                                                        <ActiveFilterChip
+                                                            key={`compare-${key}-${idx}`}
+                                                            label={`${labelMap[key]}: ${val}`}
+                                                            onRemove={() => {
+                                                                const newValues = compareFilters[key].filter((_, i) => i !== idx);
+                                                                updateFilter('compare', key, newValues);
+                                                            }}
+                                                        />
+                                                    );
+                                                })
+                                            )}
+                                            <button
+                                                onClick={clearAllCompareDropdowns}
+                                                className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
+                                            >
+                                                Clear all compare
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
-                            {/* Active Filter Chips */}
-                            {activeFilterChips.length > 0 && (
+                            {/* Primary Active Filter Chips */}
+                            {activeFilterCount > 0 && (
                                 <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-100 dark:border-gray-800">
                                     <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        Active:
+                                        Primary Active:
                                     </span>
-                                    {activeFilterChips.map((chip) => (
-                                        <ActiveFilterChip
-                                            key={chip.key}
-                                            label={chip.label}
-                                            onRemove={() =>
-                                                setPrimaryFilters((prev) => ({
-                                                    ...prev,
-                                                    [chip.key]: '',
-                                                }))
-                                            }
-                                        />
-                                    ))}
+                                    {(Object.keys(primaryFilters) as Array<keyof SummaryFilterState>).map((key) =>
+                                        primaryFilters[key].map((val, idx) => {
+                                            const labelMap: Record<keyof SummaryFilterState, string> = {
+                                                ownershipType: 'Ownership',
+                                                sector: 'Sector',
+                                                nature: 'Nature',
+                                                securityType: 'Security Type',
+                                                creditRatingAgency: 'Credit Rating Agency',
+                                                modeOfIssue: 'Mode Of Issue',
+                                                seniority: 'Seniority',
+                                                listingStatus: 'Listing Status',
+                                                securedFlag: 'Secured Flag',
+                                                rating: 'Rating',
+                                            };
+                                            return (
+                                                <ActiveFilterChip
+                                                    key={`primary-${key}-${idx}`}
+                                                    label={`${labelMap[key]}: ${val}`}
+                                                    onRemove={() => {
+                                                        const newValues = primaryFilters[key].filter((_, i) => i !== idx);
+                                                        updateFilter('primary', key, newValues);
+                                                    }}
+                                                />
+                                            );
+                                        })
+                                    )}
                                     <button
                                         onClick={clearAllPrimaryDropdowns}
                                         className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
                                     >
-                                        Clear all
+                                        Clear all primary
                                     </button>
                                 </div>
                             )}
@@ -1567,8 +1397,8 @@ export default function AgenciesMonthWiseSummary() {
                                                 : 'issueSize'
                                         }
                                         name={getFinancialYearLabel(
-                                            primaryFilters.startDate,
-                                            primaryFilters.endDate,
+                                            primaryStartDate,
+                                            primaryEndDate,
                                         )}
                                         stroke="#423CAB"
                                         fill="url(#primaryGrad)"
@@ -1580,8 +1410,8 @@ export default function AgenciesMonthWiseSummary() {
                                             type="monotone"
                                             dataKey="compareIssueSize"
                                             name={getFinancialYearLabel(
-                                                compareFilters.startDate,
-                                                compareFilters.endDate,
+                                                compareStartDate,
+                                                compareEndDate,
                                             )}
                                             stroke="#06B6D4"
                                             fill="url(#compareGrad)"
@@ -1643,8 +1473,8 @@ export default function AgenciesMonthWiseSummary() {
                                     <Bar
                                         dataKey="primaryIssueSize"
                                         name={getFinancialYearLabel(
-                                            primaryFilters.startDate,
-                                            primaryFilters.endDate,
+                                            primaryStartDate,
+                                            primaryEndDate,
                                         )}
                                         fill="#423CAB"
                                         radius={[
@@ -1656,8 +1486,8 @@ export default function AgenciesMonthWiseSummary() {
                                         <Bar
                                             dataKey="compareIssueSize"
                                             name={getFinancialYearLabel(
-                                                compareFilters.startDate,
-                                                compareFilters.endDate,
+                                                compareStartDate,
+                                                compareEndDate,
                                             )}
                                             fill="#06B6D4"
                                             radius={[
@@ -1703,8 +1533,8 @@ export default function AgenciesMonthWiseSummary() {
                             compareLabel={compareYearLabel}
                             isLoading={isLoading}
                             sizeUnit={sizeUnit}
-                            primaryStartDate={primaryFilters.startDate}
-                            compareStartDate={compareFilters.startDate}
+                            primaryStartDate={primaryStartDate}
+                            compareStartDate={compareStartDate}
                             tableName="agencies"
                         />
                     </div>
@@ -1740,8 +1570,8 @@ export default function AgenciesMonthWiseSummary() {
                             compareLabel={compareYearLabel}
                             isLoading={isLoading}
                             sizeUnit={sizeUnit}
-                            primaryStartDate={primaryFilters.startDate}
-                            compareStartDate={compareFilters.startDate}
+                            primaryStartDate={primaryStartDate}
+                            compareStartDate={compareStartDate}
                             tableName="agencies"
                         />
                     </div>
