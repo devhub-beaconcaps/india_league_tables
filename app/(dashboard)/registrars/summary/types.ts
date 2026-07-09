@@ -115,7 +115,7 @@ export interface TotalsData {
 
 export interface SectorItem {
     id: number;
-    issuer_name: string;
+    name: string;
     arr_rank: string;
     code: string;
     description: string;

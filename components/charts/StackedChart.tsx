@@ -16,7 +16,7 @@ import {
 
 export interface StackedChartDataItem {
   id: number;
-  issuer_name: string;
+  name: string;
   arr_rank: string;
   code: string;
   description: string;
@@ -31,7 +31,7 @@ interface StackedChartProps {
 }
 
 interface TransformedData {
-  issuer_name: string;
+  name: string;
   [sector: string]: string | number;
 }
 
@@ -186,15 +186,15 @@ export default function StackedChart({
       return { chartData: [], sectors: [], colors: [] };
     }
 
-    // Group by issuer_name
+    // Group by name
     const grouped = new Map<string, Map<string, number>>();
     const uniqueSectors = new Set<string>();
 
     data.forEach((item) => {
-      if (!grouped.has(item.issuer_name)) {
-        grouped.set(item.issuer_name, new Map());
+      if (!grouped.has(item.name)) {
+        grouped.set(item.name, new Map());
       }
-      const issuerMap = grouped.get(item.issuer_name)!;
+      const issuerMap = grouped.get(item.name)!;
       issuerMap.set(item.description, item.value);
       uniqueSectors.add(item.description);
     });
@@ -203,8 +203,8 @@ export default function StackedChart({
 
     // Transform to Recharts format
     const transformed: TransformedData[] = [];
-    grouped.forEach((sectorMap, issuer_name) => {
-      const row: TransformedData = { issuer_name };
+    grouped.forEach((sectorMap, name) => {
+      const row: TransformedData = { name };
       sortedSectors.forEach((sector) => {
         row[sector] = sectorMap.get(sector) || 0;
       });
@@ -252,7 +252,7 @@ export default function StackedChart({
             vertical={false}
           />
           <XAxis
-            dataKey="issuer_name"
+            dataKey="name"
             tick={<VerticalXAxisTick />}
             tickMargin={12}
             interval={0}

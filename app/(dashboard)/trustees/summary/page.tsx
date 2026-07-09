@@ -39,7 +39,6 @@ import {
     frequencyOptions,
     monthOptions,
     valueConventionOptions,
-    creditAgencyDropdownOptions,
 } from './constants';
 
 // Import utils
@@ -73,16 +72,17 @@ interface FilterInputsResponse {
 }
 
 interface FilterState {
-    trustee: string;
-    issuerOwnershipType: string;
-    issuerNatureType: string;
-    businessSector: string;
-    securityType: string;
-    modeOfIssue: string;
-    creditRating: string;
-    seniority: string;
-    servicedFlag: string;
-    listingStatus: string;
+    trustee: string[];
+    issuerOwnershipType: string[];
+    issuerNatureType: string[];
+    businessSector: string[];
+    securityType: string[];
+    modeOfIssue: string[];
+    creditRatingAgency: string[];
+    creditRating: string[];
+    seniority: string[];
+    servicedFlag: string[];
+    listingStatus: string[];
 }
 
 // ─── Skeleton Components ─────────────────────────────────────────────────────
@@ -192,28 +192,6 @@ const FilterGroup = ({
     </div>
 );
 
-const TextInput = ({
-    value,
-    onChange,
-    placeholder,
-    type = 'text'
-}: {
-    value: string | number;
-    onChange: (value: string) => void;
-    placeholder?: string;
-    type?: string;
-}) => (
-    <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full h-8 px-3 text-xs bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-lg 
-            text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]
-            placeholder:text-gray-400 dark:placeholder:text-gray-500"
-    />
-);
-
 // ─── Value Formatting Helpers ────────────────────────────────────────────────
 
 const formatValueByConvention = (value: number, convention: ValueConvention): string => {
@@ -300,17 +278,14 @@ function ActiveFilterChip({ label, onRemove }: { label: string; onRemove: () => 
 
 // ─── Credit Ratings Section (Isolated Component) ─────────────────────────────
 
-// ─── Credit Ratings Section (Isolated Component) ─────────────────────────────
-
 interface CreditRatingsSectionProps {
     selectedYearsDateRange: DateRange | null;
     filters: FilterState;
     valueConvention: ValueConvention;
-    creditRatingAgency: string | number;
     trusteeOptions: { value: string; label: string }[];
 }
 
-function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention, creditRatingAgency, trusteeOptions }: CreditRatingsSectionProps) {
+function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention, trusteeOptions }: CreditRatingsSectionProps) {
     const [ratingData, setRatingData] = useState<FormattedRatingItem[]>([]);
     const [isRatingLoading, setIsRatingLoading] = useState(true);
     const [selectedRatingTrustee, setSelectedRatingTrustee] = useState<string>('');
@@ -321,23 +296,21 @@ function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention
         if (!selectedYearsDateRange) return;
 
         const fetchData = async (): Promise<void> => {
-            const query: Record<string, any> = {
+            const query = {
                 startDate: selectedYearsDateRange.startDate,
                 endDate: selectedYearsDateRange.endDate,
-                id: Number(creditRatingAgency) || 0,
+                creditRatingAgency: filters.creditRatingAgency,
+                trustee: selectedRatingTrustee ? [selectedRatingTrustee] : filters.trustee,
+                ownershipType: filters.issuerOwnershipType,
+                nature: filters.issuerNatureType,
+                sector: filters.businessSector,
+                securityType: filters.securityType,
+                modeOfIssue: filters.modeOfIssue,
+                rating: filters.creditRating,
+                seniority: filters.seniority,
+                securedFlag: filters.servicedFlag,
+                listingStatus: filters.listingStatus,
             };
-
-            const trusteeValue = selectedRatingTrustee || filters.trustee;
-            if (trusteeValue) query.trustee = trusteeValue;
-            if (filters.issuerOwnershipType) query.ownershipType = filters.issuerOwnershipType;
-            if (filters.issuerNatureType) query.nature = filters.issuerNatureType;
-            if (filters.businessSector) query.sector = filters.businessSector;
-            if (filters.securityType) query.securityType = filters.securityType;
-            if (filters.modeOfIssue) query.modeOfIssue = filters.modeOfIssue;
-            if (filters.creditRating) query.rating = filters.creditRating;
-            if (filters.seniority) query.seniority = filters.seniority;
-            if (filters.servicedFlag) query.securedFlag = filters.servicedFlag;
-            if (filters.listingStatus) query.listingStatus = filters.listingStatus;
 
             const queryKey = JSON.stringify(query);
             if (prevQueryRef.current === queryKey) return;
@@ -347,7 +320,7 @@ function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention
 
             try {
                 const Ratings: RawRatingItem[] = await fetchTrusteePageCreditRatingsData(query);
-                setRatingData(formatRatingsData(Ratings || [], creditRatingAgency));
+                setRatingData(formatRatingsData(Ratings || [], filters.creditRatingAgency[0] || ''));
             } catch (err) {
                 console.error('API Error:', err);
                 setRatingData([]);
@@ -357,21 +330,29 @@ function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention
         };
 
         fetchData();
-    }, [selectedYearsDateRange, filters, selectedRatingTrustee, creditRatingAgency]);
+    }, [selectedYearsDateRange, filters, selectedRatingTrustee]);
 
     return (
         <SectionCard className='my-3'>
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Credit Ratings</h2>
-                <div className="w-48">
-                    <CustomDropdown
-                        label="Trustee"
-                        options={[{ value: '', label: 'All Trustees' }, ...trusteeOptions]}
-                        value={selectedRatingTrustee}
-                        onChange={(val) => setSelectedRatingTrustee(String(val))}
-                        placeholder="Select Trustee"
-                        menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                    />
+                <div className="flex items-center gap-3 flex-wrap">
+                    {filters.creditRatingAgency.length > 0 && (
+                        <span className="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">
+                            Agency: {filters.creditRatingAgency.join(', ')}
+                        </span>
+                    )}
+                    <div className="w-48">
+                        <CustomDropdown
+                            label="Trustee"
+                            options={[{ value: '', label: 'All Trustees' }, ...trusteeOptions]}
+                            value={selectedRatingTrustee}
+                            onChange={(val) => setSelectedRatingTrustee(String(val[0] || ''))}
+                            placeholder="Select Trustee"
+                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                            multiSelect={false}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -429,7 +410,6 @@ export default function Summary() {
     const [period, setPeriod] = useState<SelectedPeriod>(null);
     const [issueType, setIssueType] = useState<IssueType>('size');
     const [valueConvention, setValueConvention] = useState<ValueConvention>('Crores');
-    const [creditRatingAgency, setCreditRatingAgency] = useState<string | number>(0);
 
     // ── Collapsible Filters State ──
     const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
@@ -446,18 +426,19 @@ export default function Summary() {
     const [isMarketShareLoading, setIsMarketShareLoading] = useState(true);
     const [isFiltersLoading, setIsFiltersLoading] = useState(true);
 
-    // ─── New Filter States ───────────────────────────────────────────────────
+    // ─── New Filter States (MULTI-SELECT) ───────────────────────────────────
     const [filters, setFilters] = useState<FilterState>({
-        trustee: '',
-        issuerOwnershipType: '',
-        issuerNatureType: '',
-        businessSector: '',
-        securityType: '',
-        modeOfIssue: '',
-        creditRating: '',
-        seniority: '',
-        servicedFlag: '',
-        listingStatus: '',
+        trustee: [],
+        issuerOwnershipType: [],
+        issuerNatureType: [],
+        businessSector: [],
+        securityType: [],
+        modeOfIssue: [],
+        creditRatingAgency: [],
+        creditRating: [],
+        seniority: [],
+        servicedFlag: [],
+        listingStatus: [],
     });
 
     const [filterOptions, setFilterOptions] = useState<FilterInputsResponse>({
@@ -479,17 +460,20 @@ export default function Summary() {
     );
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
-    const updateFilter = useCallback((key: keyof FilterState, value: string | number) => {
-        setFilters(prev => ({ ...prev, [key]: String(value) }));
-    }, []);
-
     const toOptions = (items: string[]) => items.map(item => ({ value: item, label: item }));
 
-    const handleFYChange = (value: string | number): void => setSelectedFY(String(value));
+    const updateFilter = useCallback((key: keyof FilterState, value: string[]) => {
+        setFilters(prev => ({ ...prev, [key]: value }));
+    }, []);
+
+    const handleFYChange = (value: string | number): void => {
+        setSelectedFY(String(value));
+    };
 
     const handleFrequencyChange = (value: string | number): void => {
         const freq = value as FrequencyValue;
         setFrequency(freq);
+
         if (freq === 'Half-Yearly') setPeriod('H1');
         else if (freq === 'Quarterly') setPeriod('Q1');
         else if (freq === 'Monthly') setPeriod(3);
@@ -497,7 +481,6 @@ export default function Summary() {
     };
 
     const handleSearch = (): void => {
-        // Filters are already in state; fetchData will auto-trigger via useEffect
         setIsFiltersExpanded(false);
     };
 
@@ -506,18 +489,18 @@ export default function Summary() {
         setFrequency('Yearly');
         setPeriod(null);
         setValueConvention('Crores');
-        setCreditRatingAgency(0);
         setFilters({
-            trustee: '',
-            issuerOwnershipType: '',
-            issuerNatureType: '',
-            businessSector: '',
-            securityType: '',
-            modeOfIssue: '',
-            creditRating: '',
-            seniority: '',
-            servicedFlag: '',
-            listingStatus: '',
+            trustee: [],
+            issuerOwnershipType: [],
+            issuerNatureType: [],
+            businessSector: [],
+            securityType: [],
+            modeOfIssue: [],
+            creditRatingAgency: [],
+            creditRating: [],
+            seniority: [],
+            servicedFlag: [],
+            listingStatus: [],
         });
     };
 
@@ -536,8 +519,6 @@ export default function Summary() {
 
     const handleExportCSV = useCallback(() => {
         if (!issueTableData.length) return;
-
-        // const previousFY = getPreviousFY(selectedFY);
 
         const { currentYearRange, previousYearRange } = getFinancialYearRanges(selectedFY);
 
@@ -597,8 +578,6 @@ export default function Summary() {
 
         const csv = [headerRow, ...rows].join("\n");
 
-        // const csv = [headers.join(","), ...rows].join("\n");
-
         const blob = new Blob([csv], {
             type: "text/csv;charset=utf-8;",
         });
@@ -618,11 +597,11 @@ export default function Summary() {
 
     // ── Active Filters Count ──
     const activeFilterCount = useMemo(() => {
-        return Object.values(filters).filter(v => v !== '').length;
+        return Object.values(filters).reduce((acc, arr) => acc + arr.length, 0);
     }, [filters]);
 
     const activeFilterChips = useMemo(() => {
-        const chips: { key: keyof FilterState; label: string }[] = [];
+        const chips: { key: keyof FilterState; label: string; index: number }[] = [];
         const labelMap: Record<keyof FilterState, string> = {
             trustee: 'Trustee',
             issuerOwnershipType: 'Ownership',
@@ -630,20 +609,21 @@ export default function Summary() {
             businessSector: 'Sector',
             securityType: 'Security',
             modeOfIssue: 'Mode',
+            creditRatingAgency: 'Agency',
             creditRating: 'Rating',
             seniority: 'Seniority',
             servicedFlag: 'Secured',
             listingStatus: 'Listing',
         };
         (Object.keys(filters) as Array<keyof FilterState>).forEach((key) => {
-            if (filters[key]) {
-                chips.push({ key, label: `${labelMap[key]}: ${filters[key]}` });
-            }
+            filters[key].forEach((val, idx) => {
+                chips.push({ key, index: idx, label: `${labelMap[key]}: ${val}` });
+            });
         });
         return chips;
     }, [filters]);
 
-    // ── Trustee Options for Ratings Dropdown ──
+    // ── Trustee Options for Filters & Ratings Dropdown ──
     const trusteeOptionsForRatings = useMemo(() => {
         const names = new Set<string>();
         listTableData.forEach((item) => {
@@ -655,9 +635,6 @@ export default function Summary() {
 
     /**
      * Build query payload for the backend.
-     * IMPORTANT: Only include properties that have real values.
-     * Sending "" or "0" for creditRatingAgency causes the backend
-     * to apply a filter on short_name = '0', which returns nothing.
      */
     const buildQuery = useCallback((extra: Record<string, any> = {}) => {
         if (!selectedYearsDateRange) return {};
@@ -669,30 +646,20 @@ export default function Summary() {
             ...extra,
         };
 
-        // Add filters only when they have non-empty values
-        if (filters.trustee) query.trustee = filters.trustee;
-        if (filters.issuerOwnershipType) query.ownershipType = filters.issuerOwnershipType;
-        if (filters.issuerNatureType) query.nature = filters.issuerNatureType;
-        if (filters.businessSector) query.sector = filters.businessSector;
-        if (filters.securityType) query.securityType = filters.securityType;
-        if (filters.modeOfIssue) query.modeOfIssue = filters.modeOfIssue;
-        if (filters.creditRating) query.rating = filters.creditRating;
-        if (filters.seniority) query.seniority = filters.seniority;
-        if (filters.servicedFlag) query.securedFlag = filters.servicedFlag;
-        if (filters.listingStatus) query.listingStatus = filters.listingStatus;
-
-        // creditRatingAgency: dropdown values are numeric IDs.
-        // The backend expects a string short_name for this particular endpoint.
-        // Only send if a real agency is selected (not 0 / "0").
-        if (creditRatingAgency && String(creditRatingAgency) !== '0') {
-            // If your dropdown values are already agency short names, send as-is.
-            // If they are numeric IDs, you must map id -> short_name here,
-            // or change the backend to accept an ID.
-            query.creditRatingAgency = String(creditRatingAgency);
-        }
+        if (filters.trustee.length > 0) query.trustee = filters.trustee;
+        if (filters.issuerOwnershipType.length > 0) query.ownershipType = filters.issuerOwnershipType;
+        if (filters.issuerNatureType.length > 0) query.nature = filters.issuerNatureType;
+        if (filters.businessSector.length > 0) query.sector = filters.businessSector;
+        if (filters.securityType.length > 0) query.securityType = filters.securityType;
+        if (filters.modeOfIssue.length > 0) query.modeOfIssue = filters.modeOfIssue;
+        if (filters.creditRatingAgency.length > 0) query.creditRatingAgency = filters.creditRatingAgency;
+        if (filters.creditRating.length > 0) query.rating = filters.creditRating;
+        if (filters.seniority.length > 0) query.seniority = filters.seniority;
+        if (filters.servicedFlag.length > 0) query.securedFlag = filters.servicedFlag;
+        if (filters.listingStatus.length > 0) query.listingStatus = filters.listingStatus;
 
         return query;
-    }, [selectedYearsDateRange, issueType, filters, creditRatingAgency]);
+    }, [selectedYearsDateRange, issueType, filters]);
 
     // ─── Fetch Filter Inputs ─────────────────────────────────────────────────
     const fetchFilterInputs = useCallback(async () => {
@@ -759,7 +726,7 @@ export default function Summary() {
         };
 
         fetchData();
-    }, [selectedYearsDateRange, issueType, filters, creditRatingAgency, buildQuery]);
+    }, [selectedYearsDateRange, issueType, filters, buildQuery]);
 
     return (
         <SkeletonTheme enableAnimation={true} baseColor="#1F2937" highlightColor="#90969bff" borderRadius="0.5rem">
@@ -787,7 +754,8 @@ export default function Summary() {
                                         label="Financial Year"
                                         options={fyOptions}
                                         value={selectedFY}
-                                        onChange={handleFYChange}
+                                        onChange={(val) => handleFYChange(val[0] || fyOptions[0]?.value)}
+                                        multiSelect={false}
                                     />
                                 </div>
 
@@ -796,7 +764,8 @@ export default function Summary() {
                                         label="Frequency"
                                         options={frequencyOptions}
                                         value={frequency}
-                                        onChange={handleFrequencyChange}
+                                        onChange={(val) => handleFrequencyChange(val[0] || 'Yearly')}
+                                        multiSelect={false}
                                     />
                                 </div>
 
@@ -840,7 +809,8 @@ export default function Summary() {
                                             label="Months"
                                             options={monthOptions}
                                             value={period as number}
-                                            onChange={(val) => setPeriod(Number(val))}
+                                            onChange={(val) => setPeriod(Number(val[0]) || 3)}
+                                            multiSelect={false}
                                         />
                                     </div>
                                 )}
@@ -900,9 +870,12 @@ export default function Summary() {
                                     <div className="hidden md:flex items-center gap-1.5 flex-wrap max-w-md">
                                         {activeFilterChips.slice(0, 3).map((chip) => (
                                             <ActiveFilterChip
-                                                key={chip.key}
+                                                key={`${chip.key}-${chip.index}`}
                                                 label={chip.label}
-                                                onRemove={() => updateFilter(chip.key, '')}
+                                                onRemove={() => {
+                                                    const newValues = filters[chip.key].filter((_, i) => i !== chip.index);
+                                                    updateFilter(chip.key, newValues);
+                                                }}
                                             />
                                         ))}
                                         {activeFilterChips.length > 3 && (
@@ -935,11 +908,12 @@ export default function Summary() {
                                             <>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
                                                     <FilterGroup label="Trustee Name">
-                                                        <TextInput
+                                                        <CustomDropdown
+                                                            options={toOptions(trusteeOptionsForRatings.map(o => o.value))}
                                                             value={filters.trustee}
-                                                            onChange={(val) => updateFilter('trustee', val)}
-                                                            placeholder="Enter Trustee Name"
-                                                            type="text"
+                                                            onChange={(val) => updateFilter('trustee', val as string[])}
+                                                            placeholder="Select Trustee"
+                                                            menuClassName="w-48"
                                                         />
                                                     </FilterGroup>
 
@@ -947,9 +921,9 @@ export default function Summary() {
                                                         <CustomDropdown
                                                             options={toOptions(filterOptions.ownershipType)}
                                                             value={filters.issuerOwnershipType}
-                                                            onChange={(val) => updateFilter('issuerOwnershipType', val)}
+                                                            onChange={(val) => updateFilter('issuerOwnershipType', val as string[])}
                                                             placeholder="Select Ownership"
-                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                            menuClassName="w-48"
                                                         />
                                                     </FilterGroup>
 
@@ -957,9 +931,9 @@ export default function Summary() {
                                                         <CustomDropdown
                                                             options={toOptions(filterOptions.nature)}
                                                             value={filters.issuerNatureType}
-                                                            onChange={(val) => updateFilter('issuerNatureType', val)}
+                                                            onChange={(val) => updateFilter('issuerNatureType', val as string[])}
                                                             placeholder="Select Nature"
-                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                            menuClassName="w-48"
                                                         />
                                                     </FilterGroup>
 
@@ -967,9 +941,9 @@ export default function Summary() {
                                                         <CustomDropdown
                                                             options={toOptions(filterOptions.sector)}
                                                             value={filters.businessSector}
-                                                            onChange={(val) => updateFilter('businessSector', val)}
+                                                            onChange={(val) => updateFilter('businessSector', val as string[])}
                                                             placeholder="Select Sector"
-                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                            menuClassName="w-48"
                                                         />
                                                     </FilterGroup>
 
@@ -977,9 +951,9 @@ export default function Summary() {
                                                         <CustomDropdown
                                                             options={toOptions(filterOptions.securityType)}
                                                             value={filters.securityType}
-                                                            onChange={(val) => updateFilter('securityType', val)}
+                                                            onChange={(val) => updateFilter('securityType', val as string[])}
                                                             placeholder="Select Security"
-                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                            menuClassName="w-48"
                                                         />
                                                     </FilterGroup>
 
@@ -987,19 +961,19 @@ export default function Summary() {
                                                         <CustomDropdown
                                                             options={toOptions(filterOptions.modeOfIssue)}
                                                             value={filters.modeOfIssue}
-                                                            onChange={(val) => updateFilter('modeOfIssue', val)}
+                                                            onChange={(val) => updateFilter('modeOfIssue', val as string[])}
                                                             placeholder="Select Mode"
-                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                            menuClassName="w-48"
                                                         />
                                                     </FilterGroup>
 
                                                     <FilterGroup label="Credit Rating Agency">
                                                         <CustomDropdown
                                                             options={toOptions(filterOptions.creditRatingAgency)}
-                                                            value={filters.creditRating}
-                                                            onChange={(val) => updateFilter('creditRating', val)}
+                                                            value={filters.creditRatingAgency}
+                                                            onChange={(val) => updateFilter('creditRatingAgency', val as string[])}
                                                             placeholder="Select Agency"
-                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                            menuClassName="w-48"
                                                         />
                                                     </FilterGroup>
 
@@ -1007,9 +981,9 @@ export default function Summary() {
                                                         <CustomDropdown
                                                             options={toOptions(filterOptions.creditRating)}
                                                             value={filters.creditRating}
-                                                            onChange={(val) => updateFilter('creditRating', val)}
+                                                            onChange={(val) => updateFilter('creditRating', val as string[])}
                                                             placeholder="Select Rating"
-                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                            menuClassName="w-48"
                                                         />
                                                     </FilterGroup>
 
@@ -1017,9 +991,9 @@ export default function Summary() {
                                                         <CustomDropdown
                                                             options={toOptions(filterOptions.seniority)}
                                                             value={filters.seniority}
-                                                            onChange={(val) => updateFilter('seniority', val)}
+                                                            onChange={(val) => updateFilter('seniority', val as string[])}
                                                             placeholder="Select Seniority"
-                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                            menuClassName="w-48"
                                                         />
                                                     </FilterGroup>
 
@@ -1027,9 +1001,9 @@ export default function Summary() {
                                                         <CustomDropdown
                                                             options={toOptions(filterOptions.securedFlag)}
                                                             value={filters.servicedFlag}
-                                                            onChange={(val) => updateFilter('servicedFlag', val)}
+                                                            onChange={(val) => updateFilter('servicedFlag', val as string[])}
                                                             placeholder="Select Flag"
-                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                            menuClassName="w-48"
                                                         />
                                                     </FilterGroup>
 
@@ -1037,9 +1011,9 @@ export default function Summary() {
                                                         <CustomDropdown
                                                             options={toOptions(filterOptions.listingStatus)}
                                                             value={filters.listingStatus}
-                                                            onChange={(val) => updateFilter('listingStatus', val)}
+                                                            onChange={(val) => updateFilter('listingStatus', val as string[])}
                                                             placeholder="Select Status"
-                                                            menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                                                            menuClassName="w-48"
                                                         />
                                                     </FilterGroup>
                                                 </div>
@@ -1052,23 +1026,27 @@ export default function Summary() {
                                                         </span>
                                                         {activeFilterChips.map((chip) => (
                                                             <ActiveFilterChip
-                                                                key={chip.key}
+                                                                key={`${chip.key}-${chip.index}`}
                                                                 label={chip.label}
-                                                                onRemove={() => updateFilter(chip.key, '')}
+                                                                onRemove={() => {
+                                                                    const newValues = filters[chip.key].filter((_, i) => i !== chip.index);
+                                                                    updateFilter(chip.key, newValues);
+                                                                }}
                                                             />
                                                         ))}
                                                         <button
                                                             onClick={() => setFilters({
-                                                                trustee: '',
-                                                                issuerOwnershipType: '',
-                                                                issuerNatureType: '',
-                                                                businessSector: '',
-                                                                securityType: '',
-                                                                modeOfIssue: '',
-                                                                creditRating: '',
-                                                                seniority: '',
-                                                                servicedFlag: '',
-                                                                listingStatus: '',
+                                                                trustee: [],
+                                                                issuerOwnershipType: [],
+                                                                issuerNatureType: [],
+                                                                businessSector: [],
+                                                                securityType: [],
+                                                                modeOfIssue: [],
+                                                                creditRatingAgency: [],
+                                                                creditRating: [],
+                                                                seniority: [],
+                                                                servicedFlag: [],
+                                                                listingStatus: [],
                                                             })}
                                                             className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
                                                         >
@@ -1126,7 +1104,8 @@ export default function Summary() {
                                         label="Value Convention"
                                         options={valueConventionOptions}
                                         value={valueConvention}
-                                        onChange={(val) => setValueConvention(val as ValueConvention)}
+                                        onChange={(val) => setValueConvention(val[0] as ValueConvention || 'Crores')}
+                                        multiSelect={false}
                                     />
                                 </div>
                             </div>
@@ -1256,7 +1235,6 @@ export default function Summary() {
                         selectedYearsDateRange={selectedYearsDateRange}
                         filters={filters}
                         valueConvention={valueConvention}
-                        creditRatingAgency={creditRatingAgency}
                         trusteeOptions={trusteeOptionsForRatings}
                     />
                 </div>
