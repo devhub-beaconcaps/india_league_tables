@@ -7,15 +7,13 @@ import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import CustomDropdown from '@/components/CustomDropdown';
 import { Search, Download, X, ChevronDown, ChevronUp, Calendar, SlidersHorizontal } from 'lucide-react';
-
-import { FilterOption, FilterState, TableDataItem } from './types';
+import { FilterOption, TableDataItem } from './types';
 import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
 import { fetchArrangersDetailsData } from '@/features/arrangers/services';
 import { motion, AnimatePresence } from 'framer-motion'
 
+// ─── Helper to get current financial year dates (India: April 1 - March 31) ───
 
-
-// Helper to get current financial year dates (India: April 1 - March 31)
 function getCurrentFinancialYearDates() {
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -24,8 +22,7 @@ function getCurrentFinancialYearDates() {
     let startYear: any;
     let endYear: any;
 
-    // Determine financial year bounds
-    if (currentMonth >= 3) { // April is 3
+    if (currentMonth >= 3) {
         startYear = currentYear;
         endYear = currentYear + 1;
     } else {
@@ -35,11 +32,8 @@ function getCurrentFinancialYearDates() {
 
     const startDate = new Date(startYear, 3, 1);
     const endDate = new Date(endYear, 2, 31);
-
-    // If the financial year end is in the future, use today
     const finalEndDate = endDate > now ? now : endDate;
 
-    // Helper to format date as YYYY-MM-DD using LOCAL time
     const formatLocalDate = (date: Date) => {
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -63,14 +57,6 @@ function formatLocalDate(date: Date) {
 function getYearOptions() {
     const now = new Date();
     const currentYear = now.getFullYear();
-
-    const formatLocalDate = (date: Date) => {
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-    };
-
     const today = formatLocalDate(now);
 
     const financialYears = [];
@@ -78,7 +64,6 @@ function getYearOptions() {
 
     for (let i = 0; i < 5; i++) {
         const year = currentYear - i;
-
         const fyEnd = `${year + 1}-03-31`;
         const cyEnd = `${year}-12-31`;
 
@@ -116,6 +101,22 @@ interface FilterInputsResponse {
     creditRating: string[];
     seniority: string[];
     securedFlag: string[];
+    listingStatus: string[];
+}
+
+interface DetailedFilterState {
+    arranger: string;
+    issuerOwnershipType: string[];
+    issuerNatureType: string[];
+    businessSector: string[];
+    fromAllotmentDate: string;
+    toAllotmentDate: string;
+    securityType: string[];
+    modeOfIssue: string[];
+    creditRatingAgency: string[];
+    creditRating: string[];
+    seniority: string[];
+    servicedFlag: string[];
     listingStatus: string[];
 }
 
@@ -335,6 +336,7 @@ const formatDate = (dateString: string | number | null): string => {
 export default function DetailedAnalysis() {
     const router = useRouter();
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const yearMenuRef = useRef<HTMLDivElement>(null);
 
     const isinHandler = (item: any): void => {
         router.push(`/specific-issuer/${item?.id}`);
@@ -345,22 +347,27 @@ export default function DetailedAnalysis() {
 
     const [selectedYear, setSelectedYear] = useState('');
 
-    // Filter states
-    const [filters, setFilters] = useState<FilterState>({
+    // ── Years Hover Dropdown State ──
+    const [yearMenuOpen, setYearMenuOpen] = useState(false);
+    const [hoveredCategory, setHoveredCategory] = useState<'financial' | 'calendar' | null>(null);
+
+    // Filter states — now using arrays for multi-select
+    const [filters, setFilters] = useState<DetailedFilterState>({
         arranger: '',
-        issuerOwnershipType: '',
-        issuerNatureType: '',
-        businessSector: '',
+        issuerOwnershipType: [],
+        issuerNatureType: [],
+        businessSector: [],
         fromAllotmentDate: DEFAULT_DATES.startDate,
         toAllotmentDate: DEFAULT_DATES.endDate,
-        securityType: '',
-        modeOfIssue: '',
-        creditRatingAgency: '',
-        creditRating: '',
-        seniority: '',
-        servicedFlag: '',
-        listingStatus: '',
+        securityType: [],
+        modeOfIssue: [],
+        creditRatingAgency: [],
+        creditRating: [],
+        seniority: [],
+        servicedFlag: [],
+        listingStatus: [],
     });
+
     // Filter options states
     const [filterOptions, setFilterOptions] = useState<FilterInputsResponse>({
         ownershipType: [],
@@ -416,18 +423,27 @@ export default function DetailedAnalysis() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Close year menu on outside click
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (yearMenuRef.current && !yearMenuRef.current.contains(event.target as Node)) {
+                setYearMenuOpen(false);
+                setHoveredCategory(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     // Update filter helper
-    const updateFilter = useCallback((key: keyof FilterState, value: string | number) => {
+    const updateFilter = useCallback((key: keyof DetailedFilterState, value: any) => {
         setFilters(prev => ({ ...prev, [key]: value }));
     }, []);
 
     const handleYearChange = (value: string) => {
         setSelectedYear(value);
-
         const option = yearOptions.find(y => y.value === value);
-
         if (!option) return;
-
         updateFilter('fromAllotmentDate', option.startDate);
         updateFilter('toAllotmentDate', option.endDate);
     };
@@ -442,11 +458,7 @@ export default function DetailedAnalysis() {
                 startDate: filters.fromAllotmentDate || DEFAULT_DATES.startDate,
                 endDate: filters.toAllotmentDate || DEFAULT_DATES.endDate,
             };
-
             const data: FilterInputsResponse = await fetchIssueDetailsFilterInputsData(query);
-
-            console.log('Filter inputs data:', data);
-
             setFilterOptions(data);
             setError(null);
         } catch (err) {
@@ -463,7 +475,6 @@ export default function DetailedAnalysis() {
         setError(null);
         try {
             const offset = (currentPage - 1) * pageSize;
-
             const requestBody = {
                 startDate: filters.fromAllotmentDate || DEFAULT_DATES.startDate,
                 endDate: filters.toAllotmentDate || DEFAULT_DATES.endDate,
@@ -487,7 +498,6 @@ export default function DetailedAnalysis() {
 
             const result: PaginatedResponse = await fetchArrangersDetailsData(requestBody);
 
-            // Map backend data to frontend format
             const mappedData: TableDataItem[] = result.data?.map((item: any) => ({
                 id: item.id,
                 isin: item.isin,
@@ -526,10 +536,9 @@ export default function DetailedAnalysis() {
     // ── Active Filters Count ──
     const activeFilterCount = useMemo(() => {
         let count = 0;
-
         Object.entries(filters).forEach(([key, value]) => {
             if (!value) return;
-
+            if (Array.isArray(value) && value.length === 0) return;
             if (
                 !selectedYear &&
                 (
@@ -539,17 +548,14 @@ export default function DetailedAnalysis() {
             ) {
                 return;
             }
-
-            count++;
+            count += Array.isArray(value) ? value.length : 1;
         });
-
         return count;
     }, [filters, selectedYear]);
 
     const activeFilterChips = useMemo(() => {
-        const chips: { key: keyof FilterState; label: string }[] = [];
-
-        const labelMap: Record<keyof FilterState, string> = {
+        const chips: { key: keyof DetailedFilterState; label: string; index: number }[] = [];
+        const labelMap: Record<keyof DetailedFilterState, string> = {
             arranger: 'Arranger',
             issuerOwnershipType: 'Ownership',
             issuerNatureType: 'Nature',
@@ -565,12 +571,11 @@ export default function DetailedAnalysis() {
             listingStatus: 'Listing',
         };
 
-        (Object.keys(filters) as Array<keyof FilterState>).forEach((key) => {
+        (Object.keys(filters) as Array<keyof DetailedFilterState>).forEach((key) => {
             const value = filters[key];
-
             if (!value) return;
+            if (Array.isArray(value) && value.length === 0) return;
 
-            // Hide default dates only when NO year is selected
             if (
                 !selectedYear &&
                 (
@@ -581,19 +586,39 @@ export default function DetailedAnalysis() {
                 return;
             }
 
-            const displayValue =
-                key === 'fromAllotmentDate' || key === 'toAllotmentDate'
-                    ? formatDate(value as string)
-                    : value;
-
-            chips.push({
-                key,
-                label: `${labelMap[key]}: ${displayValue}`,
-            });
+            if (Array.isArray(value)) {
+                value.forEach((val, idx) => {
+                    chips.push({
+                        key,
+                        index: idx,
+                        label: `${labelMap[key]}: ${val}`,
+                    });
+                });
+            } else {
+                const displayValue =
+                    key === 'fromAllotmentDate' || key === 'toAllotmentDate'
+                        ? formatDate(value as string)
+                        : value;
+                chips.push({
+                    key,
+                    index: 0,
+                    label: `${labelMap[key]}: ${displayValue}`,
+                });
+            }
         });
 
         return chips;
     }, [filters, selectedYear]);
+
+    const handleRemoveChip = useCallback((chip: typeof activeFilterChips[0]) => {
+        const currentValue = filters[chip.key];
+        if (Array.isArray(currentValue)) {
+            const newValues = currentValue.filter((_, i) => i !== chip.index);
+            updateFilter(chip.key, newValues);
+        } else {
+            updateFilter(chip.key, '');
+        }
+    }, [filters, updateFilter]);
 
     // Initial fetch for filter inputs
     useEffect(() => {
@@ -616,18 +641,18 @@ export default function DetailedAnalysis() {
     const handleReset = () => {
         setFilters({
             arranger: '',
-            issuerOwnershipType: '',
-            issuerNatureType: '',
-            businessSector: '',
+            issuerOwnershipType: [],
+            issuerNatureType: [],
+            businessSector: [],
             fromAllotmentDate: DEFAULT_DATES.startDate,
             toAllotmentDate: DEFAULT_DATES.endDate,
-            securityType: '',
-            modeOfIssue: '',
-            creditRatingAgency: '',
-            creditRating: '',
-            seniority: '',
-            servicedFlag: '',
-            listingStatus: '',
+            securityType: [],
+            modeOfIssue: [],
+            creditRatingAgency: [],
+            creditRating: [],
+            seniority: [],
+            servicedFlag: [],
+            listingStatus: [],
         });
         setSearchQuery('');
         setSelectedYear('');
@@ -659,7 +684,6 @@ export default function DetailedAnalysis() {
             const dataRows = tableData.map(row =>
                 filteredColumns.map(col => {
                     const value = (row as any)[col.accessor];
-                    // Format currency values if numeric
                     if (col.accessor === 'issueValue' || col.accessor === 'faceValue') {
                         return typeof value === 'number' ? formatCurrency(value) : value;
                     }
@@ -667,23 +691,17 @@ export default function DetailedAnalysis() {
                 })
             );
 
-            // Create workbook and worksheet
             const worksheetData = [headers, ...dataRows];
             const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-
-            // Set column widths
             const columnWidths = headers.map(() => ({ wch: 15 }));
             worksheet['!cols'] = columnWidths;
 
-            // Create workbook
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Arranger Details');
 
-            // Generate filename with current date
             const now = new Date();
             const filename = `arranger-details-${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}.xlsx`;
 
-            // Trigger download
             XLSX.writeFile(workbook, filename);
         } catch (error) {
             console.error('Export failed:', error);
@@ -740,7 +758,6 @@ export default function DetailedAnalysis() {
             );
         }
 
-        // Format date columns
         if (accessor === 'allotmentDate' || accessor === 'dateOfMaturity') {
             return formatDate(value as string);
         }
@@ -760,43 +777,19 @@ export default function DetailedAnalysis() {
 
     const getPageNumbers = (): (number | string)[] => {
         const pages: (number | string)[] = [];
-
         if (totalPages <= 7) {
-            for (let i = 1; i <= totalPages; i++) {
-                pages.push(i);
-            }
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else if (currentPage <= 4) {
+            pages.push(1, 2, 3, 4, 5, "...", totalPages);
+        } else if (currentPage >= totalPages - 3) {
+            pages.push(1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
         } else {
-            if (currentPage <= 4) {
-                pages.push(1, 2, 3, 4, 5, "...", totalPages);
-            } else if (currentPage >= totalPages - 3) {
-                pages.push(
-                    1,
-                    "...",
-                    totalPages - 4,
-                    totalPages - 3,
-                    totalPages - 2,
-                    totalPages - 1,
-                    totalPages
-                );
-            } else {
-                pages.push(
-                    1,
-                    "...",
-                    currentPage - 1,
-                    currentPage,
-                    currentPage + 1,
-                    "...",
-                    totalPages
-                );
-            }
+            pages.push(1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages);
         }
-
         return pages;
     };
 
-    const startEntry: number =
-        totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-
+    const startEntry: number = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
     const endEntry: number = Math.min(currentPage * pageSize, totalCount);
 
     return (
@@ -838,9 +831,9 @@ export default function DetailedAnalysis() {
                                 <div className="hidden md:flex items-center gap-1.5 flex-wrap max-w-md">
                                     {activeFilterChips.slice(0, 3).map((chip) => (
                                         <ActiveFilterChip
-                                            key={chip.key}
+                                            key={`${chip.key}-${chip.index}`}
                                             label={chip.label}
-                                            onRemove={() => updateFilter(chip.key, '')}
+                                            onRemove={() => handleRemoveChip(chip)}
                                         />
                                     ))}
                                     {activeFilterChips.length > 3 && (
@@ -857,7 +850,6 @@ export default function DetailedAnalysis() {
                     </button>
 
                     {/* Expanded Filter Content */}
-
                     <AnimatePresence>
                         {isFiltersExpanded && (
                             <motion.div
@@ -886,7 +878,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.ownershipType)}
                                                         value={filters.issuerOwnershipType}
-                                                        onChange={(val) => updateFilter('issuerOwnershipType', val)}
+                                                        onChange={(val) => updateFilter('issuerOwnershipType', val as string[])}
                                                         placeholder="Select Ownership"
                                                     />
                                                 </FilterGroup>
@@ -895,7 +887,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.nature)}
                                                         value={filters.issuerNatureType}
-                                                        onChange={(val) => updateFilter('issuerNatureType', val)}
+                                                        onChange={(val) => updateFilter('issuerNatureType', val as string[])}
                                                         placeholder="Select Nature"
                                                     />
                                                 </FilterGroup>
@@ -904,37 +896,116 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.sector)}
                                                         value={filters.businessSector}
-                                                        onChange={(val) => updateFilter('businessSector', val)}
+                                                        onChange={(val) => updateFilter('businessSector', val as string[])}
                                                         placeholder="Select Sector"
                                                     />
                                                 </FilterGroup>
 
+                                                {/* ── Years Hover Dropdown ── */}
                                                 <FilterGroup label="Years">
-                                                    <CustomDropdown
-                                                        options={[
-                                                            {
-                                                                label: "Financial Year",
-                                                                options: yearOptions
-                                                                    .filter(x => x.group === "Financial Year")
-                                                                    .map(x => ({
-                                                                        value: x.value,
-                                                                        label: x.label,
-                                                                    }))
-                                                            },
-                                                            {
-                                                                label: "Calendar Year",
-                                                                options: yearOptions
-                                                                    .filter(x => x.group === "Calendar Year")
-                                                                    .map(x => ({
-                                                                        value: x.value,
-                                                                        label: `CY ${x.startDate.slice(0, 4)}`,
-                                                                    })),
-                                                            },
-                                                        ]}
-                                                        value={selectedYear}
-                                                        onChange={(val) => handleYearChange(val as string)}
-                                                        placeholder="Select Year"
-                                                    />
+                                                    <div className="relative" ref={yearMenuRef}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setYearMenuOpen(!yearMenuOpen)}
+                                                            className="w-full h-6 px-3 text-xs bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-lg 
+                                                                text-left text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]
+                                                                flex items-center justify-between"
+                                                        >
+                                                            <span className={selectedYear ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'}>
+                                                                {selectedYear
+                                                                    ? yearOptions.find(y => y.value === selectedYear)?.label || 'Select Year'
+                                                                    : 'Select Year'}
+                                                            </span>
+                                                            <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${yearMenuOpen ? 'rotate-180' : ''}`} />
+                                                        </button>
+
+                                                        {yearMenuOpen && (
+                                                            <div className="absolute z-50 mt-1 w-64 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
+                                                                <div className="flex min-h-[160px]">
+                                                                    {/* Left Column — Categories */}
+                                                                    <div className="w-1/2 border-r border-gray-100 dark:border-gray-800 flex flex-col">
+                                                                        <div
+                                                                            onMouseEnter={() => setHoveredCategory('financial')}
+                                                                            className={`px-3 py-2 text-xs cursor-pointer transition-colors ${
+                                                                                hoveredCategory === 'financial'
+                                                                                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium'
+                                                                                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                                            }`}
+                                                                        >
+                                                                            Financial Years
+                                                                        </div>
+                                                                        <div
+                                                                            onMouseEnter={() => setHoveredCategory('calendar')}
+                                                                            className={`px-3 py-2 text-xs cursor-pointer transition-colors ${
+                                                                                hoveredCategory === 'calendar'
+                                                                                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium'
+                                                                                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                                            }`}
+                                                                        >
+                                                                            Calendar Years
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Right Column — Year List */}
+                                                                    <div className="w-1/2 max-h-60 overflow-y-auto">
+                                                                        {hoveredCategory === 'financial' && (
+                                                                            <div className="flex flex-col">
+                                                                                {yearOptions
+                                                                                    .filter(y => y.group === 'Financial Year')
+                                                                                    .map(y => (
+                                                                                        <div
+                                                                                            key={y.value}
+                                                                                            onClick={() => {
+                                                                                                handleYearChange(y.value);
+                                                                                                setYearMenuOpen(false);
+                                                                                                setHoveredCategory(null);
+                                                                                            }}
+                                                                                            className={`px-3 py-2 text-xs cursor-pointer transition-colors ${
+                                                                                                selectedYear === y.value
+                                                                                                    ? 'text-[#423CAB] font-medium bg-indigo-50/50 dark:bg-indigo-900/20'
+                                                                                                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                                                            }`}
+                                                                                        >
+                                                                                            {y.label}
+                                                                                        </div>
+                                                                                    ))}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {hoveredCategory === 'calendar' && (
+                                                                            <div className="flex flex-col">
+                                                                                {yearOptions
+                                                                                    .filter(y => y.group === 'Calendar Year')
+                                                                                    .map(y => (
+                                                                                        <div
+                                                                                            key={y.value}
+                                                                                            onClick={() => {
+                                                                                                handleYearChange(y.value);
+                                                                                                setYearMenuOpen(false);
+                                                                                                setHoveredCategory(null);
+                                                                                            }}
+                                                                                            className={`px-3 py-2 text-xs cursor-pointer transition-colors ${
+                                                                                                selectedYear === y.value
+                                                                                                    ? 'text-[#423CAB] font-medium bg-indigo-50/50 dark:bg-indigo-900/20'
+                                                                                                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                                                            }`}
+                                                                                        >
+                                                                                            {y.label}
+                                                                                        </div>
+                                                                                    ))}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {!hoveredCategory && (
+                                                                            <div className="flex items-center justify-center h-full px-3 py-8 text-[10px] text-gray-400 dark:text-gray-500">
+                                                                                Hover a category
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </FilterGroup>
 
                                                 <FilterGroup label="From Allotment Date">
@@ -955,7 +1026,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.securityType)}
                                                         value={filters.securityType}
-                                                        onChange={(val) => updateFilter('securityType', val)}
+                                                        onChange={(val) => updateFilter('securityType', val as string[])}
                                                         placeholder="Select Security"
                                                     />
                                                 </FilterGroup>
@@ -964,7 +1035,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.modeOfIssue)}
                                                         value={filters.modeOfIssue}
-                                                        onChange={(val) => updateFilter('modeOfIssue', val)}
+                                                        onChange={(val) => updateFilter('modeOfIssue', val as string[])}
                                                         placeholder="Select Mode"
                                                     />
                                                 </FilterGroup>
@@ -973,7 +1044,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.creditRatingAgency)}
                                                         value={filters.creditRatingAgency}
-                                                        onChange={(val) => updateFilter('creditRatingAgency', val)}
+                                                        onChange={(val) => updateFilter('creditRatingAgency', val as string[])}
                                                         placeholder="Select Agency"
                                                     />
                                                 </FilterGroup>
@@ -982,7 +1053,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.creditRating)}
                                                         value={filters.creditRating}
-                                                        onChange={(val) => updateFilter('creditRating', val)}
+                                                        onChange={(val) => updateFilter('creditRating', val as string[])}
                                                         placeholder="Select Rating"
                                                     />
                                                 </FilterGroup>
@@ -991,7 +1062,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.seniority)}
                                                         value={filters.seniority}
-                                                        onChange={(val) => updateFilter('seniority', val)}
+                                                        onChange={(val) => updateFilter('seniority', val as string[])}
                                                         placeholder="Select Seniority"
                                                     />
                                                 </FilterGroup>
@@ -1000,7 +1071,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.securedFlag)}
                                                         value={filters.servicedFlag}
-                                                        onChange={(val) => updateFilter('servicedFlag', val)}
+                                                        onChange={(val) => updateFilter('servicedFlag', val as string[])}
                                                         placeholder="Select Flag"
                                                     />
                                                 </FilterGroup>
@@ -1009,7 +1080,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.listingStatus)}
                                                         value={filters.listingStatus}
-                                                        onChange={(val) => updateFilter('listingStatus', val)}
+                                                        onChange={(val) => updateFilter('listingStatus', val as string[])}
                                                         placeholder="Select Status"
                                                     />
                                                 </FilterGroup>
@@ -1023,29 +1094,28 @@ export default function DetailedAnalysis() {
                                                     </span>
                                                     {activeFilterChips.map((chip) => (
                                                         <ActiveFilterChip
-                                                            key={chip.key}
+                                                            key={`${chip.key}-${chip.index}`}
                                                             label={chip.label}
-                                                            onRemove={() => updateFilter(chip.key, '')}
+                                                            onRemove={() => handleRemoveChip(chip)}
                                                         />
                                                     ))}
                                                     <button
                                                         onClick={() => {
                                                             setSelectedYear('');
-
                                                             setFilters({
                                                                 arranger: '',
-                                                                issuerOwnershipType: '',
-                                                                issuerNatureType: '',
-                                                                businessSector: '',
+                                                                issuerOwnershipType: [],
+                                                                issuerNatureType: [],
+                                                                businessSector: [],
                                                                 fromAllotmentDate: DEFAULT_DATES.startDate,
                                                                 toAllotmentDate: DEFAULT_DATES.endDate,
-                                                                securityType: '',
-                                                                modeOfIssue: '',
-                                                                creditRatingAgency: '',
-                                                                creditRating: '',
-                                                                seniority: '',
-                                                                servicedFlag: '',
-                                                                listingStatus: '',
+                                                                securityType: [],
+                                                                modeOfIssue: [],
+                                                                creditRatingAgency: [],
+                                                                creditRating: [],
+                                                                seniority: [],
+                                                                servicedFlag: [],
+                                                                listingStatus: [],
                                                             });
                                                         }}
                                                         className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
@@ -1086,7 +1156,6 @@ export default function DetailedAnalysis() {
                                 </div>
                             </motion.div>
                         )}
-
                     </AnimatePresence>
                 </SectionCard>
 
@@ -1114,8 +1183,8 @@ export default function DetailedAnalysis() {
                                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                                     placeholder="Search ISIN or issuers..."
                                     className="w-full h-6 px-3 py-1.5 text-xs bg-gray-50 dark:bg-[#0f0f1a] border border-gray-200 dark:border-gray-700 rounded-lg 
-        text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]
-        placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                                        text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]
+                                        placeholder:text-gray-400 dark:placeholder:text-gray-500"
                                 />
                             </div>
 
@@ -1196,8 +1265,7 @@ export default function DetailedAnalysis() {
                                                 {filteredColumns.map((column) => (
                                                     <td
                                                         key={column.accessor}
-                                                        className={`border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200 ${column.accessor === 'issueValue' || column.accessor === 'faceValue' ? 'text-right' : ''
-                                                            }`}
+                                                        className={`border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200 ${column.accessor === 'issueValue' || column.accessor === 'faceValue' ? 'text-right' : ''}`}
                                                     >
                                                         {renderCell(row, column.accessor)}
                                                     </td>
@@ -1210,7 +1278,6 @@ export default function DetailedAnalysis() {
                                 {/* Pagination */}
                                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                                     <div className="flex items-center gap-6">
-
                                         <span className="text-[11px] text-gray-500 dark:text-gray-400">
                                             Showing {startEntry} to {endEntry} of {totalCount} entries
                                         </span>
@@ -1219,7 +1286,6 @@ export default function DetailedAnalysis() {
                                             <span className="text-[10px] text-gray-500 dark:text-gray-400">
                                                 Show
                                             </span>
-
                                             <select
                                                 value={pageSize}
                                                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -1233,15 +1299,12 @@ export default function DetailedAnalysis() {
                                                 <option value={50}>50</option>
                                                 <option value={100}>100</option>
                                             </select>
-
                                             <span className="text-[10px] text-gray-500 dark:text-gray-400">
                                                 entries
                                             </span>
                                         </div>
-
                                     </div>
                                     <div className="flex items-center gap-1">
-
                                         {/* First */}
                                         <button
                                             onClick={() => setCurrentPage(1)}
@@ -1261,18 +1324,13 @@ export default function DetailedAnalysis() {
                                         </button>
 
                                         {getPageNumbers().map((page, index) => {
-
                                             if (page === "...") {
                                                 return (
-                                                    <span
-                                                        key={index}
-                                                        className="px-2 text-gray-500"
-                                                    >
+                                                    <span key={index} className="px-2 text-gray-500">
                                                         ...
                                                     </span>
                                                 );
                                             }
-
                                             return (
                                                 <button
                                                     key={page}
@@ -1289,9 +1347,7 @@ export default function DetailedAnalysis() {
 
                                         {/* Next */}
                                         <button
-                                            onClick={() =>
-                                                setCurrentPage(prev => Math.min(totalPages, prev + 1))
-                                            }
+                                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                             disabled={currentPage === totalPages}
                                             className="px-2 py-1 rounded disabled:opacity-40"
                                         >
@@ -1306,7 +1362,6 @@ export default function DetailedAnalysis() {
                                         >
                                             &raquo;
                                         </button>
-
                                     </div>
                                 </div>
                             </div>

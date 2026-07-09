@@ -8,12 +8,10 @@ import CustomDropdown from '@/components/CustomDropdown';
 import { Search, Download, X, ChevronDown, ChevronUp, Calendar, SlidersHorizontal } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
-import { FilterOption, FilterState, TableDataItem } from './types';
+import { FilterOption, TableDataItem } from './types';
 import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
 import { fetchRatingAgencyDetailedData } from '@/features/ratingAgencies/services';
 import { motion, AnimatePresence } from 'framer-motion'
-
-
 
 // Helper to get current financial year dates (India: April 1 - March 31)
 function getCurrentFinancialYearDates() {
@@ -116,6 +114,22 @@ interface FilterInputsResponse {
     creditRating: string[];
     seniority: string[];
     securedFlag: string[];
+    listingStatus: string[];
+}
+
+interface FilterState {
+    registrar: string;
+    issuerOwnershipType: string[];
+    issuerNatureType: string[];
+    businessSector: string[];
+    fromAllotmentDate: string;
+    toAllotmentDate: string;
+    securityType: string[];
+    modeOfIssue: string[];
+    creditRatingAgency: string[];
+    creditRating: string[];
+    seniority: string[];
+    servicedFlag: string[];
     listingStatus: string[];
 }
 
@@ -343,22 +357,23 @@ export default function DetailedAnalysis() {
 
     const [selectedYear, setSelectedYear] = useState('');
 
-    // Filter states
+    // Filter states — now using arrays for multi-select
     const [filters, setFilters] = useState<FilterState>({
         registrar: '',
-        issuerOwnershipType: '',
-        issuerNatureType: '',
-        businessSector: '',
+        issuerOwnershipType: [],
+        issuerNatureType: [],
+        businessSector: [],
         fromAllotmentDate: DEFAULT_DATES.startDate,
         toAllotmentDate: DEFAULT_DATES.endDate,
-        securityType: '',
-        modeOfIssue: '',
-        creditRatingAgency: '',
-        creditRating: '',
-        seniority: '',
-        servicedFlag: '',
-        listingStatus: '',
+        securityType: [],
+        modeOfIssue: [],
+        creditRatingAgency: [],
+        creditRating: [],
+        seniority: [],
+        servicedFlag: [],
+        listingStatus: [],
     });
+
     // Filter options states
     const [filterOptions, setFilterOptions] = useState<FilterInputsResponse>({
         ownershipType: [],
@@ -415,7 +430,7 @@ export default function DetailedAnalysis() {
     }, []);
 
     // Update filter helper
-    const updateFilter = useCallback((key: keyof FilterState, value: string | number) => {
+    const updateFilter = useCallback((key: keyof FilterState, value: any) => {
         setFilters(prev => ({ ...prev, [key]: value }));
     }, []);
 
@@ -527,6 +542,7 @@ export default function DetailedAnalysis() {
 
         Object.entries(filters).forEach(([key, value]) => {
             if (!value) return;
+            if (Array.isArray(value) && value.length === 0) return;
 
             if (
                 !selectedYear &&
@@ -538,18 +554,17 @@ export default function DetailedAnalysis() {
                 return;
             }
 
-            count++;
+            count += Array.isArray(value) ? value.length : 1;
         });
 
         return count;
     }, [filters, selectedYear]);
 
     const activeFilterChips = useMemo(() => {
-        const chips: { key: keyof FilterState; label: string }[] = [];
+        const chips: { key: keyof FilterState; label: string; index: number }[] = [];
 
         const labelMap: Record<keyof FilterState, string> = {
             registrar: 'Registrar',
-            arranger: 'Arranger',
             issuerOwnershipType: 'Ownership',
             issuerNatureType: 'Nature',
             businessSector: 'Sector',
@@ -568,6 +583,7 @@ export default function DetailedAnalysis() {
             const value = filters[key];
 
             if (!value) return;
+            if (Array.isArray(value) && value.length === 0) return;
 
             // Hide default dates only when NO year is selected
             if (
@@ -580,19 +596,40 @@ export default function DetailedAnalysis() {
                 return;
             }
 
-            const displayValue =
-                key === 'fromAllotmentDate' || key === 'toAllotmentDate'
-                    ? formatDate(value as string)
-                    : value;
+            if (Array.isArray(value)) {
+                value.forEach((val, idx) => {
+                    chips.push({
+                        key,
+                        index: idx,
+                        label: `${labelMap[key]}: ${val}`,
+                    });
+                });
+            } else {
+                const displayValue =
+                    key === 'fromAllotmentDate' || key === 'toAllotmentDate'
+                        ? formatDate(value as string)
+                        : value;
 
-            chips.push({
-                key,
-                label: `${labelMap[key]}: ${displayValue}`,
-            });
+                chips.push({
+                    key,
+                    index: 0,
+                    label: `${labelMap[key]}: ${displayValue}`,
+                });
+            }
         });
 
         return chips;
     }, [filters, selectedYear]);
+
+    const handleRemoveChip = useCallback((chip: typeof activeFilterChips[0]) => {
+        const currentValue = filters[chip.key];
+        if (Array.isArray(currentValue)) {
+            const newValues = currentValue.filter((_, i) => i !== chip.index);
+            updateFilter(chip.key, newValues);
+        } else {
+            updateFilter(chip.key, '');
+        }
+    }, [filters, updateFilter]);
 
     // Initial fetch for filter inputs
     useEffect(() => {
@@ -615,18 +652,18 @@ export default function DetailedAnalysis() {
     const handleReset = () => {
         setFilters({
             registrar: '',
-            issuerOwnershipType: '',
-            issuerNatureType: '',
-            businessSector: '',
+            issuerOwnershipType: [],
+            issuerNatureType: [],
+            businessSector: [],
             fromAllotmentDate: DEFAULT_DATES.startDate,
             toAllotmentDate: DEFAULT_DATES.endDate,
-            securityType: '',
-            modeOfIssue: '',
-            creditRatingAgency: '',
-            creditRating: '',
-            seniority: '',
-            servicedFlag: '',
-            listingStatus: '',
+            securityType: [],
+            modeOfIssue: [],
+            creditRatingAgency: [],
+            creditRating: [],
+            seniority: [],
+            servicedFlag: [],
+            listingStatus: [],
         });
         setSearchQuery('');
         setSelectedYear('');
@@ -833,9 +870,9 @@ export default function DetailedAnalysis() {
                                 <div className="hidden md:flex items-center gap-1.5 flex-wrap max-w-md">
                                     {activeFilterChips.slice(0, 3).map((chip) => (
                                         <ActiveFilterChip
-                                            key={chip.key}
+                                            key={`${chip.key}-${chip.index}`}
                                             label={chip.label}
-                                            onRemove={() => updateFilter(chip.key, '')}
+                                            onRemove={() => handleRemoveChip(chip)}
                                         />
                                     ))}
                                     {activeFilterChips.length > 3 && (
@@ -867,20 +904,11 @@ export default function DetailedAnalysis() {
                                         <>
                                             {/* Filter Grid */}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
-                                                <FilterGroup label="Rating Agency Name">
-                                                    <TextInput
-                                                        value={filters.creditRatingAgency}
-                                                        onChange={(val) => updateFilter('creditRatingAgency', val)}
-                                                        placeholder="Enter Rating Agency Name"
-                                                        type="text"
-                                                    />
-                                                </FilterGroup>
-
                                                 <FilterGroup label="Issuer Ownership Type">
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.ownershipType)}
                                                         value={filters.issuerOwnershipType}
-                                                        onChange={(val) => updateFilter('issuerOwnershipType', val)}
+                                                        onChange={(val) => updateFilter('issuerOwnershipType', val as string[])}
                                                         placeholder="Select Ownership"
                                                     />
                                                 </FilterGroup>
@@ -889,7 +917,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.nature)}
                                                         value={filters.issuerNatureType}
-                                                        onChange={(val) => updateFilter('issuerNatureType', val)}
+                                                        onChange={(val) => updateFilter('issuerNatureType', val as string[])}
                                                         placeholder="Select Nature"
                                                     />
                                                 </FilterGroup>
@@ -898,7 +926,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.sector)}
                                                         value={filters.businessSector}
-                                                        onChange={(val) => updateFilter('businessSector', val)}
+                                                        onChange={(val) => updateFilter('businessSector', val as string[])}
                                                         placeholder="Select Sector"
                                                     />
                                                 </FilterGroup>
@@ -926,7 +954,8 @@ export default function DetailedAnalysis() {
                                                             },
                                                         ]}
                                                         value={selectedYear}
-                                                        onChange={(val) => handleYearChange(val as string)}
+                                                        onChange={(val) => handleYearChange(String(val[0] || ''))}
+                                                        multiSelect={false}
                                                         placeholder="Select Year"
                                                     />
                                                 </FilterGroup>
@@ -949,7 +978,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.securityType)}
                                                         value={filters.securityType}
-                                                        onChange={(val) => updateFilter('securityType', val)}
+                                                        onChange={(val) => updateFilter('securityType', val as string[])}
                                                         placeholder="Select Security"
                                                     />
                                                 </FilterGroup>
@@ -958,7 +987,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.modeOfIssue)}
                                                         value={filters.modeOfIssue}
-                                                        onChange={(val) => updateFilter('modeOfIssue', val)}
+                                                        onChange={(val) => updateFilter('modeOfIssue', val as string[])}
                                                         placeholder="Select Mode"
                                                     />
                                                 </FilterGroup>
@@ -967,7 +996,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.creditRatingAgency)}
                                                         value={filters.creditRatingAgency}
-                                                        onChange={(val) => updateFilter('creditRatingAgency', val)}
+                                                        onChange={(val) => updateFilter('creditRatingAgency', val as string[])}
                                                         placeholder="Select Agency"
                                                     />
                                                 </FilterGroup>
@@ -976,7 +1005,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.creditRating)}
                                                         value={filters.creditRating}
-                                                        onChange={(val) => updateFilter('creditRating', val)}
+                                                        onChange={(val) => updateFilter('creditRating', val as string[])}
                                                         placeholder="Select Rating"
                                                     />
                                                 </FilterGroup>
@@ -985,7 +1014,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.seniority)}
                                                         value={filters.seniority}
-                                                        onChange={(val) => updateFilter('seniority', val)}
+                                                        onChange={(val) => updateFilter('seniority', val as string[])}
                                                         placeholder="Select Seniority"
                                                     />
                                                 </FilterGroup>
@@ -994,7 +1023,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.securedFlag)}
                                                         value={filters.servicedFlag}
-                                                        onChange={(val) => updateFilter('servicedFlag', val)}
+                                                        onChange={(val) => updateFilter('servicedFlag', val as string[])}
                                                         placeholder="Select Flag"
                                                     />
                                                 </FilterGroup>
@@ -1003,7 +1032,7 @@ export default function DetailedAnalysis() {
                                                     <CustomDropdown
                                                         options={toOptions(filterOptions.listingStatus)}
                                                         value={filters.listingStatus}
-                                                        onChange={(val) => updateFilter('listingStatus', val)}
+                                                        onChange={(val) => updateFilter('listingStatus', val as string[])}
                                                         placeholder="Select Status"
                                                     />
                                                 </FilterGroup>
@@ -1017,9 +1046,9 @@ export default function DetailedAnalysis() {
                                                     </span>
                                                     {activeFilterChips.map((chip) => (
                                                         <ActiveFilterChip
-                                                            key={chip.key}
+                                                            key={`${chip.key}-${chip.index}`}
                                                             label={chip.label}
-                                                            onRemove={() => updateFilter(chip.key, '')}
+                                                            onRemove={() => handleRemoveChip(chip)}
                                                         />
                                                     ))}
                                                     <button
@@ -1028,18 +1057,18 @@ export default function DetailedAnalysis() {
 
                                                             setFilters({
                                                                 registrar: '',
-                                                                issuerOwnershipType: '',
-                                                                issuerNatureType: '',
-                                                                businessSector: '',
+                                                                issuerOwnershipType: [],
+                                                                issuerNatureType: [],
+                                                                businessSector: [],
                                                                 fromAllotmentDate: DEFAULT_DATES.startDate,
                                                                 toAllotmentDate: DEFAULT_DATES.endDate,
-                                                                securityType: '',
-                                                                modeOfIssue: '',
-                                                                creditRatingAgency: '',
-                                                                creditRating: '',
-                                                                seniority: '',
-                                                                servicedFlag: '',
-                                                                listingStatus: '',
+                                                                securityType: [],
+                                                                modeOfIssue: [],
+                                                                creditRatingAgency: [],
+                                                                creditRating: [],
+                                                                seniority: [],
+                                                                servicedFlag: [],
+                                                                listingStatus: [],
                                                             });
                                                         }}
                                                         className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
