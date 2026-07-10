@@ -1533,6 +1533,8 @@ export default function RegistrarsMonthWiseSummary() {
                             sizeUnit={sizeUnit}
                             primaryStartDate={primaryStartDate}
                             compareStartDate={compareStartDate}
+                            primaryFilters={primaryFilters}
+                            compareFilters={compareFilters}
                             tableName="registrars"
                         />
                     </div>
@@ -1570,6 +1572,8 @@ export default function RegistrarsMonthWiseSummary() {
                             sizeUnit={sizeUnit}
                             primaryStartDate={primaryStartDate}
                             compareStartDate={compareStartDate}
+                            primaryFilters={primaryFilters}
+                            compareFilters={compareFilters}
                             tableName="registrars"
                         />
                     </div>

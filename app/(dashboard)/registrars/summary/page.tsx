@@ -60,6 +60,7 @@ import ScrollableTable from '@/components/ScrollableTable';
 import { fetchRegistrarPageCreditRatingsData, fetchRegistrarPageData } from '@/features/registrars/services';
 import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
 import { motion, AnimatePresence } from 'framer-motion'
+import { TextInput } from '@/components/TextInput';
 
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -925,12 +926,11 @@ export default function Summary() {
                                             <>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
                                                     <FilterGroup label="Registrar Name">
-                                                        <CustomDropdown
-                                                            options={toOptions(registrarOptionsForRatings.map(o => o.value))}
-                                                            value={filters.registrar}
-                                                            onChange={(val) => updateFilter('registrar', val as string[])}
-                                                            placeholder="Select Registrar"
-                                                            menuClassName="w-48"
+                                                        <TextInput
+                                                            value={filters.registrar[0] || ''}
+                                                            onChange={(val) => updateFilter('registrar', val ? [val] : [])}
+                                                            placeholder="Enter Registrar Name"
+                                                            type="text"
                                                         />
                                                     </FilterGroup>
 

@@ -59,6 +59,7 @@ import StackedChart from '@/components/charts/StackedChart';
 import { fetchArrangerPageArrangersData, fetchArrangerPageCreditRatingsData } from '@/features/arrangers/services';
 import ScrollableTable from '@/components/ScrollableTable';
 import { motion, AnimatePresence } from 'framer-motion'
+import { TextInput } from '@/components/TextInput';
 
 // ─── Local Types for Filters ─────────────────────────────────────────────────
 
@@ -924,12 +925,11 @@ export default function Summary() {
                                             <>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
                                                     <FilterGroup label="Arranger Name">
-                                                        <CustomDropdown
-                                                            options={toOptions(arrangerOptionsForRatings.map(o => o.value))}
-                                                            value={filters.arranger}
-                                                            onChange={(val) => updateFilter('arranger', val as string[])}
-                                                            placeholder="Select Arranger"
-                                                            menuClassName="w-48"
+                                                        <TextInput
+                                                            value={filters.arranger[0] || ''}
+                                                            onChange={(val) => updateFilter('arranger', val ? [val] : [])}
+                                                            placeholder="Enter Arranger Name"
+                                                            type="text"
                                                         />
                                                     </FilterGroup>
 

@@ -7,7 +7,7 @@ import {
   PieLabelRenderProps
 } from 'recharts';
 import { fetchDashboardIssueVolumeTrendsData, fetchDashboardMonthlyVolumeData, fetchDashboardRatingAgencyData, fetchDashboardSectorsData, fetchDashboardStatsData, fetchDashboardTablesData } from '../../../features/dashboard/services';
-import CustomDropdown from '@/components/CustomDropdown';
+import SingleSelectionDropdown from '@/components/SingleSelectionDropdown';
 import { useUser } from '@clerk/nextjs'
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
@@ -681,14 +681,14 @@ export default function Dashboard() {
               </h2>
 
               <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
-                <CustomDropdown
+                <SingleSelectionDropdown
                   label="Value Convention"
                   options={valueConventionOptions}
                   value={valueConvention}
                   onChange={(val: string) => setValueConvention(val as 'Crores' | 'Lakhs' | 'Billions')}
                 />
                 <div className='flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4'>
-                  <CustomDropdown
+                  <SingleSelectionDropdown
                     label="Financial Year"
                     options={fyOptions}
                     value={selectedFY}

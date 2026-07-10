@@ -1535,6 +1535,8 @@ export default function AgenciesMonthWiseSummary() {
                             sizeUnit={sizeUnit}
                             primaryStartDate={primaryStartDate}
                             compareStartDate={compareStartDate}
+                            primaryFilters={primaryFilters}
+                            compareFilters={compareFilters}
                             tableName="agencies"
                         />
                     </div>
@@ -1572,6 +1574,8 @@ export default function AgenciesMonthWiseSummary() {
                             sizeUnit={sizeUnit}
                             primaryStartDate={primaryStartDate}
                             compareStartDate={compareStartDate}
+                            primaryFilters={primaryFilters}
+                            compareFilters={compareFilters}
                             tableName="agencies"
                         />
                     </div>

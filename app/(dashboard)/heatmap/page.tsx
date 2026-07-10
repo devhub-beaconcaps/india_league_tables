@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { fetchHeatmapEntityData } from "../../../features/analysis/services";
-import CustomDropdown from "@/components/CustomDropdown";
+import SingleSelectionDropdown from "@/components/SingleSelectionDropdown";
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
@@ -507,7 +507,7 @@ export default function HeatMap() {
                                 {/* Right Group: Dropdowns */}
                                 <div className="flex flex-col sm:flex-row lg:ml-auto gap-4 w-full lg:w-auto">
                                     <div ref={participantsRef}>
-                                        <CustomDropdown
+                                        <SingleSelectionDropdown
                                             label="Participants"
                                             options={PARTICIPANT_OPTIONS}
                                             value={participants}
@@ -517,7 +517,7 @@ export default function HeatMap() {
                                     </div>
 
                                     <div ref={ranksRef}>
-                                        <CustomDropdown
+                                        <SingleSelectionDropdown
                                             label="Ranks"
                                             options={RANK_OPTIONS}
                                             value={ranks}
@@ -527,7 +527,7 @@ export default function HeatMap() {
                                     </div>
 
                                     <div ref={frequencyRef}>
-                                        <CustomDropdown
+                                        <SingleSelectionDropdown
                                             label="Frequency"
                                             options={FREQUENCY_OPTIONS}
                                             value={frequency}
@@ -580,7 +580,7 @@ export default function HeatMap() {
 
                                     {frequency === "Monthly" && (
                                         <div className="flex flex-col gap-1 w-full sm:w-auto">
-                                            <CustomDropdown
+                                            <SingleSelectionDropdown
                                                 label="Months"
                                                 options={MONTH_OPTIONS}
                                                 value={selectedPeriod as number}

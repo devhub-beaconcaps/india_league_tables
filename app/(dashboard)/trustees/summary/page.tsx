@@ -54,6 +54,7 @@ import ScrollableTable from '@/components/ScrollableTable';
 import { fetchTrusteePageCreditRatingsData, fetchTrusteePageTrusteesData } from '@/features/trustees/services';
 import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
 import { motion, AnimatePresence } from 'framer-motion'
+import { TextInput } from '@/components/TextInput';
 
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -908,12 +909,11 @@ export default function Summary() {
                                             <>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
                                                     <FilterGroup label="Trustee Name">
-                                                        <CustomDropdown
-                                                            options={toOptions(trusteeOptionsForRatings.map(o => o.value))}
-                                                            value={filters.trustee}
-                                                            onChange={(val) => updateFilter('trustee', val as string[])}
-                                                            placeholder="Select Trustee"
-                                                            menuClassName="w-48"
+                                                        <TextInput
+                                                            value={filters.trustee[0] || ''}
+                                                            onChange={(val) => updateFilter('trustee', val ? [val] : [])}
+                                                            placeholder="Enter Trustee Name"
+                                                            type="text"
                                                         />
                                                     </FilterGroup>
 

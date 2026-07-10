@@ -257,12 +257,14 @@ function NoDataState({ message = 'No data available', subMessage }: { message?: 
 export default function RegistrarsListPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const period = searchParams.get('period') || 'Q1';
-    const fy = searchParams.get('fy') || getCurrentFinancialYear();
+    const urlStartDate = searchParams.get('startDate') || '';
+    const urlEndDate = searchParams.get('endDate') || '';
 
-    const dateRange = useMemo(() => {
-        return getDateRange(period, fy);
-    }, [period, fy]);
+    // ── Helper: read array filters from URL ──
+    const getFilterArray = useCallback((key: string): string[] => {
+        const values = searchParams.getAll(key);
+        return values.filter(v => v !== '' && v !== null && v !== undefined);
+    }, [searchParams]);
 
     // ── Table State ──
     const [tableData, setTableData] = useState<TableDataItem[]>([]);
@@ -337,7 +339,7 @@ export default function RegistrarsListPage() {
 
     // ── Data Fetch ──
     const fetchData = useCallback(async () => {
-        if (!dateRange) return;
+        if (!urlStartDate || !urlEndDate) return;
 
         setIsLoading(true);
         setError(null);
@@ -350,24 +352,47 @@ export default function RegistrarsListPage() {
             // send it as `isin`, otherwise send as `issuerName`.
             const looksLikeISIN = /^[A-Z0-9]{8,12}$/i.test(trimmedSearch) && !trimmedSearch.includes(' ');
 
+            // Read all filter arrays from URL query params
+            const sector = getFilterArray('sector');
+            const nature = getFilterArray('nature');
+            const ownershipType = getFilterArray('ownershipType');
+            const securityType = getFilterArray('securityType');
+            const creditRatingAgency = getFilterArray('creditRatingAgency');
+            const modeOfIssue = getFilterArray('modeOfIssue');
+            const seniority = getFilterArray('seniority');
+            const listingStatus = getFilterArray('listingStatus');
+            const securedFlag = getFilterArray('securedFlag');
+            const rating = getFilterArray('rating');
+            const arranger = getFilterArray('arranger');
+            const isin = looksLikeISIN ? [trimmedSearch] : getFilterArray('isin');
+            const issuerName = !looksLikeISIN && trimmedSearch ? [trimmedSearch] : getFilterArray('issuerName');
+            const trustee = getFilterArray('trustee');
+            const registrar = getFilterArray('registrar');
+            const taxFree = getFilterArray('taxFree');
+
             const requestBody = {
-                startDate: dateRange.startDate,
-                endDate: dateRange.endDate,
+                startDate: urlStartDate,
+                endDate: urlEndDate,
                 limit: pageSize,
                 offset: offset,
-                issuerName: !looksLikeISIN ? trimmedSearch : '',
-                isin: looksLikeISIN ? trimmedSearch : '',
-                rating: '',
-                seniority: '',
-                taxFree: '',
-                securedFlag: '',
-                trustee: '',
-                creditRatingAgency: '',
-                listingStatus: '',
-                securityType: '',
-                modeOfIssue: '',
-                arranger: '',
-                registrar: '',
+                month: '',
+                // Arrays from URL filters
+                sector,
+                nature,
+                ownershipType,
+                securityType,
+                creditRatingAgency,
+                modeOfIssue,
+                seniority,
+                listingStatus,
+                securedFlag,
+                rating,
+                arranger,
+                isin,
+                issuerName,
+                trustee,
+                registrar,
+                taxFree,
             };
 
             const result: PaginatedApiResponse = await fetchRegistrarMonthlyDetailedData(requestBody);
@@ -410,7 +435,7 @@ export default function RegistrarsListPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [dateRange, currentPage, pageSize, searchQuery]);
+    }, [urlStartDate, urlEndDate, currentPage, pageSize, searchQuery, getFilterArray]);
 
     useEffect(() => {
         fetchData();
@@ -514,11 +539,13 @@ export default function RegistrarsListPage() {
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Registrar List');
 
-        const dateStr = new Date().toISOString().split('T')[0];
-        const filename = `registrar-list-${fy}-${period}-${dateStr}.xlsx`;
+        // Generate filename with current date
+        const now = new Date();
+        const filename = `registrar-list-${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}.xlsx`;
 
+        // Trigger download
         XLSX.writeFile(workbook, filename);
-    }, [sortedData, filteredColumns, fy, period]);
+    }, [sortedData, filteredColumns]);
 
     // ── Render ──
     return (
@@ -543,37 +570,22 @@ export default function RegistrarsListPage() {
                 <div className="bg-white dark:bg-[#1a1a2e] rounded-[12px] shadow-sm border border-gray-200 dark:border-gray-600 p-5 space-y-5">
                     <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Filter Details</h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex flex-col gap-1">
-                            <label className="text-[9px] text-gray-400">Period</label>
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                                {String(period).toLocaleUpperCase() || '—'}
-                            </span>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <label className="text-[9px] text-gray-400">Financial Year</label>
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                                {fy || '—'}
-                            </span>
-                        </div>
-                    </div>
-
-                    {dateRange && (
+                    {urlStartDate && urlEndDate && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                             <div className="flex flex-col gap-1">
                                 <label className="text-[9px] text-gray-400">Start Date</label>
-                                <span className="text-sm font-bold text-[#423CAB]">{dateRange.startDate}</span>
+                                <span className="text-sm font-bold text-[#423CAB]">{urlStartDate}</span>
                             </div>
                             <div className="flex flex-col gap-1">
                                 <label className="text-[9px] text-gray-400">End Date</label>
-                                <span className="text-sm font-bold text-[#423CAB]">{dateRange.endDate}</span>
+                                <span className="text-sm font-bold text-[#423CAB]">{urlEndDate}</span>
                             </div>
                         </div>
                     )}
 
-                    {!dateRange && period && fy && (
-                        <p className="text-[9px] text-red-500 pt-2">Invalid period or financial year format.</p>
-                    )}
+                    {!urlStartDate || !urlEndDate ? (
+                        <p className="text-[9px] text-red-500 pt-2">Please select both start and end dates.</p>
+                    ) : null}
                 </div>
 
                 {/* Search + Table Card */}

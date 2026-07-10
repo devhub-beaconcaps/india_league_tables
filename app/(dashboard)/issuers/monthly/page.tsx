@@ -1523,6 +1523,8 @@ export default function IssuerMonthWiseSummary() {
                             sizeUnit={sizeUnit}
                             primaryStartDate={primaryStartDate}
                             compareStartDate={compareStartDate}
+                            primaryFilters={primaryFilters}
+                            compareFilters={compareFilters}
                             tableName="issuers"
                         />
                     </div>
@@ -1560,6 +1562,8 @@ export default function IssuerMonthWiseSummary() {
                             sizeUnit={sizeUnit}
                             primaryStartDate={primaryStartDate}
                             compareStartDate={compareStartDate}
+                            primaryFilters={primaryFilters}
+                            compareFilters={compareFilters}
                             tableName="issuers"
                         />
                     </div>

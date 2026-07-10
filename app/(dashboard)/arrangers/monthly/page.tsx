@@ -1523,6 +1523,8 @@ export default function ArrangerMonthWiseSummary() {
                             sizeUnit={sizeUnit}
                             primaryStartDate={primaryStartDate}
                             compareStartDate={compareStartDate}
+                            primaryFilters={primaryFilters}
+                            compareFilters={compareFilters}
                             tableName="arrangers"
                         />
                     </div>
@@ -1560,6 +1562,8 @@ export default function ArrangerMonthWiseSummary() {
                             sizeUnit={sizeUnit}
                             primaryStartDate={primaryStartDate}
                             compareStartDate={compareStartDate}
+                            primaryFilters={primaryFilters}
+                            compareFilters={compareFilters}
                             tableName="arrangers"
                         />
                     </div>

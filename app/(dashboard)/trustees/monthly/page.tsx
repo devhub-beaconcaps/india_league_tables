@@ -1105,6 +1105,8 @@ export default function TrusteesMonthWiseSummary() {
                             sizeUnit={sizeUnit}
                             primaryStartDate={primaryStartDate}
                             compareStartDate={compareStartDate}
+                            primaryFilters={primaryFilters}
+                            compareFilters={compareFilters}
                             tableName="trustees"
                         />
                     </div>
@@ -1139,6 +1141,8 @@ export default function TrusteesMonthWiseSummary() {
                             sizeUnit={sizeUnit}
                             primaryStartDate={primaryStartDate}
                             compareStartDate={compareStartDate}
+                            primaryFilters={primaryFilters}
+                            compareFilters={compareFilters}
                             tableName="trustees"
                         />
                     </div>
