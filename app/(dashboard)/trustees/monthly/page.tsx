@@ -21,6 +21,7 @@ import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
 
 import { fetchTrusteeMonthlySummaryData } from '@/features/trustees/services';
 import { Search, X, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { SummaryDiagonalCard } from '@/components/SummaryDiagonalCard';
 import MonthWiseTable from '@/components/MonthWiseTable';
 import QuarterWiseTable from '@/components/QuarterWiseTable';
@@ -221,6 +222,29 @@ function getFinancialYearLabel(startDate: string, endDate: string) {
     return year?.label || 'Custom FY';
 }
 
+function formatSameMonthDayInYear(date: string, year: number) {
+    const [, month, day] = date.split('-');
+    const parsedMonth = parseInt(month, 10);
+    const parsedDay = parseInt(day, 10);
+    const targetDate = new Date(year, parsedMonth - 1, parsedDay);
+
+    if (
+        targetDate.getFullYear() !== year ||
+        targetDate.getMonth() + 1 !== parsedMonth ||
+        targetDate.getDate() !== parsedDay
+    ) {
+        const maxDay = new Date(year, parsedMonth, 0).getDate();
+        return `${year}-${String(parsedMonth).padStart(2, '0')}-${String(Math.min(parsedDay, maxDay)).padStart(2, '0')}`;
+    }
+
+    return `${year}-${month}-${day}`;
+}
+
+function getCompareEndDate(compareStartDate: string, primaryEndDate: string) {
+    const compareYear = new Date(compareStartDate).getFullYear();
+    return formatSameMonthDayInYear(primaryEndDate, compareYear);
+}
+
 function getComparisonData(primaryData: MonthlyApiData[], compareData: MonthlyApiData[]): ChartData[] {
     return primaryData?.map((item) => {
         const compareMonth = compareData?.find(
@@ -385,8 +409,13 @@ export default function TrusteesMonthWiseSummary() {
     }, [compareStartDate, compareEndDate, compareFilters]);
 
     useEffect(() => {
-        if (enableCompare) { fetchCompareData(); }
-    }, [compareStartDate, compareEndDate, compareFilters, enableCompare, fetchCompareData]);
+        if (!enableCompare) return;
+
+        const expectedEndDate = getCompareEndDate(compareStartDate, primaryEndDate);
+        if (compareEndDate !== expectedEndDate) return;
+
+        fetchCompareData();
+    }, [compareStartDate, compareEndDate, compareFilters, enableCompare, fetchCompareData, primaryEndDate]);
 
     const primaryChartData = useMemo(() => {
         return displayPrimaryData.map((item) => ({ ...item, monthName: getMonthName(item.issueMonthNo) }));
@@ -498,9 +527,17 @@ export default function TrusteesMonthWiseSummary() {
             setPrimaryEndDate(selectedYear.endDate);
         } else {
             setCompareStartDate(selectedYear.startDate);
-            setCompareEndDate(selectedYear.endDate);
+            setCompareEndDate(enableCompare
+                ? getCompareEndDate(selectedYear.startDate, primaryEndDate)
+                : selectedYear.endDate);
         }
     };
+
+    useEffect(() => {
+        if (!enableCompare) return;
+
+        setCompareEndDate(getCompareEndDate(compareStartDate, primaryEndDate));
+    }, [enableCompare, compareStartDate, primaryEndDate]);
 
     const handleResetFilters = () => {
         setPrimaryFilters(DEFAULT_FILTERS);
@@ -579,10 +616,18 @@ export default function TrusteesMonthWiseSummary() {
                         </div>
                     </button>
 
-                    <div className={`transition-all duration-300 ease-in-out ${isFiltersExpanded ? 'max-h-[1500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                        <div className="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800 space-y-8">
+                    <AnimatePresence>
+                        {isFiltersExpanded && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.25 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800 space-y-8">
 
-                            {/* PRIMARY FILTERS */}
+                                    {/* PRIMARY FILTERS */}
                             <div>
                                 <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
                                     <h2 className="text-md font-semibold text-gray-700 dark:text-gray-200">Primary Filters</h2>
@@ -944,7 +989,9 @@ export default function TrusteesMonthWiseSummary() {
                                 </button>
                             </div>
                         </div>
-                    </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </SectionCard>
 
                 {/* SUMMARY */}
