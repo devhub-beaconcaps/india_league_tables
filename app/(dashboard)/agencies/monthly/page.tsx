@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import html2canvas from 'html2canvas-pro';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import {
@@ -109,7 +110,7 @@ function generateFinancialYearOptions(count: number = 3) {
         const startYear = currentFYStart - i;
         const endYear = startYear + 1;
 
-        const fyRange = `${startYear}-${endYear}`;
+        const fyRange = `${startYear}-${String(endYear).slice(-2)}`;
         const fyEndDate = `${endYear}-03-31`;
 
         options.push({
@@ -225,6 +226,21 @@ function ActiveFilterChip({ label, onRemove }: { label: string; onRemove: () => 
                 <X className="w-3 h-3" />
             </button>
         </span>
+    );
+}
+
+function DownloadPngButton({ onClick, label = 'Download PNG' }: { onClick: () => void; label?: string }) {
+    return (
+        <button
+            onClick={onClick}
+            className="flex items-center cursor-pointer gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 h-7 text-[10px] font-medium transition-colors"
+            title={label}
+        >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            PNG
+        </button>
     );
 }
 
@@ -402,6 +418,10 @@ export default function AgenciesMonthWiseSummary() {
     const [enableCompare, setEnableCompare] = useState(false);
     const [sizeUnit, setSizeUnit] = useState<SizeUnit>('Crores');
     const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+
+    // ── Chart Refs for PNG Download ──
+    const areaChartRef = useRef<HTMLDivElement>(null);
+    const barChartRef = useRef<HTMLDivElement>(null);
 
     const [filterOptions, setFilterOptions] =
         useState<FilterOptions>({
@@ -641,6 +661,16 @@ export default function AgenciesMonthWiseSummary() {
         displayCompareData.length
         : 0;
 
+    const primaryYearLabel = getFinancialYearLabel(
+        primaryStartDate,
+        primaryEndDate,
+    );
+
+    const compareYearLabel = getFinancialYearLabel(
+        compareStartDate,
+        compareEndDate,
+    );
+
     // ─────────────────────────────────────────────────────────
     // ACTIVE FILTER CHIPS LOGIC
     // ─────────────────────────────────────────────────────────
@@ -698,6 +728,143 @@ export default function AgenciesMonthWiseSummary() {
     const toOptions = (items: string[]): { value: string; label: string }[] => {
         return items.map(item => ({ value: item, label: item }));
     };
+
+    // ─────────────────────────────────────────────────────────
+    // DOWNLOAD HELPERS
+    // ─────────────────────────────────────────────────────────
+
+    const downloadChartAsPng = useCallback(async (chartRef: HTMLElement | null, filename: string) => {
+        if (!chartRef) return;
+        try {
+            const canvas = await html2canvas(chartRef, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true,
+            });
+            const link = document.createElement('a');
+            link.download = `${filename}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (err) {
+            console.error('Error downloading chart:', err);
+        }
+    }, []);
+
+    const handleExportMonthWiseCSV = useCallback(() => {
+        if (!comparisonData.length) return;
+
+        const headers = enableCompare
+            ? [
+                'Month',
+                `${primaryYearLabel} Issue Count`,
+                `${compareYearLabel} Issue Count`,
+                `${primaryYearLabel} Issue Size (${sizeUnit})`,
+                `${compareYearLabel} Issue Size (${sizeUnit})`,
+            ]
+            : [
+                'Month',
+                'Issue Count',
+                `Issue Size (${sizeUnit})`,
+            ];
+
+        const rows = comparisonData.map((row) => {
+            if (enableCompare) {
+                return [
+                    row.monthName,
+                    String(row.primaryIssueCount),
+                    String(row.compareIssueCount),
+                    formatNumber(row.primaryIssueSize),
+                    formatNumber(row.compareIssueSize),
+                ];
+            }
+            return [
+                row.monthName,
+                String(row.primaryIssueCount),
+                formatNumber(row.primaryIssueSize),
+            ];
+        });
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map((row) =>
+                row.map((cell) => {
+                    const str = String(cell);
+                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        return `"${str.replace(/"/g, '""')}"`;
+                    }
+                    return str;
+                }).join(',')
+            ),
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.download = `month_wise_agencies_${primaryYearLabel}${enableCompare ? `_vs_${compareYearLabel}` : ''}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }, [comparisonData, enableCompare, primaryYearLabel, compareYearLabel, sizeUnit]);
+
+    const handleExportQuarterWiseCSV = useCallback(() => {
+        if (!quarterlyData.length) return;
+
+        const headers = enableCompare
+            ? [
+                'Quarter',
+                `${primaryYearLabel} Issue Count`,
+                `${compareYearLabel} Issue Count`,
+                `${primaryYearLabel} Issue Size (${sizeUnit})`,
+                `${compareYearLabel} Issue Size (${sizeUnit})`,
+            ]
+            : [
+                'Quarter',
+                'Issue Count',
+                `Issue Size (${sizeUnit})`,
+            ];
+
+        const rows = quarterlyData.map((row) => {
+            if (enableCompare) {
+                return [
+                    row.quarter,
+                    String(row.primaryIssueCount),
+                    String(row.compareIssueCount),
+                    formatNumber(row.primaryIssueSize),
+                    formatNumber(row.compareIssueSize),
+                ];
+            }
+            return [
+                row.quarter,
+                String(row.primaryIssueCount),
+                formatNumber(row.primaryIssueSize),
+            ];
+        });
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map((row) =>
+                row.map((cell) => {
+                    const str = String(cell);
+                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        return `"${str.replace(/"/g, '""')}"`;
+                    }
+                    return str;
+                }).join(',')
+            ),
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.download = `quarter_wise_agencies_${primaryYearLabel}${enableCompare ? `_vs_${compareYearLabel}` : ''}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }, [quarterlyData, enableCompare, primaryYearLabel, compareYearLabel, sizeUnit]);
 
     // ─────────────────────────────────────────────────────────
     // TOOLTIP COMPONENT (unit-aware)
@@ -778,16 +945,6 @@ export default function AgenciesMonthWiseSummary() {
     const clearAllCompareDropdowns = () => {
         setCompareFilters(DEFAULT_FILTERS);
     };
-
-    const primaryYearLabel = getFinancialYearLabel(
-        primaryStartDate,
-        primaryEndDate,
-    );
-
-    const compareYearLabel = getFinancialYearLabel(
-        compareStartDate,
-        compareEndDate,
-    );
 
     // ─────────────────────────────────────────────────────────
     // RENDER
@@ -1343,125 +1500,130 @@ export default function AgenciesMonthWiseSummary() {
                     {/* AREA CHART */}
 
                     <SectionCard className='my-3'>
-                        <h2 className="text-sm font-semibold mb-4 text-gray-700 dark:text-gray-200">
-                            Monthly Issue Size Trend (₹ {sizeUnit})
-                        </h2>
+                        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                Monthly Issue Size Trend (₹ {sizeUnit})
+                            </h2>
+                            <DownloadPngButton onClick={() => downloadChartAsPng(areaChartRef.current, `monthly_issue_size_trend_${primaryYearLabel}`)} />
+                        </div>
 
                         {isLoading ? (
                             <ChartSkeleton />
                         ) : primaryData.length > 0 ? (
-                            <ResponsiveContainer
-                                width="100%"
-                                height={300}
-                            >
-                                <AreaChart
-                                    data={
-                                        enableCompare
-                                            ? comparisonData
-                                            : primaryChartData
-                                    }
+                            <div ref={areaChartRef} className="bg-white dark:bg-[#1a1a2e]">
+                                <ResponsiveContainer
+                                    width="100%"
+                                    height={300}
                                 >
-                                    <defs>
-                                        <linearGradient
-                                            id="primaryGrad"
-                                            x1="0"
-                                            y1="0"
-                                            x2="0"
-                                            y2="1"
-                                        >
-                                            <stop
-                                                offset="5%"
-                                                stopColor="#423CAB"
-                                                stopOpacity={0.3}
-                                            />
-
-                                            <stop
-                                                offset="95%"
-                                                stopColor="#423CAB"
-                                                stopOpacity={0.02}
-                                            />
-                                        </linearGradient>
-
-                                        <linearGradient
-                                            id="compareGrad"
-                                            x1="0"
-                                            y1="0"
-                                            x2="0"
-                                            y2="1"
-                                        >
-                                            <stop
-                                                offset="5%"
-                                                stopColor="#06B6D4"
-                                                stopOpacity={0.25}
-                                            />
-
-                                            <stop
-                                                offset="95%"
-                                                stopColor="#06B6D4"
-                                                stopOpacity={0.02}
-                                            />
-                                        </linearGradient>
-                                    </defs>
-
-                                    <CartesianGrid
-                                        strokeDasharray="3 3"
-                                        vertical={false}
-                                        stroke="#e5e7eb"
-                                    />
-
-                                    <XAxis
-                                        dataKey="monthName"
-                                        tick={{ fill: '#6b7280', fontSize: 12 }}
-                                        axisLine={{ stroke: '#e5e7eb' }}
-                                    />
-
-                                    <YAxis
-                                        tickFormatter={(value) => formatNumber(value)}
-                                        tick={{ fill: '#6b7280', fontSize: 12 }}
-                                        axisLine={{ stroke: '#e5e7eb' }}
-                                    />
-
-                                    <Tooltip
-                                        content={
-                                            <CustomTooltipComponent />
-                                        }
-                                    />
-
-                                    <Legend
-                                        wrapperStyle={{ color: '#374151' }}
-                                    />
-
-                                    <Area
-                                        type="monotone"
-                                        dataKey={
+                                    <AreaChart
+                                        data={
                                             enableCompare
-                                                ? 'primaryIssueSize'
-                                                : 'issueSize'
+                                                ? comparisonData
+                                                : primaryChartData
                                         }
-                                        name={getFinancialYearLabel(
-                                            primaryStartDate,
-                                            primaryEndDate,
-                                        )}
-                                        stroke="#423CAB"
-                                        fill="url(#primaryGrad)"
-                                        strokeWidth={2}
-                                    />
+                                    >
+                                        <defs>
+                                            <linearGradient
+                                                id="primaryGrad"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <stop
+                                                    offset="5%"
+                                                    stopColor="#423CAB"
+                                                    stopOpacity={0.3}
+                                                />
 
-                                    {enableCompare && (
+                                                <stop
+                                                    offset="95%"
+                                                    stopColor="#423CAB"
+                                                    stopOpacity={0.02}
+                                                />
+                                            </linearGradient>
+
+                                            <linearGradient
+                                                id="compareGrad"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <stop
+                                                    offset="5%"
+                                                    stopColor="#06B6D4"
+                                                    stopOpacity={0.25}
+                                                />
+
+                                                <stop
+                                                    offset="95%"
+                                                    stopColor="#06B6D4"
+                                                    stopOpacity={0.02}
+                                                />
+                                            </linearGradient>
+                                        </defs>
+
+                                        <CartesianGrid
+                                            strokeDasharray="3 3"
+                                            vertical={false}
+                                            stroke="#e5e7eb"
+                                        />
+
+                                        <XAxis
+                                            dataKey="monthName"
+                                            tick={{ fill: '#6b7280', fontSize: 12 }}
+                                            axisLine={{ stroke: '#e5e7eb' }}
+                                        />
+
+                                        <YAxis
+                                            tickFormatter={(value) => formatNumber(value)}
+                                            tick={{ fill: '#6b7280', fontSize: 12 }}
+                                            axisLine={{ stroke: '#e5e7eb' }}
+                                        />
+
+                                        <Tooltip
+                                            content={
+                                                <CustomTooltipComponent />
+                                            }
+                                        />
+
+                                        <Legend
+                                            wrapperStyle={{ color: '#374151' }}
+                                        />
+
                                         <Area
                                             type="monotone"
-                                            dataKey="compareIssueSize"
+                                            dataKey={
+                                                enableCompare
+                                                    ? 'primaryIssueSize'
+                                                    : 'issueSize'
+                                            }
                                             name={getFinancialYearLabel(
-                                                compareStartDate,
-                                                compareEndDate,
+                                                primaryStartDate,
+                                                primaryEndDate,
                                             )}
-                                            stroke="#06B6D4"
-                                            fill="url(#compareGrad)"
+                                            stroke="#423CAB"
+                                            fill="url(#primaryGrad)"
                                             strokeWidth={2}
                                         />
-                                    )}
-                                </AreaChart>
-                            </ResponsiveContainer>
+
+                                        {enableCompare && (
+                                            <Area
+                                                type="monotone"
+                                                dataKey="compareIssueSize"
+                                                name={getFinancialYearLabel(
+                                                    compareStartDate,
+                                                    compareEndDate,
+                                                )}
+                                                stroke="#06B6D4"
+                                                fill="url(#compareGrad)"
+                                                strokeWidth={2}
+                                            />
+                                        )}
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
                         ) : (
                             <NoDataState />
                         )}
@@ -1470,75 +1632,80 @@ export default function AgenciesMonthWiseSummary() {
                     {/* BAR CHART */}
 
                     <SectionCard className='my-3'>
-                        <h2 className="text-sm font-semibold mb-4 text-gray-700 dark:text-gray-200">
-                            Quarterly Summary (₹ {sizeUnit})
-                        </h2>
+                        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                Quarterly Summary (₹ {sizeUnit})
+                            </h2>
+                            <DownloadPngButton onClick={() => downloadChartAsPng(barChartRef.current, `quarterly_summary_${primaryYearLabel}`)} />
+                        </div>
 
                         {isLoading ? (
                             <ChartSkeleton />
                         ) : quarterlyData.length > 0 ? (
-                            <ResponsiveContainer
-                                width="100%"
-                                height={300}
-                            >
-                                <BarChart
-                                    data={quarterlyData}
+                            <div ref={barChartRef} className="bg-white dark:bg-[#1a1a2e]">
+                                <ResponsiveContainer
+                                    width="100%"
+                                    height={300}
                                 >
-                                    <CartesianGrid
-                                        strokeDasharray="3 3"
-                                        vertical={false}
-                                        stroke="#e5e7eb"
-                                    />
+                                    <BarChart
+                                        data={quarterlyData}
+                                    >
+                                        <CartesianGrid
+                                            strokeDasharray="3 3"
+                                            vertical={false}
+                                            stroke="#e5e7eb"
+                                        />
 
-                                    <XAxis
-                                        dataKey="quarter"
-                                        tick={{ fill: '#6b7280', fontSize: 12 }}
-                                        axisLine={{ stroke: '#e5e7eb' }}
-                                    />
+                                        <XAxis
+                                            dataKey="quarter"
+                                            tick={{ fill: '#6b7280', fontSize: 12 }}
+                                            axisLine={{ stroke: '#e5e7eb' }}
+                                        />
 
-                                    <YAxis
-                                        tickFormatter={(value) => formatNumber(value)}
-                                        tick={{ fill: '#6b7280', fontSize: 12 }}
-                                        axisLine={{ stroke: '#e5e7eb' }}
-                                    />
+                                        <YAxis
+                                            tickFormatter={(value) => formatNumber(value)}
+                                            tick={{ fill: '#6b7280', fontSize: 12 }}
+                                            axisLine={{ stroke: '#e5e7eb' }}
+                                        />
 
-                                    <Tooltip
-                                        content={
-                                            <CustomTooltipComponent />
-                                        }
-                                    />
+                                        <Tooltip
+                                            content={
+                                                <CustomTooltipComponent />
+                                            }
+                                        />
 
-                                    <Legend
-                                        wrapperStyle={{ color: '#374151' }}
-                                    />
+                                        <Legend
+                                            wrapperStyle={{ color: '#374151' }}
+                                        />
 
-                                    <Bar
-                                        dataKey="primaryIssueSize"
-                                        name={getFinancialYearLabel(
-                                            primaryStartDate,
-                                            primaryEndDate,
-                                        )}
-                                        fill="#423CAB"
-                                        radius={[
-                                            4, 4, 0, 0,
-                                        ]}
-                                    />
-
-                                    {enableCompare && (
                                         <Bar
-                                            dataKey="compareIssueSize"
+                                            dataKey="primaryIssueSize"
                                             name={getFinancialYearLabel(
-                                                compareStartDate,
-                                                compareEndDate,
+                                                primaryStartDate,
+                                                primaryEndDate,
                                             )}
-                                            fill="#06B6D4"
+                                            fill="#423CAB"
                                             radius={[
                                                 4, 4, 0, 0,
                                             ]}
                                         />
-                                    )}
-                                </BarChart>
-                            </ResponsiveContainer>
+
+                                        {enableCompare && (
+                                            <Bar
+                                                dataKey="compareIssueSize"
+                                                name={getFinancialYearLabel(
+                                                    compareStartDate,
+                                                    compareEndDate,
+                                                )}
+                                                fill="#06B6D4"
+                                                radius={[
+                                                    4, 4, 0, 0,
+                                                ]}
+                                            />
+                                        )}
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
                         ) : (
                             <NoDataState message="No quarterly data available" />
                         )}
@@ -1552,19 +1719,31 @@ export default function AgenciesMonthWiseSummary() {
                         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                             Month-Wise Data (Rupees in {sizeUnit})
                         </h2>
-                        <div className="flex items-center gap-2">
-                            <label className="text-[9px] text-gray-400 block mb-1">
-                                Value Convention
-                            </label>
-                            <select
-                                value={sizeUnit}
-                                onChange={(e) => setSizeUnit(e.target.value as SizeUnit)}
-                                className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleExportMonthWiseCSV}
+                                disabled={isLoading || comparisonData.length === 0}
+                                className="flex items-center gap-1.5 cursor-pointer bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-4 h-8 text-xs font-medium transition-colors"
                             >
-                                <option value="Crores">Crores</option>
-                                <option value="Lakhs">Lakhs</option>
-                                <option value="Billions">Billions</option>
-                            </select>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Export CSV
+                            </button>
+                            <div className="flex items-center gap-2">
+                                <label className="text-[9px] text-gray-400 block mb-1">
+                                    Value Convention
+                                </label>
+                                <select
+                                    value={sizeUnit}
+                                    onChange={(e) => setSizeUnit(e.target.value as SizeUnit)}
+                                    className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
+                                >
+                                    <option value="Crores">Crores</option>
+                                    <option value="Lakhs">Lakhs</option>
+                                    <option value="Billions">Billions</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div className="p-5 pt-0">
@@ -1591,19 +1770,31 @@ export default function AgenciesMonthWiseSummary() {
                         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                             Quarter-Wise Data (Rupees in {sizeUnit})
                         </h2>
-                        <div className="flex items-center gap-2">
-                            <label className="text-[9px] text-gray-400 block mb-1">
-                                Value Convention
-                            </label>
-                            <select
-                                value={sizeUnit}
-                                onChange={(e) => setSizeUnit(e.target.value as SizeUnit)}
-                                className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleExportQuarterWiseCSV}
+                                disabled={isLoading || quarterlyData.length === 0}
+                                className="flex items-center gap-1.5 cursor-pointer bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-4 h-8 text-xs font-medium transition-colors"
                             >
-                                <option value="Crores">Crores</option>
-                                <option value="Lakhs">Lakhs</option>
-                                <option value="Billions">Billions</option>
-                            </select>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Export CSV
+                            </button>
+                            <div className="flex items-center gap-2">
+                                <label className="text-[9px] text-gray-400 block mb-1">
+                                    Value Convention
+                                </label>
+                                <select
+                                    value={sizeUnit}
+                                    onChange={(e) => setSizeUnit(e.target.value as SizeUnit)}
+                                    className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
+                                >
+                                    <option value="Crores">Crores</option>
+                                    <option value="Lakhs">Lakhs</option>
+                                    <option value="Billions">Billions</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div className="p-5 pt-0">

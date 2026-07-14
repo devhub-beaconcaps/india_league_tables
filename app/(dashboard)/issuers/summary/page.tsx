@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import html2canvas from 'html2canvas-pro';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, BarChart, Bar,
@@ -326,6 +327,21 @@ function ActiveFilterChip({ label, onRemove }: { label: string; onRemove: () => 
     );
 }
 
+function DownloadPngButton({ onClick, label = 'Download PNG' }: { onClick: () => void; label?: string }) {
+    return (
+        <button
+            onClick={onClick}
+            className="flex items-center cursor-pointer gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 h-7 text-[10px] font-medium transition-colors"
+            title={label}
+        >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            PNG
+        </button>
+    );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function IssuerSummary() {
@@ -336,6 +352,13 @@ export default function IssuerSummary() {
     const [period, setPeriod] = useState<SelectedPeriod>(null);
     const [issueType, setIssueType] = useState<IssueType>('size');
     const router = useRouter();
+
+    const sectorChartRef = useRef<HTMLDivElement>(null);
+    const marketShareChartRef = useRef<HTMLDivElement>(null);
+    const outstandingChartRef = useRef<HTMLDivElement>(null);
+    const debtCurrentChartRef = useRef<HTMLDivElement>(null);
+    const debtNextChartRef = useRef<HTMLDivElement>(null);
+    const ratingChartRef = useRef<HTMLDivElement>(null);
 
     const [valueConvention, setValueConvention] = useState<ValueConvention>('Crores');
 
@@ -442,6 +465,23 @@ export default function IssuerSummary() {
             listingStatus: [],
         });
     };
+
+    const downloadChartAsPng = useCallback(async (chartRef: HTMLElement | null, filename: string) => {
+        if (!chartRef) return;
+        try {
+            const canvas = await html2canvas(chartRef, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true,
+            });
+            const link = document.createElement('a');
+            link.download = `${filename}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (err) {
+            console.error('Error downloading chart:', err);
+        }
+    }, []);
 
     function getFinancialYearRanges(rangeStr: string) {
         const [start, end] = rangeStr.split("-").map(Number);
@@ -1044,7 +1084,7 @@ export default function IssuerSummary() {
                                 <button
                                     onClick={handleExportCSV}
                                     disabled={isTableLoading || issueTableData.length === 0}
-                                    className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-4 h-8 text-xs font-medium transition-colors"
+                                    className="flex items-center gap-1.5 cursor-pointer bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-4 h-8 text-xs font-medium transition-colors"
                                 >
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1106,15 +1146,18 @@ export default function IssuerSummary() {
                     {/* ── Sector + Market Share Row ── */}
                     <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
                         <SectionCard className=' my-3'>
-                            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                                Top 10 Business Sectors by Issue Size
-                            </h2>
+                            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                                <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                    Top 10 Business Sectors by Issue Size
+                                </h2>
+                                <DownloadPngButton onClick={() => downloadChartAsPng(sectorChartRef.current, `top_sectors_${selectedFY}`)} />
+                            </div>
                             {isSectorsLoading ? (
                                 <ChartSkeleton height={300} />
                             ) : topSectorsData.length > 0 ? (
-                                <>
+                                <div ref={sectorChartRef} className="bg-white dark:bg-[#1a1a2e]">
                                     <ResponsiveContainer width="100%" height={340}>
-                                        <AreaChart data={topSectorsData} margin={{ top: 5, right: 10, left: 10, bottom: 40 }}>
+                                        <AreaChart data={topSectorsData} margin={{ top: 5, right: 30, left: 10, bottom: 40 }}>
                                             <defs>
                                                 <linearGradient id="cyGrad" x1="0" y1="0" x2="0" y2="1">
                                                     <stop offset="5%" stopColor="#423CAB" stopOpacity={0.3} />
@@ -1168,21 +1211,24 @@ export default function IssuerSummary() {
                                             PY Issue Size
                                         </span>
                                     </div>
-                                </>
+                                </div>
                             ) : (
                                 <NoDataState message="No sector data available" subMessage="Sector data will appear here once available." />
                             )}
                         </SectionCard>
 
                         <SectionCard className=' my-3'>
-                            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                                Market Share Among Top 10 Issuers<br />
-                                <span className="font-normal text-gray-500 dark:text-gray-400">(By Size)</span>
-                            </h2>
+                            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                                <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                    Market Share Among Top 10 Issuers<br />
+                                    <span className="font-normal text-gray-500 dark:text-gray-400">(By Size)</span>
+                                </h2>
+                                <DownloadPngButton onClick={() => downloadChartAsPng(marketShareChartRef.current, `market_share_${selectedFY}`)} />
+                            </div>
                             {isMarketShareLoading ? (
                                 <PieChartSkeleton />
                             ) : marketShareData.length > 0 ? (
-                                <div className="flex flex-col items-center gap-4">
+                                <div ref={marketShareChartRef} className="bg-white dark:bg-[#1a1a2e] flex flex-col items-center gap-4">
                                     <div style={{ flex: '0 0 180px' }}>
                                         <ResponsiveContainer width={180} height={180}>
                                             <PieChart>
@@ -1226,13 +1272,18 @@ export default function IssuerSummary() {
 
                     {/* ── Corporate Bond Trend ── */}
                     <SectionCard className='my-3'>
-                        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                            Corporate Bond Outstanding Trends Analysis : {selectedFY}
-                        </h2>
+                        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                Corporate Bond Outstanding Trends Analysis : {selectedFY}
+                            </h2>
+                            <DownloadPngButton onClick={() => downloadChartAsPng(outstandingChartRef.current, `outstanding_trends_${selectedFY}`)} />
+                        </div>
                         {isOutstandingLoading ? (
                             <ChartSkeleton height={300} />
                         ) : outstandingData.length > 0 ? (
-                            <DualAxisChart data={outstandingData} />
+                            <div ref={outstandingChartRef} className="bg-white dark:bg-[#1a1a2e]">
+                                <DualAxisChart data={outstandingData} />
+                            </div>
                         ) : (
                             <NoDataState message="No outstanding trend data available" />
                         )}
@@ -1241,20 +1292,25 @@ export default function IssuerSummary() {
                     {/* ── Debt Redemption Schedules ── */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {[
-                            { title: 'Current Financial Year', data: debtScheduleCurrentData, loading: isDebtLoading },
-                            { title: 'Next Financial Year', data: debtScheduleNextData, loading: isDebtLoading },
-                        ].map(({ title, data, loading }) => (
-                            <SectionCard className=' my-3' key={title}>
-                                <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">
-                                    Debt Redemption Schedule - {title}
-                                </h2>
-                                <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-3">
-                                    Note: Click any bar in the graph to view the redemption list for that particular period.
-                                </p>
+                            { title: 'Current Financial Year', data: debtScheduleCurrentData, loading: isDebtLoading, ref: debtCurrentChartRef, key: 'current' },
+                            { title: 'Next Financial Year', data: debtScheduleNextData, loading: isDebtLoading, ref: debtNextChartRef, key: 'next' },
+                        ].map(({ title, data, loading, ref, key }) => (
+                            <SectionCard className=' my-3' key={key}>
+                                <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+                                    <div>
+                                        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                            Debt Redemption Schedule - {title}
+                                        </h2>
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-3">
+                                            Note: Click any bar in the graph to view the redemption list for that particular period.
+                                        </p>
+                                    </div>
+                                    <DownloadPngButton onClick={() => downloadChartAsPng(ref.current, `debt_redemption_${key}_${selectedFY}`)} />
+                                </div>
                                 {loading ? (
                                     <BarChartSkeleton />
                                 ) : data.length > 0 ? (
-                                    <>
+                                    <div ref={ref} className="bg-white dark:bg-[#1a1a2e]">
                                         <ResponsiveContainer width="100%" height={320}>
                                             <BarChart data={data} margin={{ top: 5, right: 10, left: 5, bottom: 60 }} barCategoryGap="10%">
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.6} vertical={false} />
@@ -1282,7 +1338,7 @@ export default function IssuerSummary() {
                                                 <span className="w-3 h-3 rounded-full bg-[#a5b4fc] inline-block" />Issue Size
                                             </span>
                                         </div>
-                                    </>
+                                    </div>
                                 ) : (
                                     <NoDataState message={`No redemption data available for ${title}`} />
                                 )}
@@ -1294,17 +1350,20 @@ export default function IssuerSummary() {
                     <SectionCard className='my-3'>
                         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Credit Ratings</h2>
-                            {filters.creditRatingAgency.length > 0 && (
-                                <span className="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">
-                                    Agency: {filters.creditRatingAgency.join(', ')}
-                                </span>
-                            )}
+                            <div className="flex items-center gap-2">
+                                {filters.creditRatingAgency.length > 0 && (
+                                    <span className="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">
+                                        Agency: {filters.creditRatingAgency.join(', ')}
+                                    </span>
+                                )}
+                                <DownloadPngButton onClick={() => downloadChartAsPng(ratingChartRef.current, `credit_ratings_${selectedFY}`)} />
+                            </div>
                         </div>
 
                         {isRatingLoading ? (
                             <PieChartSkeleton />
                         ) : ratingData.length > 0 ? (
-                            <div className="flex flex-col items-center justify-center gap-8 flex-wrap">
+                            <div ref={ratingChartRef} className="bg-white dark:bg-[#1a1a2e] flex flex-col items-center justify-center gap-8 flex-wrap">
                                 <div className="relative">
                                     <ResponsiveContainer width={220} height={220}>
                                         <PieChart>
@@ -1328,7 +1387,6 @@ export default function IssuerSummary() {
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </div>
-
                                 <div className="flex flex-wrap gap-x-6 gap-y-2">
                                     {ratingData?.map((d, i) => (
                                         <div key={i} className="flex items-center gap-1.5">

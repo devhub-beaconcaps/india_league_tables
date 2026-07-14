@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import html2canvas from 'html2canvas-pro';
 import {
     Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell,
@@ -286,6 +287,21 @@ function ActiveFilterChip({ label, onRemove }: { label: string; onRemove: () => 
     );
 }
 
+function DownloadPngButton({ onClick, label = 'Download PNG' }: { onClick: () => void; label?: string }) {
+    return (
+        <button
+            onClick={onClick}
+            className="flex items-center cursor-pointer gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 h-7 text-[10px] font-medium transition-colors"
+            title={label}
+        >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            PNG
+        </button>
+    );
+}
+
 // ─── Credit Ratings Section (Isolated Component) ─────────────────────────────
 
 interface CreditRatingsSectionProps {
@@ -293,12 +309,33 @@ interface CreditRatingsSectionProps {
     filters: SummaryFilterState;
     valueConvention: ValueConvention;
     arrangerOptions: { value: string; label: string }[];
+    selectedFY: string;
 }
 
-function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention, arrangerOptions }: CreditRatingsSectionProps) {
+function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention, arrangerOptions, selectedFY }: CreditRatingsSectionProps) {
     const [ratingData, setRatingData] = useState<FormattedRatingItem[]>([]);
     const [isRatingLoading, setIsRatingLoading] = useState(true);
     const [selectedRatingArranger, setSelectedRatingArranger] = useState<string>('');
+
+    const ratingChartRef = useRef<HTMLDivElement>(null);
+
+    const downloadRatingChartAsPng = useCallback(async (chartRef: HTMLElement | null, filename: string) => {
+        if (!chartRef) return;
+
+        try {
+            const canvas = await html2canvas(chartRef, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true,
+            });
+            const link = document.createElement('a');
+            link.download = `${filename}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (err) {
+            console.error('Error downloading credit rating chart:', err);
+        }
+    }, []);
 
     // Use refs to prevent unnecessary re-renders and track previous values
     const prevQueryRef = useRef<string>('');
@@ -364,13 +401,14 @@ function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention
                             multiSelect={false}
                         />
                     </div>
+                    <DownloadPngButton onClick={() => downloadRatingChartAsPng(ratingChartRef.current, `credit_ratings_arrangers_${selectedFY}`)} />
                 </div>
             </div>
 
             {isRatingLoading ? (
                 <PieChartSkeleton />
             ) : ratingData.length > 0 ? (
-                <div className="flex flex-col items-center justify-center gap-8 flex-wrap">
+                <div ref={ratingChartRef} className="flex flex-col items-center justify-center gap-8 flex-wrap bg-white dark:bg-[#1a1a2e] p-4 rounded-xl">
                     <div className="relative">
                         <ResponsiveContainer width={220} height={220}>
                             <PieChart>
@@ -465,6 +503,27 @@ export default function Summary() {
     const [isSectorsLoading, setIsSectorsLoading] = useState(true);
     const [isMarketShareLoading, setIsMarketShareLoading] = useState(true);
     const [isFiltersLoading, setIsFiltersLoading] = useState(true);
+
+    const sectorChartRef = useRef<HTMLDivElement>(null);
+    const marketShareChartRef = useRef<HTMLDivElement>(null);
+
+    const downloadChartAsPng = useCallback(async (chartRef: HTMLElement | null, filename: string) => {
+        if (!chartRef) return;
+
+        try {
+            const canvas = await html2canvas(chartRef, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true,
+            });
+            const link = document.createElement('a');
+            link.download = `${filename}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (err) {
+            console.error('Error downloading chart:', err);
+        }
+    }, []);
 
     const selectedYearsDateRange = useMemo<DateRange | null>(
         () => getDateRange({ fy: selectedFY, frequency, period }),
@@ -610,6 +669,84 @@ export default function Summary() {
 
         URL.revokeObjectURL(url);
     }, [issueTableData, selectedFY, issueType]);
+
+    const handleExportListCSV = useCallback(() => {
+        if (!listTableData.length) return;
+
+        const { currentYearRange, previousYearRange } = getFinancialYearRanges(selectedFY);
+
+        const exportData = listTableData.map((row) => ({
+            Arranger: row.name,
+
+            [`${currentYearRange}\r\nIssue Size`]: row.issueSize,
+            [`${currentYearRange}\r\nDeals`]: row.deals,
+            [`${currentYearRange}\r\nMarket Share (%)`]: row.mktShare,
+            [`${currentYearRange}\r\nRank`]: row.rank,
+
+            [`${previousYearRange}\r\nIssue Size`]: row.prevSize,
+            [`${previousYearRange}\r\nDeals`]: row.prevDeals,
+            [`${previousYearRange}\r\nMarket Share (%)`]: row.prevMkt,
+            [`${previousYearRange}\r\nRank`]: row.prevRank,
+
+            "YoY (%)": row.yoy,
+        }));
+
+        const headers = Object.keys(exportData[0]);
+
+        const rows = exportData.map((row) =>
+            headers
+                .map((header) => {
+                    const cell = row[header as keyof typeof row];
+                    const str = String(cell ?? "");
+
+                    if (
+                        str.includes(",") ||
+                        str.includes('"') ||
+                        str.includes("\n")
+                    ) {
+                        return `"${str.replace(/"/g, '""')}"`;
+                    }
+
+                    return str;
+                })
+                .join(",")
+        );
+
+        const headerRow = headers
+            .map((header) => {
+                const str = String(header);
+
+                if (
+                    str.includes(",") ||
+                    str.includes('"') ||
+                    str.includes("\n") ||
+                    str.includes("\r")
+                ) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                }
+
+                return str;
+            })
+            .join(",");
+
+        const csv = [headerRow, ...rows].join("\n");
+
+        const blob = new Blob([csv], {
+            type: "text/csv;charset=utf-8;",
+        });
+
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+
+        link.href = url;
+        link.download = `all_arrangers_list_${selectedFY}.csv`;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+    }, [listTableData, selectedFY]);
 
     // ── Active Filters Count ──
     const activeFilterCount = useMemo(() => {
@@ -1171,31 +1308,40 @@ export default function Summary() {
                     {/* ── Sector + Market Share Row ── */}
                     <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
                         <SectionCard className='my-3'>
-                            {isSectorsLoading ? (
-                                <ChartSkeleton height={220} />
-                            ) : topSectorsData?.length > 0 ? (
-                                <>
-                                    <StackedChart
-                                        data={topSectorsData}
-                                        height={300}
-                                        title="Top Arrangers by Sector"
-                                        valueConvention={valueConvention}
-                                    />
-                                </>
-                            ) : (
-                                <NoDataState message="No sector data available" subMessage="Sector data will appear here once available." />
-                            )}
-                        </SectionCard>
+                        <div className="flex items-center justify-between mb-4 gap-4">
+                            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Top Arrangers by Sector</h2>
+                            <DownloadPngButton onClick={() => downloadChartAsPng(sectorChartRef.current, `top_arrangers_sector_${selectedFY}`)} />
+                        </div>
+                        {isSectorsLoading ? (
+                            <ChartSkeleton height={220} />
+                        ) : topSectorsData?.length > 0 ? (
+                            <div ref={sectorChartRef} className="bg-white dark:bg-[#1a1a2e] p-4 rounded-xl">
+                                <StackedChart
+                                    data={topSectorsData}
+                                    height={300}
+                                    title="Top Arrangers by Sector"
+                                    valueConvention={valueConvention}
+                                />
+                            </div>
+                        ) : (
+                            <NoDataState message="No sector data available" subMessage="Sector data will appear here once available." />
+                        )}
+                    </SectionCard>
 
                         <SectionCard className='my-3'>
-                            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                                Market Share Among Top 10 Arrangers<br />
-                                <span className="font-normal text-gray-500 dark:text-gray-400">(By Size)</span>
-                            </h2>
+                            <div className="flex items-center justify-between mb-4 gap-4">
+                                <div>
+                                    <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                        Market Share Among Top 10 Arrangers
+                                    </h2>
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-400">(By Size)</p>
+                                </div>
+                                <DownloadPngButton onClick={() => downloadChartAsPng(marketShareChartRef.current, `market_share_arrangers_${selectedFY}`)} />
+                            </div>
                             {isMarketShareLoading ? (
                                 <PieChartSkeleton />
                             ) : marketShareData.length > 0 ? (
-                                <div className="flex flex-col items-center gap-4">
+                                <div ref={marketShareChartRef} className="flex flex-col items-center gap-4 bg-white dark:bg-[#1a1a2e] p-4 rounded-xl">
                                     <div style={{ flex: '0 0 180px' }}>
                                         <ResponsiveContainer width={180} height={180}>
                                             <PieChart>
@@ -1239,9 +1385,23 @@ export default function Summary() {
 
                     {/* ── All Arrangers List ── */}
                     <SectionCard className='my-3'>
-                        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                            All Arrangers List : {selectedFY}
-                        </h2>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                All Arrangers List : {selectedFY}
+                            </h2>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={handleExportListCSV}
+                                    disabled={isTableLoading || listTableData.length === 0}
+                                    className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-4 h-8 text-xs font-medium transition-colors"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Export CSV
+                                </button>
+                            </div>
+                        </div>
                         <div className="h-[250px]">
                             <ScrollableTable data={listTableData} selectedFY={selectedFY} pageType='arrangers' valueConvention={valueConvention} />
                         </div>
@@ -1253,6 +1413,7 @@ export default function Summary() {
                         filters={filters}
                         valueConvention={valueConvention}
                         arrangerOptions={arrangerOptionsForRatings}
+                        selectedFY={selectedFY}
                     />
                 </div>
             </div>
