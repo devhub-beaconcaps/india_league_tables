@@ -20,6 +20,7 @@ import {
     LogOut,
     ChevronDown,
     LucideIcon,
+    Heart 
 } from 'lucide-react';
 import { useThemeStore } from '../../lib/store';
 
@@ -105,7 +106,15 @@ const navigation: NavItem[] = [
             { name: 'Monthly', href: '/agencies/monthly' },
             { name: 'Details', href: '/agencies/details' },
         ],
-    }
+    },
+    {
+        name: 'Admin Tabs',
+        href: '/admin',
+        icon: Heart,
+        children: [
+            { name: 'Reissuance', href: '/admin/re-issuance' },
+        ],
+    },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
