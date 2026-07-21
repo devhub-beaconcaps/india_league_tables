@@ -2,7 +2,7 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
-import { Upload, FileSpreadsheet, Check, AlertCircle, Trash2, Table, X, ChevronDown, ChevronUp, Eye } from 'lucide-react';
+import { Upload, FileSpreadsheet, Check, AlertCircle, Trash2, Table, X, Eye, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -172,6 +172,66 @@ const SectionCard = ({ children, className = '' }: { children: React.ReactNode; 
     </div>
 );
 
+// ─── Alert Banner Component ─────────────────────────────────────────────────
+
+interface AlertBannerProps {
+    type: 'success' | 'error';
+    message: string;
+    onDismiss?: () => void;
+}
+
+function AlertBanner({ type, message, onDismiss }: AlertBannerProps) {
+    const isSuccess = type === 'success';
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: -10, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -10, height: 0 }}
+            className={`flex items-start gap-3 p-4 rounded-xl border ${
+                isSuccess
+                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50'
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50'
+            }`}
+        >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                isSuccess
+                    ? 'bg-emerald-100 dark:bg-emerald-800/40'
+                    : 'bg-red-100 dark:bg-red-800/40'
+            }`}>
+                {isSuccess ? (
+                    <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                )}
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className={`text-xs font-semibold ${
+                    isSuccess ? 'text-emerald-800 dark:text-emerald-300' : 'text-red-800 dark:text-red-300'
+                }`}>
+                    {isSuccess ? 'Success' : 'Error'}
+                </p>
+                <p className={`text-[11px] mt-0.5 leading-relaxed ${
+                    isSuccess ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'
+                }`}>
+                    {message}
+                </p>
+            </div>
+            {onDismiss && (
+                <button
+                    onClick={onDismiss}
+                    className={`p-1 rounded-md transition-colors flex-shrink-0 ${
+                        isSuccess
+                            ? 'hover:bg-emerald-100 dark:hover:bg-emerald-800/40 text-emerald-500 dark:text-emerald-400'
+                            : 'hover:bg-red-100 dark:hover:bg-red-800/40 text-red-500 dark:text-red-400'
+                    }`}
+                >
+                    <X className="w-3.5 h-3.5" />
+                </button>
+            )}
+        </motion.div>
+    );
+}
+
 // ─── Confirmation Modal ──────────────────────────────────────────────────────
 
 interface ConfirmModalProps {
@@ -181,9 +241,10 @@ interface ConfirmModalProps {
     rowCount: number;
     columnCount: number;
     fileName: string;
+    isSubmitting: boolean;
 }
 
-function ConfirmModal({ isOpen, onConfirm, onCancel, rowCount, columnCount, fileName }: ConfirmModalProps) {
+function ConfirmModal({ isOpen, onConfirm, onCancel, rowCount, columnCount, fileName, isSubmitting }: ConfirmModalProps) {
     return (
         <AnimatePresence>
             {isOpen && (
@@ -193,7 +254,7 @@ function ConfirmModal({ isOpen, onConfirm, onCancel, rowCount, columnCount, file
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm"
-                        onClick={onCancel}
+                        onClick={!isSubmitting ? onCancel : undefined}
                     />
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -231,16 +292,27 @@ function ConfirmModal({ isOpen, onConfirm, onCancel, rowCount, columnCount, file
                             <div className="flex items-center justify-end gap-3">
                                 <button
                                     onClick={onCancel}
-                                    className="px-4 h-9 text-xs cursor-pointer font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                    disabled={isSubmitting}
+                                    className="px-4 h-9 text-xs cursor-pointer font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={onConfirm}
-                                    className="flex items-center gap-2 cursor-pointer bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-9 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md"
+                                    disabled={isSubmitting}
+                                    className="flex items-center gap-2 cursor-pointer bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-9 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    <Check className="w-3.5 h-3.5" />
-                                    Confirm & Submit
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            Submitting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Check className="w-3.5 h-3.5" />
+                                            Confirm & Submit
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -476,16 +548,23 @@ export default function Reissuance() {
     const [error, setError] = useState<string | null>(null);
     const [selectedRow, setSelectedRow] = useState<TransformedItem | null>(null);
     const [showRowDetail, setShowRowDetail] = useState(false);
-    const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // ─── NEW: Submission States ─────────────────────────────────────────────
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const parseExcel = useCallback(async (uploadedFile: File) => {
         setIsParsing(true);
         setError(null);
+        // Clear previous submission messages on new file upload
+        setSubmitSuccess(null);
+        setSubmitError(null);
 
         try {
             const data = await uploadedFile.arrayBuffer();
@@ -568,6 +647,8 @@ export default function Reissuance() {
         setError(null);
         setCurrentPage(1);
         setSearchQuery('');
+        setSubmitSuccess(null);
+        setSubmitError(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
     }, []);
 
@@ -576,13 +657,42 @@ export default function Reissuance() {
         setShowConfirm(true);
     }, [transformedPayload]);
 
+    // ─── UPDATED: handleConfirm with success/error handling ─────────────────
     const handleConfirm = useCallback(async () => {
-        console.log('Submitted Reissuance Data:', transformedPayload);
+        if (!transformedPayload) return;
 
-        const res = await postReIssuanceData(transformedPayload);
-        console.log('Reissuance Data Response:', res);
+        setIsSubmitting(true);
+        setSubmitSuccess(null);
+        setSubmitError(null);
 
-        setShowConfirm(false);
+        try {
+            const res = await postReIssuanceData(transformedPayload);
+
+            // Check if the API response indicates success
+            if (res?.success === true) {
+                setSubmitSuccess(
+                    `Successfully processed ${res.processed ?? transformedPayload.data.length} record(s).`
+                );
+                setShowConfirm(false);
+            } else {
+                // API returned success: false or unexpected structure
+                setSubmitError(
+                    res?.message || 'Something went wrong while submitting data. Please try again.'
+                );
+                setShowConfirm(false);
+            }
+        } catch (err: any) {
+            console.error('Submission error:', err);
+            // Handle network errors, 500s, or any thrown errors from the service
+            const errorMessage =
+                err?.response?.data?.message ||
+                err?.message ||
+                'Failed to submit data. Please check your connection and try again.';
+            setSubmitError(errorMessage);
+            setShowConfirm(false);
+        } finally {
+            setIsSubmitting(false);
+        }
     }, [transformedPayload]);
 
     const handleCancel = useCallback(() => {
@@ -592,18 +702,6 @@ export default function Reissuance() {
     const handleRowClick = useCallback((row: TransformedItem) => {
         setSelectedRow(row);
         setShowRowDetail(true);
-    }, []);
-
-    const toggleRowExpand = useCallback((index: number) => {
-        setExpandedRows(prev => {
-            const next = new Set(prev);
-            if (next.has(index)) {
-                next.delete(index);
-            } else {
-                next.add(index);
-            }
-            return next;
-        });
     }, []);
 
     // Filter and paginate data
@@ -641,6 +739,24 @@ export default function Reissuance() {
                         </div>
                     </div>
                 </SectionCard>
+
+                {/* ── Submission Alert Banners ── */}
+                <AnimatePresence>
+                    {submitSuccess && (
+                        <AlertBanner
+                            type="success"
+                            message={submitSuccess}
+                            onDismiss={() => setSubmitSuccess(null)}
+                        />
+                    )}
+                    {submitError && (
+                        <AlertBanner
+                            type="error"
+                            message={submitError}
+                            onDismiss={() => setSubmitError(null)}
+                        />
+                    )}
+                </AnimatePresence>
 
                 {/* ── Upload Section ── */}
                 <SectionCard className="p-0">
@@ -711,7 +827,7 @@ export default function Reissuance() {
                                     </button>
                                 </div>
 
-                                {/* Error Message */}
+                                {/* Parse Error Message */}
                                 <AnimatePresence>
                                     {error && (
                                         <motion.div
@@ -793,44 +909,42 @@ export default function Reissuance() {
                                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                                     {previewItems.map((row, index) => {
                                                         const actualIndex = (currentPage - 1) * rowsPerPage + index;
-                                                        const isExpanded = expandedRows.has(actualIndex);
 
                                                         return (
-                                                            <React.Fragment key={actualIndex}>
-                                                                <tr 
-                                                                    className={`group transition-colors duration-150 ${
-                                                                        index % 2 === 0 
-                                                                            ? 'bg-white dark:bg-[#1a1a2e]' 
-                                                                            : 'bg-gray-50/50 dark:bg-gray-800/20'
-                                                                    } hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10`}
-                                                                >
-                                                                    <td className="px-3 py-2.5 text-gray-400 dark:text-gray-500 font-mono text-[10px]">
-                                                                        {actualIndex + 1}
+                                                            <tr 
+                                                                key={actualIndex}
+                                                                className={`group transition-colors duration-150 ${
+                                                                    index % 2 === 0 
+                                                                        ? 'bg-white dark:bg-[#1a1a2e]' 
+                                                                        : 'bg-gray-50/50 dark:bg-gray-800/20'
+                                                                } hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10`}
+                                                            >
+                                                                <td className="px-3 py-2.5 text-gray-400 dark:text-gray-500 font-mono text-[10px]">
+                                                                    {actualIndex + 1}
+                                                                </td>
+                                                                {COLUMN_CONFIG.map((col) => (
+                                                                    <td 
+                                                                        key={col.key}
+                                                                        className={`px-3 py-2.5 ${
+                                                                            col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
+                                                                        }`}
+                                                                    >
+                                                                        {col.format 
+                                                                            ? col.format(row[col.key]) 
+                                                                            : <span className="text-gray-700 dark:text-gray-300">{String(row[col.key] ?? '-')}</span>
+                                                                        }
                                                                     </td>
-                                                                    {COLUMN_CONFIG.map((col) => (
-                                                                        <td 
-                                                                            key={col.key}
-                                                                            className={`px-3 py-2.5 ${
-                                                                                col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
-                                                                            }`}
-                                                                        >
-                                                                            {col.format 
-                                                                                ? col.format(row[col.key]) 
-                                                                                : <span className="text-gray-700 dark:text-gray-300">{String(row[col.key] ?? '-')}</span>
-                                                                            }
-                                                                        </td>
-                                                                    ))}
-                                                                    <td className="px-3 py-2.5 text-center">
-                                                                        <button
-                                                                            onClick={() => handleRowClick(row)}
-                                                                            className="p-1.5 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                                                                            title="View details"
-                                                                        >
-                                                                            <Eye className="w-3.5 h-3.5" />
-                                                                        </button>
-                                                                    </td>
-                                                                </tr>
-                                                            </React.Fragment>
+                                                                ))}
+                                                                <td className="px-3 py-2.5 text-center">
+                                                                    <button
+                                                                        onClick={() => handleRowClick(row)}
+                                                                        className="p-1.5 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                                                                        title="View details"
+                                                                    >
+                                                                        <Eye className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
                                                         );
                                                     })}
                                                 </tbody>
@@ -910,10 +1024,20 @@ export default function Reissuance() {
                                         <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-800">
                                             <button
                                                 onClick={handleSubmit}
-                                                className="flex items-center gap-2 cursor-pointer bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-6 h-9 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md"
+                                                disabled={isSubmitting}
+                                                className="flex items-center gap-2 cursor-pointer bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-6 h-9 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                                             >
-                                                <Check className="w-3.5 h-3.5" />
-                                                Submit Data
+                                                {isSubmitting ? (
+                                                    <>
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                        Submitting...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Check className="w-3.5 h-3.5" />
+                                                        Submit Data
+                                                    </>
+                                                )}
                                             </button>
                                         </div>
                                     </div>
@@ -943,6 +1067,7 @@ export default function Reissuance() {
                     rowCount={transformedPayload?.data.length || 0}
                     columnCount={Object.keys(transformedPayload?.data[0] ?? {}).length}
                     fileName={file?.name || ''}
+                    isSubmitting={isSubmitting}
                 />
 
                 {/* ── Row Detail Modal ── */}
