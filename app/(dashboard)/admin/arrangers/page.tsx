@@ -352,7 +352,8 @@ export default function ArrangersUpload() {
         try {
             const res = await postArrangersData(transformedPayload);
 
-            console.log("transformedPayload", transformedPayload);
+
+            console.log("transformedPayload: ", transformedPayload);
             
 
             // Check if the API response indicates success
