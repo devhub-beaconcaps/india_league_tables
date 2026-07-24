@@ -113,6 +113,7 @@ const navigation: NavItem[] = [
         icon: Heart,
         children: [
             { name: 'Reissuance', href: '/admin/re-issuance' },
+            { name: 'Arranger', href: '/admin/arrangers' }
         ],
     },
 ];
