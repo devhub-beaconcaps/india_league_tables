@@ -274,9 +274,10 @@ interface MergeModalProps {
     error: string | null;
     selectedIds: number[];
     onToggleId: (id: number) => void;
+    isSubmitting: boolean; // <-- add this
 }
 
-function MergeModal({ isOpen, onClose, onSubmit, data, loading, error, selectedIds, onToggleId }: MergeModalProps) {
+function MergeModal({ isOpen, onClose, onSubmit, data, loading, error, selectedIds, onToggleId, isSubmitting }: MergeModalProps) {
     return (
         <AnimatePresence>
             {isOpen && (
@@ -286,7 +287,7 @@ function MergeModal({ isOpen, onClose, onSubmit, data, loading, error, selectedI
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm"
-                        onClick={onClose}
+                        onClick={!isSubmitting ? onClose : undefined} // prevent close while processing
                     />
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -308,7 +309,8 @@ function MergeModal({ isOpen, onClose, onSubmit, data, loading, error, selectedI
                                 </div>
                                 <button
                                     onClick={onClose}
-                                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors flex-shrink-0"
+                                    disabled={isSubmitting}
+                                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
@@ -341,7 +343,8 @@ function MergeModal({ isOpen, onClose, onSubmit, data, loading, error, selectedI
                                                         type="checkbox"
                                                         checked={selectedIds.includes(item.id)}
                                                         onChange={() => onToggleId(item.id)}
-                                                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 cursor-pointer"
+                                                        disabled={isSubmitting}
+                                                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 cursor-pointer disabled:opacity-50"
                                                     />
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">
@@ -366,17 +369,27 @@ function MergeModal({ isOpen, onClose, onSubmit, data, loading, error, selectedI
                                 <div className="flex items-center gap-3">
                                     <button
                                         onClick={onClose}
-                                        className="px-4 h-9 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                        disabled={isSubmitting}
+                                        className="px-4 h-9 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={onSubmit}
-                                        disabled={selectedIds.length === 0}
+                                        disabled={selectedIds.length === 0 || isSubmitting}
                                         className="flex items-center gap-2 bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-9 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                                     >
-                                        <Check className="w-3.5 h-3.5" />
-                                        Submit Merge
+                                        {isSubmitting ? (
+                                            <>
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Check className="w-3.5 h-3.5" />
+                                                Submit Merge
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </div>
@@ -441,6 +454,7 @@ export default function ArrangersPage() {
     const [mergeData, setMergeData] = useState<MergeApiResponse['data'] | null>(null);
     const [selectedMergeIds, setSelectedMergeIds] = useState<number[]>([]);
     const [currentMergeArrangerId, setCurrentMergeArrangerId] = useState<number | null>(null);
+    const [isMergeSubmitting, setIsMergeSubmitting] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -509,27 +523,37 @@ export default function ArrangersPage() {
     const handleMergeSubmit = useCallback(async () => {
         if (currentMergeArrangerId === null) return;
 
-        const payload = {
-            mainArrangerId: currentMergeArrangerId,
-            mergeArrangerIds: selectedMergeIds,
-        };
+        setIsMergeSubmitting(true);
+        setSubmitSuccess(null);
+        setSubmitError(null);
 
-        const result = await mergeArrangersData(payload);
-        if (result?.success) {
-            console.log('merge successfully ', result?.message);
-        }else{
-             console.log('merge failed ', result?.message);
+        try {
+            const payload = {
+                mainArrangerId: currentMergeArrangerId,
+                mergeArrangerIds: selectedMergeIds,
+            };
+
+            const result = await mergeArrangersData(payload);
+
+            if (result?.success) {
+                setSubmitSuccess(result?.message || `Successfully merged ${selectedMergeIds.length} arranger(s).`);
+                // Reset and close
+                setMergeModalOpen(false);
+                setSelectedMergeIds([]);
+                setCurrentMergeArrangerId(null);
+                setMergeData(null);
+                // Refresh list to reflect merged data
+                fetchArrangers(listLimit, listOffset);
+            } else {
+                setSubmitError(result?.message || 'Merge failed. Please try again.');
+            }
+        } catch (err: any) {
+            console.error('Merge submission error:', err);
+            setSubmitError(err?.message || 'Failed to merge arrangers. Please check your connection and try again.');
+        } finally {
+            setIsMergeSubmitting(false);
         }
-
-
-        console.log("result",result);
-
-        // Reset and close
-        setMergeModalOpen(false);
-        setSelectedMergeIds([]);
-        setCurrentMergeArrangerId(null);
-        setMergeData(null);
-    }, [currentMergeArrangerId, selectedMergeIds]);
+    }, [currentMergeArrangerId, selectedMergeIds, listLimit, listOffset, fetchArrangers]);
 
     // ─── Upload Handlers ─────────────────────────────────────────────
     const parseExcel = useCallback(async (uploadedFile: File) => {
@@ -1239,6 +1263,7 @@ export default function ArrangersPage() {
                 <MergeModal
                     isOpen={mergeModalOpen}
                     onClose={() => {
+                        if (isMergeSubmitting) return; // guard against closing while processing
                         setMergeModalOpen(false);
                         setSelectedMergeIds([]);
                         setCurrentMergeArrangerId(null);
@@ -1251,6 +1276,7 @@ export default function ArrangersPage() {
                     error={mergeError}
                     selectedIds={selectedMergeIds}
                     onToggleId={toggleMergeSelection}
+                    isSubmitting={isMergeSubmitting}
                 />
             </div>
         </SkeletonTheme>
