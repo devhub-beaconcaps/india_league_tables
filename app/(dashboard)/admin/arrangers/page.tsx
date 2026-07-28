@@ -4,12 +4,12 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import {
     Upload, FileSpreadsheet, Check, AlertCircle, Trash2, Table, X, Loader2,
-    List, Search, ChevronLeft, ChevronRight, Globe, ArrowLeft
+    List, Search, ChevronLeft, ChevronRight, Globe, ArrowLeft, GitMerge
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
-import { getAdminArrangersData, postArrangersData } from '@/features/admin/services';
+import { getAdminArrangersData, getAdminSimilarArrangerData, mergeArrangersData, postArrangersData } from '@/features/admin/services';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -32,6 +32,31 @@ interface ArrangerItem {
     smt_status: string | null;
     is_active: number | boolean;
     website: string | null;
+}
+
+interface SimilarArranger {
+    id: number;
+    name: string;
+    short_name: string | null;
+    arranger_name: string | null;
+    similarity: number;
+    similarityFormatted: string;
+}
+
+interface MergeApiResponse {
+    success: boolean;
+    message: string;
+    data: {
+        mainArranger: {
+            id: number;
+            name: string;
+            short_name: string | null;
+            arranger_name: string | null;
+        };
+        similarArrangers: SimilarArranger[];
+        totalFound: number;
+        threshold?: number;
+    };
 }
 
 // ─── Column Configuration ────────────────────────────────────────────────────
@@ -58,6 +83,7 @@ const LIST_COLUMN_CONFIG: ColumnConfig[] = [
     { key: 'smt_status', label: 'SMT Status', width: '100px', align: 'center' },
     { key: 'is_active', label: 'Status', width: '90px', align: 'center' },
     { key: 'website', label: 'Website', width: '100px', align: 'center' },
+    { key: 'merge', label: 'Merge', width: '80px', align: 'center' },
 ];
 
 // ─── Skeleton Components ─────────────────────────────────────────────────────
@@ -237,6 +263,131 @@ function ConfirmModal({ isOpen, onConfirm, onCancel, rowCount, columnCount, file
     );
 }
 
+// ─── Merge Modal ─────────────────────────────────────────────────────────────
+
+interface MergeModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSubmit: () => void;
+    data: MergeApiResponse['data'] | null;
+    loading: boolean;
+    error: string | null;
+    selectedIds: number[];
+    onToggleId: (id: number) => void;
+}
+
+function MergeModal({ isOpen, onClose, onSubmit, data, loading, error, selectedIds, onToggleId }: MergeModalProps) {
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm"
+                        onClick={onClose}
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+                    >
+                        <div className="bg-white dark:bg-[#1a1a2e] rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 w-full max-w-lg max-h-[80vh] flex flex-col">
+                            {/* Header */}
+                            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                                <div className="min-w-0">
+                                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Merge Arrangers</h3>
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                                        {data?.mainArranger?.name
+                                            ? `Main: ${data.mainArranger.name}`
+                                            : 'Select similar arrangers to merge'}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={onClose}
+                                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors flex-shrink-0"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+
+                            {/* Body */}
+                            <div className="flex-1 overflow-y-auto p-5">
+                                {loading && <TableSkeleton rows={4} />}
+                                {error && (
+                                    <div className="mb-3">
+                                        <AlertBanner type="error" message={error} />
+                                    </div>
+                                )}
+                                {!loading && !error && data && (
+                                    <div className="space-y-2">
+                                        {data.similarArrangers.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                                                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
+                                                    <Search className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                                                </div>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">No similar arrangers found</p>
+                                            </div>
+                                        ) : (
+                                            data.similarArrangers.map((item) => (
+                                                <label
+                                                    key={item.id}
+                                                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedIds.includes(item.id)}
+                                                        onChange={() => onToggleId(item.id)}
+                                                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 cursor-pointer"
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">
+                                                            {item.name}
+                                                        </p>
+                                                    </div>
+                                                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 flex-shrink-0">
+                                                        {item.similarityFormatted}
+                                                    </span>
+                                                </label>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                                <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                    {selectedIds.length} selected
+                                </span>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={onClose}
+                                        className="px-4 h-9 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={onSubmit}
+                                        disabled={selectedIds.length === 0}
+                                        className="flex items-center gap-2 bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-9 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                        <Check className="w-3.5 h-3.5" />
+                                        Submit Merge
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+    );
+}
+
 // ─── Data Transformation ─────────────────────────────────────────────────────
 
 function transformData(rawData: ParsedRow[]): { data: UploadPayloadItem[] } {
@@ -283,6 +434,14 @@ export default function ArrangersPage() {
     const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
     const [submitError, setSubmitError] = useState<string | null>(null);
 
+    // ─── Merge States ────────────────────────────────────────────────
+    const [mergeModalOpen, setMergeModalOpen] = useState(false);
+    const [mergeLoading, setMergeLoading] = useState(false);
+    const [mergeError, setMergeError] = useState<string | null>(null);
+    const [mergeData, setMergeData] = useState<MergeApiResponse['data'] | null>(null);
+    const [selectedMergeIds, setSelectedMergeIds] = useState<number[]>([]);
+    const [currentMergeArrangerId, setCurrentMergeArrangerId] = useState<number | null>(null);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // ─── Fetch Arrangers ─────────────────────────────────────────────
@@ -293,7 +452,7 @@ export default function ArrangersPage() {
 
             const result = await getAdminArrangersData({ limit, offset })
             console.log('result fetched arrangers', result);
-            
+
             if (result.success) {
                 setArrangers(result.data);
                 setListTotal(result.pagination.total);
@@ -314,6 +473,63 @@ export default function ArrangersPage() {
             fetchArrangers(listLimit, listOffset);
         }
     }, [activeView, listLimit, listOffset, fetchArrangers]);
+
+    // ─── Merge Handlers ──────────────────────────────────────────────
+    const openMergeModal = useCallback(async (arrangerId: number) => {
+        setCurrentMergeArrangerId(arrangerId);
+        setMergeModalOpen(true);
+        setMergeLoading(true);
+        setMergeError(null);
+        setMergeData(null);
+        setSelectedMergeIds([]);
+
+        try {
+            const result = await getAdminSimilarArrangerData(arrangerId);
+            // const res = await fetch(`/arrangers/similar/${arrangerId}?threshold=50`);
+            // const result: MergeApiResponse = await res.json();
+            if (result.success) {
+                setMergeData(result.data);
+            } else {
+                setMergeError(result.message || 'Failed to fetch similar arrangers');
+            }
+        } catch (err) {
+            console.error('Merge fetch error:', err);
+            setMergeError('Network error while fetching similar arrangers');
+        } finally {
+            setMergeLoading(false);
+        }
+    }, []);
+
+    const toggleMergeSelection = useCallback((id: number) => {
+        setSelectedMergeIds((prev) =>
+            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+        );
+    }, []);
+
+    const handleMergeSubmit = useCallback(async () => {
+        if (currentMergeArrangerId === null) return;
+
+        const payload = {
+            mainArrangerId: currentMergeArrangerId,
+            mergeArrangerIds: selectedMergeIds,
+        };
+
+        const result = await mergeArrangersData(payload);
+        if (result?.success) {
+            console.log('merge successfully ', result?.message);
+        }else{
+             console.log('merge failed ', result?.message);
+        }
+
+
+        console.log("result",result);
+
+        // Reset and close
+        setMergeModalOpen(false);
+        setSelectedMergeIds([]);
+        setCurrentMergeArrangerId(null);
+        setMergeData(null);
+    }, [currentMergeArrangerId, selectedMergeIds]);
 
     // ─── Upload Handlers ─────────────────────────────────────────────
     const parseExcel = useCallback(async (uploadedFile: File) => {
@@ -641,6 +857,15 @@ export default function ArrangersPage() {
                                                                 <span className="text-gray-400 dark:text-gray-600">-</span>
                                                             )}
                                                         </td>
+                                                        <td className="px-3 py-2.5 text-center">
+                                                            <button
+                                                                onClick={() => openMergeModal(row.id)}
+                                                                className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+                                                                title="Find similar arrangers to merge"
+                                                            >
+                                                                <GitMerge className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -908,7 +1133,7 @@ export default function ArrangersPage() {
                                                         <button
                                                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                                             disabled={currentPage === 1}
-                                                            className="px-2 h-7 text-[10px] rounded-md border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                            className="px-2 h-7 text-[10px] rounded-md border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"
                                                         >
                                                             Prev
                                                         </button>
@@ -931,8 +1156,8 @@ export default function ArrangersPage() {
                                                                         key={pageNum}
                                                                         onClick={() => setCurrentPage(pageNum)}
                                                                         className={`w-7 h-7 text-[10px] rounded-md transition-colors ${currentPage === pageNum
-                                                                                ? 'bg-indigo-600 text-white'
-                                                                                : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                                            ? 'bg-indigo-600 text-white'
+                                                                            : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                                                                             }`}
                                                                     >
                                                                         {pageNum}
@@ -1008,6 +1233,24 @@ export default function ArrangersPage() {
                     columnCount={Object.keys(transformedPayload?.data[0] ?? {}).length}
                     fileName={file?.name || ''}
                     isSubmitting={isSubmitting}
+                />
+
+                {/* ── Merge Modal ── */}
+                <MergeModal
+                    isOpen={mergeModalOpen}
+                    onClose={() => {
+                        setMergeModalOpen(false);
+                        setSelectedMergeIds([]);
+                        setCurrentMergeArrangerId(null);
+                        setMergeData(null);
+                        setMergeError(null);
+                    }}
+                    onSubmit={handleMergeSubmit}
+                    data={mergeData}
+                    loading={mergeLoading}
+                    error={mergeError}
+                    selectedIds={selectedMergeIds}
+                    onToggleId={toggleMergeSelection}
                 />
             </div>
         </SkeletonTheme>
