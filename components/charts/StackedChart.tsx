@@ -112,6 +112,8 @@ const VerticalXAxisTick = ({ x, y, payload }: any) => {
 
 // ─── Custom Tooltip ──────────────────────────────────────────────────────────
 
+// ... existing code ...
+
 const CustomTooltip = ({ active, payload, label, valueConvention = 'Crores' }: {
   active?: boolean;
   payload?: TooltipPayloadItem[];
@@ -125,25 +127,35 @@ const CustomTooltip = ({ active, payload, label, valueConvention = 'Crores' }: {
 
   if (validItems.length === 0) return null;
 
+  const handleMouseMove = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <div
       className="
-    bg-white
-    dark:bg-[#14142b]
-    border border-[#423CAB]/20
-    dark:border-[#423CAB]/40
-    rounded-xl
-    shadow-2xl
-    p-3
-    min-w-[180px]
-    relative
-    z-50
-  "
+        bg-white
+        dark:bg-[#14142b]
+        border border-[#423CAB]/20
+        dark:border-[#423CAB]/40
+        rounded-xl
+        shadow-2xl
+        p-3
+        min-w-[180px]
+        relative
+        z-50
+      "
+      onMouseMove={handleMouseMove}
+      onWheel={handleWheel}
     >
       <p className="text-[11px] font-semibold text-gray-800 dark:text-gray-100 mb-2 border-b border-gray-100 dark:border-gray-700 pb-1">
         {label}
       </p>
-      <div className="space-y-1">
+      <div className="space-y-1 max-h-[150px] overflow-y-auto">
         {validItems.map((item, index) => (
           <div key={index} className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-1.5">
@@ -161,15 +173,12 @@ const CustomTooltip = ({ active, payload, label, valueConvention = 'Crores' }: {
           </div>
         ))}
       </div>
-      <div className="mt-2 pt-1 border-t border-gray-100 dark:border-gray-700 flex justify-between">
-        <span className="text-[10px] text-gray-500 dark:text-gray-400">Total</span>
-        <span className="text-[10px] font-bold text-gray-800 dark:text-gray-200">
-          {formatValue(validItems.reduce((sum, item) => sum + item.value, 0), valueConvention)}
-        </span>
-      </div>
+      
     </div>
   );
 };
+
+// ... rest of code ...
 
 
 // ─── Main Component ───────────────────────────────────────────────────────────
