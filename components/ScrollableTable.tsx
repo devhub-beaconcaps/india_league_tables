@@ -43,6 +43,7 @@ function buildFilterQueryString(filters: ScrollableTableFilters): string {
 
   const filterMappings: Record<string, string> = {
     arranger: 'arranger',
+    registrar: 'registrar',
     issuerOwnershipType: 'ownershipType',
     issuerNatureType: 'nature',
     businessSector: 'sector',
