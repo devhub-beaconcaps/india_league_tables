@@ -236,10 +236,6 @@ const TABLE_COLUMNS = [
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Groups raw table data by allotmentDate.
- * Uses the first record in each group as the representative row.
- */
-/**
  * Groups raw table data by issuerName.
  * Uses the first record in each group as the representative row.
  */
@@ -247,7 +243,7 @@ function groupByIssuerName(data: TableDataItem[]): GroupedRecord[] {
     const map = new Map<string, TableDataItem[]>();
 
     for (const item of data) {
-        const key = item.issuerName;   // ← changed from item.allotmentDate
+        const key = item.issuerName;
         if (!map.has(key)) {
             map.set(key, []);
         }
@@ -260,7 +256,7 @@ function groupByIssuerName(data: TableDataItem[]): GroupedRecord[] {
     return sortedKeys.map((key) => {
         const records = map.get(key)!;
         return {
-            issuerName: key,           // ← changed from allotmentDate
+            issuerName: key,
             count: records.length,
             representativeRow: records[0],
             records,
@@ -307,13 +303,25 @@ export default function RegistrarTopParticipantsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // URL params: ?id=8&fy=2026-2027
+    // URL params: ?id=8&fy=2026-2027&startDate=...&endDate=...&ownershipType=...
     const registrarId = searchParams.get('id') || '';
     const fy = searchParams.get('fy') || getCurrentFinancialYear();
+    const urlStartDate = searchParams.get('startDate') || '';
+    const urlEndDate = searchParams.get('endDate') || '';
 
+    // ── Helper: read array filters from URL ──
+    const getFilterArray = useCallback((key: string): string[] => {
+        const values = searchParams.getAll(key);
+        return values.filter(v => v !== '' && v !== null && v !== undefined);
+    }, [searchParams]);
+
+    // ── Date range: prefer URL dates, fallback to FY ──
     const dateRange = useMemo(() => {
+        if (urlStartDate && urlEndDate) {
+            return { startDate: urlStartDate, endDate: urlEndDate };
+        }
         return getFullFYDateRange(fy);
-    }, [fy]);
+    }, [urlStartDate, urlEndDate, fy]);
 
     // ── Table State ──
     const [tableData, setTableData] = useState<TableDataItem[]>([]);
@@ -418,6 +426,19 @@ export default function RegistrarTopParticipantsPage() {
             const offset = (currentPage - 1) * pageSize;
             const trimmedSearch = searchQuery.trim();
 
+            // ── Read filters from URL query params (same pattern as Arrangers page) ──
+            const ownershipType = getFilterArray('ownershipType');
+            const nature = getFilterArray('nature');
+            const sector = getFilterArray('sector');
+            const securityType = getFilterArray('securityType');
+            const creditRatingAgency = getFilterArray('creditRatingAgency');
+            const modeOfIssue = getFilterArray('modeOfIssue');
+            const seniority = getFilterArray('seniority');
+            const listingStatus = getFilterArray('listingStatus');
+            const securedFlag = getFilterArray('securedFlag');
+            const rating = getFilterArray('rating');
+            const registrar = getFilterArray('registrar');
+
             const requestBody = {
                 startDate: dateRange.startDate,
                 endDate: dateRange.endDate,
@@ -427,6 +448,18 @@ export default function RegistrarTopParticipantsPage() {
                 offset: offset,
                 sortField: apiSortFieldMap[sortColumn] || 'issuer_name',
                 sortOrder: sortDirection.toUpperCase(),
+                // Filters from URL
+                ownershipType,
+                nature,
+                sector,
+                securityType,
+                creditRatingAgency,
+                modeOfIssue,
+                seniority,
+                listingStatus,
+                securedFlag,
+                rating,
+                registrar,
             };
 
             const result = await fetchRegistrarTopParticipantsData(requestBody);
@@ -469,7 +502,7 @@ export default function RegistrarTopParticipantsPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [dateRange, registrarId, currentPage, pageSize, searchQuery, sortColumn, sortDirection]);
+    }, [dateRange, registrarId, currentPage, pageSize, searchQuery, sortColumn, sortDirection, getFilterArray]);
 
     useEffect(() => {
         fetchData();
@@ -477,7 +510,7 @@ export default function RegistrarTopParticipantsPage() {
 
     // ── Grouped Data (memoized) ──
     const groupedData = useMemo(() => {
-        return groupByIssuerName(tableData);   // ← changed function name
+        return groupByIssuerName(tableData);
     }, [tableData]);
 
     // ── Sorted Grouped Data ──

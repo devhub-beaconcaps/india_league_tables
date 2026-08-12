@@ -60,6 +60,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 interface SummaryFilterState {
+    [key: string]: string[];
     ownershipType: string[];
     nature: string[];
     sector: string[];
@@ -1382,7 +1383,15 @@ export default function Summary() {
                             </div>
                         </div>
                         <div className="h-[250px]">
-                            <ScrollableTable data={listTableData} selectedFY={selectedFY} pageType='agencies' valueConvention={valueConvention} />
+                            <ScrollableTable
+                                data={listTableData}
+                                selectedFY={selectedFY}
+                                pageType='agencies'
+                                valueConvention={valueConvention}
+                                filters={filters}
+                                startDate={selectedYearsDateRange?.startDate}
+                                endDate={selectedYearsDateRange?.endDate}
+                            />
                         </div>
                     </SectionCard>
 

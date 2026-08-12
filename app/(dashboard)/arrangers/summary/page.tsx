@@ -65,6 +65,7 @@ import { TextInput } from '@/components/TextInput';
 // ─── Local Types for Filters ─────────────────────────────────────────────────
 
 interface SummaryFilterState {
+    [key: string]: string[];
     arranger: string[];
     issuerOwnershipType: string[];
     issuerNatureType: string[];
@@ -1308,25 +1309,25 @@ export default function Summary() {
                     {/* ── Sector + Market Share Row ── */}
                     <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
                         <SectionCard className='my-3'>
-                        <div className="flex items-center justify-between mb-4 gap-4">
-                            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Top Arrangers by Sector</h2>
-                            <DownloadPngButton onClick={() => downloadChartAsPng(sectorChartRef.current, `top_arrangers_sector_${selectedFY}`)} />
-                        </div>
-                        {isSectorsLoading ? (
-                            <ChartSkeleton height={220} />
-                        ) : topSectorsData?.length > 0 ? (
-                            <div ref={sectorChartRef} className="bg-white dark:bg-[#1a1a2e] p-4 rounded-xl">
-                                <StackedChart
-                                    data={topSectorsData}
-                                    height={300}
-                                    title="Top Arrangers by Sector"
-                                    valueConvention={valueConvention}
-                                />
+                            <div className="flex items-center justify-between mb-4 gap-4">
+                                <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Top Arrangers by Sector</h2>
+                                <DownloadPngButton onClick={() => downloadChartAsPng(sectorChartRef.current, `top_arrangers_sector_${selectedFY}`)} />
                             </div>
-                        ) : (
-                            <NoDataState message="No sector data available" subMessage="Sector data will appear here once available." />
-                        )}
-                    </SectionCard>
+                            {isSectorsLoading ? (
+                                <ChartSkeleton height={220} />
+                            ) : topSectorsData?.length > 0 ? (
+                                <div ref={sectorChartRef} className="bg-white dark:bg-[#1a1a2e] p-4 rounded-xl">
+                                    <StackedChart
+                                        data={topSectorsData}
+                                        height={300}
+                                        title="Top Arrangers by Sector"
+                                        valueConvention={valueConvention}
+                                    />
+                                </div>
+                            ) : (
+                                <NoDataState message="No sector data available" subMessage="Sector data will appear here once available." />
+                            )}
+                        </SectionCard>
 
                         <SectionCard className='my-3'>
                             <div className="flex items-center justify-between mb-4 gap-4">
@@ -1403,7 +1404,15 @@ export default function Summary() {
                             </div>
                         </div>
                         <div className="h-[250px]">
-                            <ScrollableTable data={listTableData} selectedFY={selectedFY} pageType='arrangers' valueConvention={valueConvention} />
+                            <ScrollableTable
+                                data={listTableData}
+                                selectedFY={selectedFY}
+                                pageType='arrangers'
+                                valueConvention={valueConvention}
+                                filters={filters}
+                                startDate={selectedYearsDateRange?.startDate}
+                                endDate={selectedYearsDateRange?.endDate}
+                            />
                         </div>
                     </SectionCard>
 

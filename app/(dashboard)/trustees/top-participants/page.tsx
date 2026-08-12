@@ -92,7 +92,6 @@ function getCurrentFinancialYear(): string {
     }
 }
 
-
 function formatLocalDate(date: Date) {
     return [
         date.getFullYear(),
@@ -100,7 +99,6 @@ function formatLocalDate(date: Date) {
         String(date.getDate()).padStart(2, '0'),
     ].join('-');
 }
-
 
 function getFullFYDateRange(
     fy: string
@@ -112,14 +110,11 @@ function getFullFYDateRange(
 
     const startDate = `${startYear}-04-01`;
 
-    // FY end date
     const fyEndDate = new Date(`${endYear}-03-31`);
 
-    // Today's date (without time)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Use whichever is earlier
     const actualEndDate =
         fyEndDate > today
             ? formatLocalDate(today)
@@ -205,32 +200,23 @@ const TABLE_COLUMNS = [
 // GROUPING UTILITY
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Groups raw table data by allotmentDate.
- * Uses the first record in each group as the representative row.
- */
-/**
- * Groups raw table data by issuerName.
- * Uses the first record in each group as the representative row.
- */
 function groupByIssuerName(data: TableDataItem[]): GroupedRecord[] {
     const map = new Map<string, TableDataItem[]>();
 
     for (const item of data) {
-        const key = item.issuerName;   // ← changed from item.allotmentDate
+        const key = item.issuerName;
         if (!map.has(key)) {
             map.set(key, []);
         }
         map.get(key)!.push(item);
     }
 
-    // Sort groups by issuerName ascending for stable ordering
     const sortedKeys = Array.from(map.keys()).sort();
 
     return sortedKeys.map((key) => {
         const records = map.get(key)!;
         return {
-            issuerName: key,           // ← changed from allotmentDate
+            issuerName: key,
             count: records.length,
             representativeRow: records[0],
             records,
@@ -277,13 +263,25 @@ export default function TrusteeTopParticipantsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // URL params: ?id=8&fy=2026-2027
+    // URL params
     const trusteeId = searchParams.get('id') || '';
     const fy = searchParams.get('fy') || getCurrentFinancialYear();
+    const urlStartDate = searchParams.get('startDate') || '';
+    const urlEndDate = searchParams.get('endDate') || '';
 
+    // ── Helper: read array filters from URL ──
+    const getFilterArray = useCallback((key: string): string[] => {
+        const values = searchParams.getAll(key);
+        return values.filter(v => v !== '' && v !== null && v !== undefined);
+    }, [searchParams]);
+
+    // ── Date range: prefer URL dates, fallback to FY ──
     const dateRange = useMemo(() => {
+        if (urlStartDate && urlEndDate) {
+            return { startDate: urlStartDate, endDate: urlEndDate };
+        }
         return getFullFYDateRange(fy);
-    }, [fy]);
+    }, [urlStartDate, urlEndDate, fy]);
 
     // ── Table State ──
     const [tableData, setTableData] = useState<TableDataItem[]>([]);
@@ -357,9 +355,7 @@ export default function TrusteeTopParticipantsPage() {
         setExpandedGroups((prev) => {
             const next = new Set(prev);
             if (next.has(issuerName)) {
-                // Group is closing, add to closing set and play exit animation
                 setClosingGroups((closing) => new Set([...closing, issuerName]));
-                // Remove from expanded after animation completes (400ms)
                 setTimeout(() => {
                     next.delete(issuerName);
                     setExpandedGroups(new Set(next));
@@ -370,7 +366,6 @@ export default function TrusteeTopParticipantsPage() {
                     });
                 }, 400);
             } else {
-                // Group is opening
                 next.add(issuerName);
             }
             return next;
@@ -388,6 +383,19 @@ export default function TrusteeTopParticipantsPage() {
             const offset = (currentPage - 1) * pageSize;
             const trimmedSearch = searchQuery.trim();
 
+            // ── Read filters from URL query params ──
+            const ownershipType = getFilterArray('ownershipType');
+            const nature = getFilterArray('nature');
+            const sector = getFilterArray('sector');
+            const securityType = getFilterArray('securityType');
+            const creditRatingAgency = getFilterArray('creditRatingAgency');
+            const modeOfIssue = getFilterArray('modeOfIssue');
+            const seniority = getFilterArray('seniority');
+            const listingStatus = getFilterArray('listingStatus');
+            const securedFlag = getFilterArray('securedFlag');
+            const rating = getFilterArray('rating');
+            const arranger = getFilterArray('arranger');
+
             const requestBody = {
                 startDate: dateRange.startDate,
                 endDate: dateRange.endDate,
@@ -397,6 +405,18 @@ export default function TrusteeTopParticipantsPage() {
                 offset: offset,
                 sortField: apiSortFieldMap[sortColumn] || 'issuer_name',
                 sortOrder: sortDirection.toUpperCase(),
+                // Filters from URL
+                ownershipType,
+                nature,
+                sector,
+                securityType,
+                creditRatingAgency,
+                modeOfIssue,
+                seniority,
+                listingStatus,
+                securedFlag,
+                rating,
+                arranger,
             };
 
             const result = await fetchTrusteeTopParticipantsData(requestBody);
@@ -439,7 +459,7 @@ export default function TrusteeTopParticipantsPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [dateRange, trusteeId, currentPage, pageSize, searchQuery, sortColumn, sortDirection]);
+    }, [dateRange, trusteeId, currentPage, pageSize, searchQuery, sortColumn, sortDirection, getFilterArray]);
 
     useEffect(() => {
         fetchData();
@@ -447,7 +467,7 @@ export default function TrusteeTopParticipantsPage() {
 
     // ── Grouped Data (memoized) ──
     const groupedData = useMemo(() => {
-        return groupByIssuerName(tableData);   // ← changed function name
+        return groupByIssuerName(tableData);
     }, [tableData]);
 
     // ── Sorted Grouped Data ──
@@ -475,11 +495,8 @@ export default function TrusteeTopParticipantsPage() {
         return sorted;
     }, [groupedData, sortColumn, sortDirection]);
 
-    // ── Pagination (driven by API raw-record count) ──
+    // ── Pagination ──
     const totalPages = Math.ceil(totalCount / pageSize) || 1;
-
-    // The API already limited raw records to `pageSize`.
-    // Show ALL groups from the current fetch; no frontend slicing needed.
     const paginatedGroups = sortedGroupedData;
 
     // ── Search Handlers ──
@@ -620,7 +637,7 @@ export default function TrusteeTopParticipantsPage() {
                             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Search Results</h2>
                             {!isLoading && (
                                 <span className="text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">
-                                    {totalCount} securities · {totalCount} unique issuers
+                                    {totalCount} securities · {paginatedGroups.length} unique issuers
                                 </span>
                             )}
                         </div>
@@ -758,11 +775,10 @@ export default function TrusteeTopParticipantsPage() {
 
                                             return (
                                                 <React.Fragment key={group.issuerName}>
-                                                    {/* Group Header Row — shows all representative values */}
+                                                    {/* Group Header Row */}
                                                     <tr
                                                         className={`transition-colors cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 ${groupBgClass}`}
                                                     >
-                                                        {/* Expand/Collapse Icon — visual indicator only */}
                                                         <td
                                                             className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 text-center"
                                                             onClick={() => {
@@ -780,15 +796,12 @@ export default function TrusteeTopParticipantsPage() {
                                                                 <span className="sr-only">Single ISIN</span>
                                                             )}
                                                         </td>
-                                                        {/* Trustee */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[160px] text-gray-800 dark:text-gray-200">
                                                             {rep.debentureTrustee}
                                                         </td>
-                                                        {/* Issuer Name */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[180px] text-gray-800 dark:text-gray-200">
                                                             {rep.issuerName}
                                                         </td>
-                                                        {/* ISIN — clickable "N ISINs" link */}
                                                         <td
                                                             onClick={() => {
                                                                 if (group.count > 1) toggleGroup(group.issuerName);
@@ -798,11 +811,9 @@ export default function TrusteeTopParticipantsPage() {
                                                         >
                                                             {group.count > 1 ? `${group.count} ${group.count === 1 ? 'ISIN' : 'ISINs'}` : rep.isin}
                                                         </td>
-                                                        {/* Security Name */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[140px] text-gray-800 dark:text-gray-200">
                                                             {rep.securityName}
                                                         </td>
-                                                        {/* Security Type */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
                                                             <span
                                                                 className={`
@@ -818,65 +829,51 @@ export default function TrusteeTopParticipantsPage() {
                                                                 {rep.securityType}
                                                             </span>
                                                         </td>
-                                                        {/* Mode of Issue */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
                                                             {rep.modeOfIssue}
                                                         </td>
-                                                        {/* Allotment Date */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
                                                             {rep.allotmentDate}
                                                         </td>
-                                                        {/* Maturity Date */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
                                                             {rep.maturityDate}
                                                         </td>
-                                                        {/* Coupon Rate */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
                                                             {rep.couponRate}
                                                         </td>
-                                                        {/* Issue Size */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200 text-right">
                                                             {formatCurrency(rep.issueSize)}
                                                         </td>
-                                                        {/* Face Value */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200 text-right">
                                                             {formatCurrency(rep.faceValue)}
                                                         </td>
-                                                        {/* Rating */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
                                                             {rep.rating}
                                                         </td>
-                                                        {/* Credit Rating Agency */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[140px] text-gray-800 dark:text-gray-200">
                                                             {rep.creditRatingAgency}
                                                         </td>
-                                                        {/* Registrar */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[140px] text-gray-800 dark:text-gray-200">
                                                             {rep.registrar}
                                                         </td>
-                                                        {/* Arranger */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
                                                             {rep.arranger}
                                                         </td>
-                                                        {/* Seniority */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
                                                             {rep.seniority}
                                                         </td>
-                                                        {/* Tax Free */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
                                                             {rep.taxFree}
                                                         </td>
-                                                        {/* Secured Flag */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[100px] text-gray-800 dark:text-gray-200">
                                                             {rep.securedFlag}
                                                         </td>
-                                                        {/* Listing Status */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
                                                             {rep.listingStatus}
                                                         </td>
                                                     </tr>
 
-                                                    {/* Child Rows (visible when expanded) */}
+                                                    {/* Child Rows */}
                                                     {isExpanded && group.records.map((row, rowIndex) => (
                                                         <tr
                                                             key={`${row.isin}-${rowIndex}`}
@@ -888,12 +885,10 @@ export default function TrusteeTopParticipantsPage() {
                                                                     : 'bg-slate-200 dark:bg-black'
                                                                 } hover:bg-slate-200 dark:hover:bg-slate-900`}
                                                         >
-                                                            {/* Empty cell for expand column alignment */}
                                                             <td className="relative border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 bg-inherit">
                                                                 <span className="absolute left-3 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-[#423CAB] dark:bg-[#8b7cf7]" />
                                                                 <span className="sr-only">—</span>
                                                             </td>
-                                                            {/* Trustee */}
                                                             <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[160px] text-gray-800 dark:text-gray-200 bg-inherit border-l-4 border-[#423CAB] dark:border-[#8b7cf7]">
                                                                 {row.debentureTrustee}
                                                             </td>
@@ -1025,11 +1020,11 @@ export default function TrusteeTopParticipantsPage() {
                                                         onClick={() => setCurrentPage(page)}
                                                         className={`
                                                             px-3 py-1.5 text-[10px] font-medium rounded-md transition-colors
-                                                            ${isActive
+                                                                                                                               ${isActive
                                                                 ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
                                                                 : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                                                             }
-                                                        `}
+                                                                `}
                                                     >
                                                         {page}
                                                     </button>

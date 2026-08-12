@@ -67,6 +67,7 @@ import { TextInput } from '@/components/TextInput';
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 interface SummaryFilterState {
+    [key: string]: string[];
     registrar: string[];
     issuerOwnershipType: string[];
     issuerNatureType: string[];
@@ -1407,8 +1408,17 @@ export default function Summary() {
                                 </button>
                             </div>
                         </div>
+
                         <div className="h-[250px]">
-                            <ScrollableTable data={listTableData} selectedFY={selectedFY} pageType='registrars' valueConvention={valueConvention} />
+                            <ScrollableTable
+                                data={listTableData}
+                                selectedFY={selectedFY}
+                                pageType='registrars'
+                                valueConvention={valueConvention}
+                                filters={filters}
+                                startDate={selectedYearsDateRange?.startDate}
+                                endDate={selectedYearsDateRange?.endDate}
+                            />
                         </div>
                     </SectionCard>
 

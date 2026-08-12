@@ -74,6 +74,7 @@ interface FilterInputsResponse {
 }
 
 interface FilterState {
+    [key: string]: string[];
     trustee: string[];
     issuerOwnershipType: string[];
     issuerNatureType: string[];
@@ -1386,7 +1387,16 @@ export default function Summary() {
                             </div>
                         </div>
                         <div className="h-[250px]">
-                            <ScrollableTable data={listTableData} selectedFY={selectedFY} pageType='trustees' valueConvention={valueConvention} />
+
+                            <ScrollableTable
+                                data={listTableData}
+                                selectedFY={selectedFY}
+                                pageType='trustees'
+                                valueConvention={valueConvention}
+                                filters={filters}
+                                startDate={selectedYearsDateRange?.startDate}
+                                endDate={selectedYearsDateRange?.endDate}
+                            />
                         </div>
                     </SectionCard>
 
