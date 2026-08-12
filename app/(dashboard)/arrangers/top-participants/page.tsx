@@ -201,6 +201,7 @@ interface TableDataItem {
 }
 
 interface GroupedRecord {
+    groupKey: string;
     issuerName: string;
     count: number;
     representativeRow: TableDataItem;
@@ -235,11 +236,11 @@ const TABLE_COLUMNS = [
 // GROUPING UTILITY
 // ─────────────────────────────────────────────────────────────
 
-function groupByIssuerName(data: TableDataItem[]): GroupedRecord[] {
+function groupByIssuerAndDate(data: TableDataItem[]): GroupedRecord[] {
     const map = new Map<string, TableDataItem[]>();
 
     for (const item of data) {
-        const key = item.issuerName;
+        const key = JSON.stringify([item.issuerName, item.allotmentDate]);
         if (!map.has(key)) {
             map.set(key, []);
         }
@@ -251,7 +252,8 @@ function groupByIssuerName(data: TableDataItem[]): GroupedRecord[] {
     return sortedKeys.map((key) => {
         const records = map.get(key)!;
         return {
-            issuerName: key,
+            groupKey: key,
+            issuerName: records[0].issuerName,
             count: records.length,
             representativeRow: records[0],
             records,
@@ -324,6 +326,7 @@ export default function ArrangerTopParticipantsPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(25);
     const [totalCount, setTotalCount] = useState(0);
+    const [clubbedTotalCount, setClubbedTotalCount] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortColumn, setSortColumn] = useState<string>('issuerName');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -386,22 +389,22 @@ export default function ArrangerTopParticipantsPage() {
         }
     };
 
-    const toggleGroup = (issuerName: string) => {
+    const toggleGroup = (groupKey: string) => {
         setExpandedGroups((prev) => {
             const next = new Set(prev);
-            if (next.has(issuerName)) {
-                setClosingGroups((closing) => new Set([...closing, issuerName]));
+            if (next.has(groupKey)) {
+                setClosingGroups((closing) => new Set([...closing, groupKey]));
                 setTimeout(() => {
-                    next.delete(issuerName);
+                    next.delete(groupKey);
                     setExpandedGroups(new Set(next));
                     setClosingGroups((closing) => {
                         const updated = new Set(closing);
-                        updated.delete(issuerName);
+                        updated.delete(groupKey);
                         return updated;
                     });
                 }, 400);
             } else {
-                next.add(issuerName);
+                next.add(groupKey);
             }
             return next;
         });
@@ -485,6 +488,7 @@ export default function ArrangerTopParticipantsPage() {
 
                 setTableData(mapped);
                 setTotalCount(result.totalRecords || 0);
+                setClubbedTotalCount(result.clubbedTotalRecords || 0);
             } else {
                 throw new Error('Failed to fetch data');
             }
@@ -493,6 +497,7 @@ export default function ArrangerTopParticipantsPage() {
             setError(err?.message || 'Failed to fetch data');
             setTableData([]);
             setTotalCount(0);
+            setClubbedTotalCount(0);
         } finally {
             setIsLoading(false);
         }
@@ -504,7 +509,7 @@ export default function ArrangerTopParticipantsPage() {
 
     // ── Grouped Data (memoized) ──
     const groupedData = useMemo(() => {
-        return groupByIssuerName(tableData);
+        return groupByIssuerAndDate(tableData);
     }, [tableData]);
 
     // ── Sorted Grouped Data ──
@@ -640,7 +645,7 @@ export default function ArrangerTopParticipantsPage() {
                         <div className="flex flex-col gap-1">
                             <label className="text-[9px] text-gray-400">Total Records</label>
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                                {isLoading ? '...' : paginatedGroups?.length || '0'}
+                                {isLoading ? '...' : clubbedTotalCount || '0'}
                             </span>
                         </div>
                     </div>
@@ -805,14 +810,14 @@ export default function ArrangerTopParticipantsPage() {
                                     </thead>
                                     <tbody>
                                         {paginatedGroups.map((group, groupIndex) => {
-                                            const isExpanded = expandedGroups.has(group.issuerName);
+                                            const isExpanded = expandedGroups.has(group.groupKey);
                                             const rep = group.representativeRow;
                                             const groupBgClass = groupIndex % 2 === 0
                                                 ? 'bg-white dark:bg-gray-900'
                                                 : 'bg-gray-50 dark:bg-gray-800';
 
                                             return (
-                                                <React.Fragment key={group.issuerName}>
+                                                <React.Fragment key={group.groupKey}>
                                                     {/* Group Header Row */}
                                                     <tr
                                                         className={`transition-colors cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 ${groupBgClass}`}
@@ -820,7 +825,7 @@ export default function ArrangerTopParticipantsPage() {
                                                         <td
                                                             className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 text-center"
                                                             onClick={() => {
-                                                                if (group.count > 1) toggleGroup(group.issuerName);
+                                                                if (group.count > 1) toggleGroup(group.groupKey);
                                                                 else isinHandler(rep);
                                                             }}
                                                         >
@@ -842,27 +847,29 @@ export default function ArrangerTopParticipantsPage() {
                                                         </td>
                                                         <td
                                                             onClick={() => {
-                                                                if (group.count > 1) toggleGroup(group.issuerName);
+                                                                if (group.count > 1) toggleGroup(group.groupKey);
                                                                 else isinHandler(rep);
                                                             }}
                                                             className='border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[140px] underline text-blue-500 decoration-sky-500 cursor-pointer'
                                                         >
                                                             {group.count > 1 ? `${group.count} ${group.count === 1 ? 'ISIN' : 'ISINs'}` : rep.isin}
                                                         </td>
+
+                                                        {/* remaining <td>s are unchanged — keep exactly as you have them */}
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium break-words min-w-[140px] text-gray-800 dark:text-gray-200">
                                                             {rep.securityName}
                                                         </td>
                                                         <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
                                                             <span
                                                                 className={`
-                                                                    inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
-                                                                    ${rep.securityType === 'Equity' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
-                                                                    ${rep.securityType === 'Debentures' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
-                                                                    ${rep.securityType === 'Mutual Fund' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
-                                                                    ${rep.securityType === 'Hybrid Fund' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : ''}
-                                                                    ${rep.securityType === 'Municipal Bonds' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : ''}
-                                                                    ${!['Equity', 'Debentures', 'Mutual Fund', 'Hybrid Fund', 'Municipal Bonds'].includes(rep.securityType) ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' : ''}
-                                                                `}
+                            inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
+                            ${rep.securityType === 'Equity' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
+                            ${rep.securityType === 'Debentures' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
+                            ${rep.securityType === 'Mutual Fund' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
+                            ${rep.securityType === 'Hybrid Fund' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : ''}
+                            ${rep.securityType === 'Municipal Bonds' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : ''}
+                            ${!['Equity', 'Debentures', 'Mutual Fund', 'Hybrid Fund', 'Municipal Bonds'].includes(rep.securityType) ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' : ''}
+                        `}
                                                             >
                                                                 {rep.securityType}
                                                             </span>
@@ -915,7 +922,7 @@ export default function ArrangerTopParticipantsPage() {
                                                     {isExpanded && group.records.map((row, rowIndex) => (
                                                         <tr
                                                             key={`${row.isin}-${rowIndex}`}
-                                                            className={`transition-colors ${closingGroups.has(group.issuerName)
+                                                            className={`transition-colors ${closingGroups.has(group.groupKey)
                                                                 ? 'dropdown-row-exit'
                                                                 : 'dropdown-row-enter'
                                                                 } ${rowIndex % 2 === 0
@@ -923,6 +930,7 @@ export default function ArrangerTopParticipantsPage() {
                                                                     : 'bg-slate-200 dark:bg-black'
                                                                 } hover:bg-slate-200 dark:hover:bg-slate-900`}
                                                         >
+                                                            {/* keep all child <td>s exactly as they are */}
                                                             <td className="relative border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 bg-inherit">
                                                                 <span className="absolute left-3 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-[#423CAB] dark:bg-[#8b7cf7]" />
                                                                 <span className="sr-only">—</span>
@@ -948,14 +956,14 @@ export default function ArrangerTopParticipantsPage() {
                                                             <td className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-3 font-medium whitespace-nowrap min-w-[120px] text-gray-800 dark:text-gray-200">
                                                                 <span
                                                                     className={`
-                                                                        inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
-                                                                        ${row.securityType === 'Equity' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
-                                                                        ${row.securityType === 'Debentures' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
-                                                                        ${row.securityType === 'Mutual Fund' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
-                                                                        ${row.securityType === 'Hybrid Fund' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : ''}
-                                                                        ${row.securityType === 'Municipal Bonds' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : ''}
-                                                                        ${!['Equity', 'Debentures', 'Mutual Fund', 'Hybrid Fund', 'Municipal Bonds'].includes(row.securityType) ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' : ''}
-                                                                    `}
+                                inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
+                                ${row.securityType === 'Equity' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
+                                ${row.securityType === 'Debentures' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
+                                ${row.securityType === 'Mutual Fund' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
+                                ${row.securityType === 'Hybrid Fund' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : ''}
+                                ${row.securityType === 'Municipal Bonds' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : ''}
+                                ${!['Equity', 'Debentures', 'Mutual Fund', 'Hybrid Fund', 'Municipal Bonds'].includes(row.securityType) ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' : ''}
+                            `}
                                                                 >
                                                                     {row.securityType}
                                                                 </span>
