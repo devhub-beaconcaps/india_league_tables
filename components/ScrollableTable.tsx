@@ -6,41 +6,95 @@ import React from 'react';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
+interface ScrollableTableFilters {
+  [key: string]: string[] | undefined;
+}
+
 interface ScrollableTableProps {
   pageType: string;
   selectedFY: string;
   data: FormattedIssuerItem[];
   valueConvention?: 'Crores' | 'Lakhs' | 'Billions';
+  filters?: ScrollableTableFilters;
+  startDate?: string;
+  endDate?: string;
 }
 
 // ─── Format Helpers ─────────────────────────────────────────────────────────
 
 const formatCurrency = (value: number, convention: 'Crores' | 'Lakhs' | 'Billions' = 'Crores'): string => {
-
     if (convention === 'Billions') {
         return `${(value / 100).toFixed(2)}B`;
     }
     if (convention === 'Lakhs') {
         return `${(value * 100).toLocaleString()} L`;
     }
-
     return `${value.toLocaleString()} Cr`;
-    
 };
 
 function formatNumber(value: number): string {
   return value.toLocaleString('en-IN', { maximumFractionDigits: 2 });
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Filter Query Builder ───────────────────────────────────────────────────
 
-export default function ScrollableTable({ data, selectedFY, pageType, valueConvention = 'Crores' }: ScrollableTableProps) {
+function buildFilterQueryString(filters: ScrollableTableFilters): string {
+  const params = new URLSearchParams();
+
+  const filterMappings: Record<string, string> = {
+    arranger: 'arranger',
+    issuerOwnershipType: 'ownershipType',
+    issuerNatureType: 'nature',
+    businessSector: 'sector',
+    securityType: 'securityType',
+    modeOfIssue: 'modeOfIssue',
+    creditRatingAgency: 'creditRatingAgency',
+    creditRating: 'rating',
+    seniority: 'seniority',
+    servicedFlag: 'securedFlag',
+    listingStatus: 'listingStatus',
+  };
+
+  Object.entries(filters).forEach(([key, values]) => {
+    if (!values || values.length === 0) return;
+    const paramKey = filterMappings[key] || key;
+    values.forEach((val) => {
+      params.append(paramKey, val);
+    });
+  });
+
+  return params.toString();
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────
+
+export default function ScrollableTable({ 
+  data, 
+  selectedFY, 
+  pageType, 
+  valueConvention = 'Crores',
+  filters,
+  startDate,
+  endDate
+}: ScrollableTableProps) {
 
   const router = useRouter();
 
   const handleClick = (id: number) => {
-    // URL params: ?id=8&fy=2026-2027
-    router.push(`/${pageType}/top-participants?id=${encodeURIComponent(id)}&fy=${selectedFY}`);
+    let url = `/${pageType}/top-participants?id=${encodeURIComponent(id)}&fy=${encodeURIComponent(selectedFY)}`;
+    
+    if (startDate && endDate) {
+      url += `&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+    }
+    
+    if (filters) {
+      const filterQuery = buildFilterQueryString(filters);
+      if (filterQuery) {
+        url += `&${filterQuery}`;
+      }
+    }
+    
+    router.push(url);
   }
 
   const sizeLabel = valueConvention === 'Billions' ? 'Size (B)' : valueConvention === 'Lakhs' ? 'Size (L)' : 'Size (Cr)';
