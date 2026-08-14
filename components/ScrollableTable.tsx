@@ -3,12 +3,22 @@
 import { FormattedIssuerItem } from '@/app/(dashboard)/arrangers/summary/types';
 import { useRouter } from 'next/navigation';
 import React from 'react';
+import {
+  ArrangerFilters,
+  TrusteeFilters,
+  RegistrarFilters,
+  AgencyFilters,
+  IssuerFilters,
+} from '@/lib/filtersState';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
-interface ScrollableTableFilters {
-  [key: string]: string[] | undefined;
-}
+export type ScrollableTableFilters =
+  | ArrangerFilters
+  | TrusteeFilters
+  | RegistrarFilters
+  | AgencyFilters
+  | IssuerFilters;
 
 interface ScrollableTableProps {
   pageType: string;
@@ -23,13 +33,13 @@ interface ScrollableTableProps {
 // ─── Format Helpers ─────────────────────────────────────────────────────────
 
 const formatCurrency = (value: number, convention: 'Crores' | 'Lakhs' | 'Billions' = 'Crores'): string => {
-    if (convention === 'Billions') {
-        return `${(value / 100).toFixed(2)}B`;
-    }
-    if (convention === 'Lakhs') {
-        return `${(value * 100).toLocaleString()} L`;
-    }
-    return `${value.toLocaleString()} Cr`;
+  if (convention === 'Billions') {
+    return `${(value / 100).toFixed(2)}B`;
+  }
+  if (convention === 'Lakhs') {
+    return `${(value * 100).toLocaleString()} L`;
+  }
+  return `${value.toLocaleString()} Cr`;
 };
 
 function formatNumber(value: number): string {
@@ -42,8 +52,12 @@ function buildFilterQueryString(filters: ScrollableTableFilters): string {
   const params = new URLSearchParams();
 
   const filterMappings: Record<string, string> = {
+    // Page-specific participant filters
     arranger: 'arranger',
+    trustee: 'trustee',
     registrar: 'registrar',
+
+    // Common issuer filters
     issuerOwnershipType: 'ownershipType',
     issuerNatureType: 'nature',
     businessSector: 'sector',
@@ -54,11 +68,20 @@ function buildFilterQueryString(filters: ScrollableTableFilters): string {
     seniority: 'seniority',
     servicedFlag: 'securedFlag',
     listingStatus: 'listingStatus',
+
+    // Rating Agency page
+    ownershipType: 'ownershipType',
+    nature: 'nature',
+    sector: 'sector',
+    rating: 'rating',
+    securedFlag: 'securedFlag',
   };
 
   Object.entries(filters).forEach(([key, values]) => {
     if (!values || values.length === 0) return;
+
     const paramKey = filterMappings[key] || key;
+
     values.forEach((val) => {
       params.append(paramKey, val);
     });
@@ -69,10 +92,10 @@ function buildFilterQueryString(filters: ScrollableTableFilters): string {
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
-export default function ScrollableTable({ 
-  data, 
-  selectedFY, 
-  pageType, 
+export default function ScrollableTable({
+  data,
+  selectedFY,
+  pageType,
   valueConvention = 'Crores',
   filters,
   startDate,
@@ -83,18 +106,18 @@ export default function ScrollableTable({
 
   const handleClick = (id: number) => {
     let url = `/${pageType}/top-participants?id=${encodeURIComponent(id)}&fy=${encodeURIComponent(selectedFY)}`;
-    
+
     if (startDate && endDate) {
       url += `&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
     }
-    
+
     if (filters) {
       const filterQuery = buildFilterQueryString(filters);
       if (filterQuery) {
         url += `&${filterQuery}`;
       }
     }
-    
+
     router.push(url);
   }
 

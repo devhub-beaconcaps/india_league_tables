@@ -57,8 +57,32 @@ import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
 import { motion, AnimatePresence } from 'framer-motion'
 import { TextInput } from '@/components/TextInput';
 
+import {
+    useSummaryFilterStore,
+    TrusteeFilters,
+} from '@/lib/filtersState';
 
-// ─── Types ─────────────────────────────────────────────────────────────────
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const TRUSTEES_PAGE = 'trustees-summary' as const;
+
+const DEFAULT_TRUSTEE_FILTERS: TrusteeFilters = {
+    trustee: [],
+    issuerOwnershipType: [],
+    issuerNatureType: [],
+    businessSector: [],
+    securityType: [],
+    modeOfIssue: [],
+    creditRatingAgency: [],
+    creditRating: [],
+    seniority: [],
+    servicedFlag: [],
+    listingStatus: [],
+};
+
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface FilterInputsResponse {
     ownershipType: string[];
@@ -70,21 +94,6 @@ interface FilterInputsResponse {
     creditRating: string[];
     seniority: string[];
     securedFlag: string[];
-    listingStatus: string[];
-}
-
-interface FilterState {
-    [key: string]: string[];
-    trustee: string[];
-    issuerOwnershipType: string[];
-    issuerNatureType: string[];
-    businessSector: string[];
-    securityType: string[];
-    modeOfIssue: string[];
-    creditRatingAgency: string[];
-    creditRating: string[];
-    seniority: string[];
-    servicedFlag: string[];
     listingStatus: string[];
 }
 
@@ -298,7 +307,7 @@ function DownloadPngButton({ onClick, label = 'Download PNG' }: { onClick: () =>
 
 interface CreditRatingsSectionProps {
     selectedYearsDateRange: DateRange | null;
-    filters: FilterState;
+    filters: TrusteeFilters;
     valueConvention: ValueConvention;
     trusteeOptions: { value: string; label: string }[];
     selectedFY: string;
@@ -443,6 +452,33 @@ function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Summary() {
+    // ── Zustand Filter Store ──
+    const storedFilters = useSummaryFilterStore(
+        (state) => state.filters[TRUSTEES_PAGE]
+    );
+
+    const setPageFilters = useSummaryFilterStore(
+        (state) => state.setPageFilters
+    );
+
+    const updatePageFilter = useSummaryFilterStore(
+        (state) => state.updatePageFilter
+    );
+
+    const clearPageFilters = useSummaryFilterStore(
+        (state) => state.clearPageFilters
+    );
+
+    const filters: TrusteeFilters =
+        storedFilters ?? DEFAULT_TRUSTEE_FILTERS;
+
+    // Initialize store if empty
+    useEffect(() => {
+        if (!storedFilters) {
+            setPageFilters(TRUSTEES_PAGE, DEFAULT_TRUSTEE_FILTERS);
+        }
+    }, [storedFilters, setPageFilters]);
+
     const fyOptions = useMemo<FYOption[]>(() => getFinancialYears(), []);
 
     const [selectedFY, setSelectedFY] = useState<string>(fyOptions[0]?.value);
@@ -465,21 +501,6 @@ export default function Summary() {
     const [isSectorsLoading, setIsSectorsLoading] = useState(true);
     const [isMarketShareLoading, setIsMarketShareLoading] = useState(true);
     const [isFiltersLoading, setIsFiltersLoading] = useState(true);
-
-    // ─── New Filter States (MULTI-SELECT) ───────────────────────────────────
-    const [filters, setFilters] = useState<FilterState>({
-        trustee: [],
-        issuerOwnershipType: [],
-        issuerNatureType: [],
-        businessSector: [],
-        securityType: [],
-        modeOfIssue: [],
-        creditRatingAgency: [],
-        creditRating: [],
-        seniority: [],
-        servicedFlag: [],
-        listingStatus: [],
-    });
 
     const [filterOptions, setFilterOptions] = useState<FilterInputsResponse>({
         ownershipType: [],
@@ -523,9 +544,15 @@ export default function Summary() {
     // ─── Helpers ─────────────────────────────────────────────────────────────
     const toOptions = (items: string[]) => items.map(item => ({ value: item, label: item }));
 
-    const updateFilter = useCallback((key: keyof FilterState, value: string[]) => {
-        setFilters(prev => ({ ...prev, [key]: value }));
-    }, []);
+    const updateFilter = useCallback(
+        <K extends keyof TrusteeFilters>(
+            key: K,
+            value: TrusteeFilters[K]
+        ) => {
+            updatePageFilter(TRUSTEES_PAGE, key, value as string[]);
+        },
+        [updatePageFilter]
+    );
 
     const handleFYChange = (value: string | number): void => {
         setSelectedFY(String(value));
@@ -550,19 +577,7 @@ export default function Summary() {
         setFrequency('Yearly');
         setPeriod(null);
         setValueConvention('Crores');
-        setFilters({
-            trustee: [],
-            issuerOwnershipType: [],
-            issuerNatureType: [],
-            businessSector: [],
-            securityType: [],
-            modeOfIssue: [],
-            creditRatingAgency: [],
-            creditRating: [],
-            seniority: [],
-            servicedFlag: [],
-            listingStatus: [],
-        });
+        clearPageFilters(TRUSTEES_PAGE, DEFAULT_TRUSTEE_FILTERS);
     };
 
     function getFinancialYearRanges(rangeStr: string) {
@@ -740,8 +755,8 @@ export default function Summary() {
     }, [filters]);
 
     const activeFilterChips = useMemo(() => {
-        const chips: { key: keyof FilterState; label: string; index: number }[] = [];
-        const labelMap: Record<keyof FilterState, string> = {
+        const chips: { key: keyof TrusteeFilters; label: string; index: number }[] = [];
+        const labelMap: Record<keyof TrusteeFilters, string> = {
             trustee: 'Trustee',
             issuerOwnershipType: 'Ownership',
             issuerNatureType: 'Nature',
@@ -754,7 +769,7 @@ export default function Summary() {
             servicedFlag: 'Secured',
             listingStatus: 'Listing',
         };
-        (Object.keys(filters) as Array<keyof FilterState>).forEach((key) => {
+        (Object.keys(filters) as Array<keyof TrusteeFilters>).forEach((key) => {
             filters[key].forEach((val, idx) => {
                 chips.push({ key, index: idx, label: `${labelMap[key]}: ${val}` });
             });
@@ -782,20 +797,20 @@ export default function Summary() {
             startDate: selectedYearsDateRange.startDate,
             endDate: selectedYearsDateRange.endDate,
             issueType,
+            limit: extra.limit,
+            trustee: filters.trustee,
+            ownershipType: filters.issuerOwnershipType,
+            nature: filters.issuerNatureType,
+            sector: filters.businessSector,
+            securityType: filters.securityType,
+            modeOfIssue: filters.modeOfIssue,
+            creditRatingAgency: filters.creditRatingAgency,
+            rating: filters.creditRating,
+            seniority: filters.seniority,
+            securedFlag: filters.servicedFlag,
+            listingStatus: filters.listingStatus,
             ...extra,
         };
-
-        if (filters.trustee.length > 0) query.trustee = filters.trustee;
-        if (filters.issuerOwnershipType.length > 0) query.ownershipType = filters.issuerOwnershipType;
-        if (filters.issuerNatureType.length > 0) query.nature = filters.issuerNatureType;
-        if (filters.businessSector.length > 0) query.sector = filters.businessSector;
-        if (filters.securityType.length > 0) query.securityType = filters.securityType;
-        if (filters.modeOfIssue.length > 0) query.modeOfIssue = filters.modeOfIssue;
-        if (filters.creditRatingAgency.length > 0) query.creditRatingAgency = filters.creditRatingAgency;
-        if (filters.creditRating.length > 0) query.rating = filters.creditRating;
-        if (filters.seniority.length > 0) query.seniority = filters.seniority;
-        if (filters.servicedFlag.length > 0) query.securedFlag = filters.servicedFlag;
-        if (filters.listingStatus.length > 0) query.listingStatus = filters.listingStatus;
 
         return query;
     }, [selectedYearsDateRange, issueType, filters]);
@@ -1173,19 +1188,7 @@ export default function Summary() {
                                                             />
                                                         ))}
                                                         <button
-                                                            onClick={() => setFilters({
-                                                                trustee: [],
-                                                                issuerOwnershipType: [],
-                                                                issuerNatureType: [],
-                                                                businessSector: [],
-                                                                securityType: [],
-                                                                modeOfIssue: [],
-                                                                creditRatingAgency: [],
-                                                                creditRating: [],
-                                                                seniority: [],
-                                                                servicedFlag: [],
-                                                                listingStatus: [],
-                                                            })}
+                                                            onClick={() => clearPageFilters(TRUSTEES_PAGE, DEFAULT_TRUSTEE_FILTERS)}
                                                             className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
                                                         >
                                                             Clear all
