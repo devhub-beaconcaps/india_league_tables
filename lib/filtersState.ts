@@ -1,4 +1,3 @@
-//filterState.ts
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -8,6 +7,15 @@ export type SummaryPage =
   | 'registrars-summary'
   | 'rating-agencies-summary'
   | 'issuers-summary';
+
+/* ── Shared UI state types ─────────────────────────────────── */
+
+export type FrequencyValue = 'Yearly' | 'Half-Yearly' | 'Quarterly' | 'Monthly';
+export type SelectedPeriod = 'H1' | 'H2' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | number | null;
+export type IssueType = 'size' | 'count';
+export type ValueConvention = 'Crores' | 'Lakhs' | 'Billions';
+
+/* ── Per-page filter shapes ────────────────────────────────── */
 
 export interface ArrangerFilters {
   arranger: string[];
@@ -85,72 +93,122 @@ export interface SummaryFiltersByPage {
   'issuers-summary': IssuerFilters;
 }
 
+/* ── Full page state (filters + UI state) ──────────────────── */
+
+export interface PageState<P extends SummaryPage> {
+  selectedFY: string;
+  frequency: FrequencyValue;
+  period: SelectedPeriod;
+  issueType: IssueType;
+  valueConvention: ValueConvention;
+  filters: SummaryFiltersByPage[P];
+}
+
+/* ── Store interface ───────────────────────────────────────── */
+
 interface SummaryFilterStore {
-  filters: Partial<SummaryFiltersByPage>;
+  /** Which page last owned the active filter context */
+  activeFilterPage: SummaryPage | null;
 
-  setPageFilters: <P extends SummaryPage>(
-    page: P,
-    filters: SummaryFiltersByPage[P]
-  ) => void;
+  /** Persisted state for every page (kept even when not active) */
+  pageState: Partial<{
+    [P in SummaryPage]: PageState<P>;
+  }>;
 
+  /** Replace entire state object for a page and mark it active */
+  setPageState: <P extends SummaryPage>(page: P, state: PageState<P>) => void;
+
+  /** Update one filter array inside a page and mark it active */
   updatePageFilter: <P extends SummaryPage>(
     page: P,
     key: keyof SummaryFiltersByPage[P],
     value: string[]
   ) => void;
 
-  clearPageFilters: <P extends SummaryPage>(
+  /** Update one top-level field (selectedFY, frequency, etc.) and mark page active */
+  updatePageField: <P extends SummaryPage>(
     page: P,
-    defaultFilters: SummaryFiltersByPage[P]
+    key: Exclude<keyof PageState<P>, 'filters'>,
+    value: any
   ) => void;
 
-  clearAllFilters: () => void;
+  /** Reset a page to defaults and mark it active */
+  clearPageState: <P extends SummaryPage>(page: P, defaultState: PageState<P>) => void;
+
+  /** Wipe everything */
+  clearAllState: () => void;
 }
+
+/* ── Store implementation ──────────────────────────────────── */
 
 export const useSummaryFilterStore =
   create<SummaryFilterStore>()(
     persist(
       (set) => ({
-        filters: {},
+        activeFilterPage: null,
+        pageState: {},
 
-        setPageFilters: (page, filters) =>
-          set((state) => ({
-            filters: {
-              ...state.filters,
-              [page]: filters,
+        setPageState: (page, state) =>
+          set((prev) => ({
+            activeFilterPage: page,
+            pageState: {
+              ...prev.pageState,
+              [page]: state,
             },
           })),
 
         updatePageFilter: (page, key, value) =>
-          set((state) => {
-            const currentFilters = state.filters[page];
-
-            if (!currentFilters) {
-              return state;
+          set((prev) => {
+            const current = prev.pageState[page];
+            if (!current) {
+              return { activeFilterPage: page };
             }
-
             return {
-              filters: {
-                ...state.filters,
+              activeFilterPage: page,
+              pageState: {
+                ...prev.pageState,
                 [page]: {
-                  ...currentFilters,
-                  [key]: value,
-                },
+                  ...current,
+                  filters: {
+                    ...current.filters,
+                    [key]: value,
+                  } as any,
+                } as any,
               },
             };
           }),
 
-        clearPageFilters: (page, defaultFilters) =>
-          set((state) => ({
-            filters: {
-              ...state.filters,
-              [page]: defaultFilters,
+        updatePageField: (page, key, value) =>
+          set((prev) => {
+            const current = prev.pageState[page];
+            if (!current) {
+              return { activeFilterPage: page };
+            }
+            return {
+              activeFilterPage: page,
+              pageState: {
+                ...prev.pageState,
+                [page]: {
+                  ...current,
+                  [key]: value,
+                } as any,
+              },
+            };
+          }),
+
+        clearPageState: (page, defaultState) =>
+          set((prev) => ({
+            activeFilterPage: page,
+            pageState: {
+              ...prev.pageState,
+              [page]: defaultState,
             },
           })),
 
-        clearAllFilters: () =>
+        clearAllState: () =>
           set({
-            filters: {},
+            activeFilterPage: null,
+            pageState: {},
           }),
       }),
       {
