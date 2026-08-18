@@ -19,13 +19,29 @@ import {
 
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
-import { fetchIssueDetailsFilterInputsData, fetchIssuerMonthlySummaryData } from '@/features/issuers/services';
-import { useRouter } from 'next/navigation';
-import { Search, X, ChevronDown, SlidersHorizontal } from 'lucide-react';
+
+import {
+    fetchIssueDetailsFilterInputsData,
+    fetchIssuerMonthlySummaryData,
+} from '@/features/issuers/services';
+
+import {
+    Search,
+    X,
+    ChevronDown,
+    SlidersHorizontal,
+} from 'lucide-react';
+
 import { SummaryDiagonalCard } from '@/components/SummaryDiagonalCard';
 import MonthWiseTable from '@/components/MonthWiseTable';
 import QuarterWiseTable from '@/components/QuarterWiseTable';
 import CustomDropdown from '@/components/CustomDropdown';
+
+import {
+    useSummaryFilterStore,
+    MonthlyFilters,
+    MonthlyPageState,
+} from '@/lib/filtersState';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -63,19 +79,6 @@ interface FilterOptions {
     creditRating: string[];
 }
 
-interface SummaryFilterState {
-    ownershipType: string[];
-    sector: string[];
-    nature: string[];
-    securityType: string[];
-    creditRatingAgency: string[];
-    modeOfIssue: string[];
-    seniority: string[];
-    listingStatus: string[];
-    securedFlag: string[];
-    rating: string[];
-}
-
 interface QuarterlyData {
     quarter: string;
 
@@ -88,55 +91,46 @@ interface QuarterlyData {
 
 type SizeUnit = 'Crores' | 'Lakhs' | 'Billions';
 
-// ─────────────────────────────────────────────────────────────
-// FINANCIAL YEAR OPTIONS (DYNAMIC)
-// ─────────────────────────────────────────────────────────────
+type FilterType = 'primary' | 'compare';
 
-function generateFinancialYearOptions(count: number = 3) {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // Jan = 0, Apr = 3
-
-    // Current FY start year
-    const currentFYStart =
-        currentMonth >= 3 ? currentYear : currentYear - 1;
-
-    const today = now.toISOString().split('T')[0];
-
-    const options = [];
-
-    for (let i = 0; i < count; i++) {
-        const startYear = currentFYStart - i;
-        const endYear = startYear + 1;
-
-        const fyRange = `${startYear}-${String(endYear).slice(-2)}`;
-        const fyEndDate = `${endYear}-03-31`;
-
-        options.push({
-            label: `FY ${fyRange}`,
-            startDate: `${startYear}-04-01`,
-            endDate: fyEndDate > today ? today : fyEndDate,
-        });
-    }
-
-    return options;
-}
-
-const FINANCIAL_YEAR_OPTIONS = generateFinancialYearOptions(5);
-
-const fyDropdownOptions = FINANCIAL_YEAR_OPTIONS.map(item => ({
-    value: item.label,
-    label: item.label,
-}));
+type MonthlyFilterKey = keyof MonthlyFilters;
 
 // ─────────────────────────────────────────────────────────────
-// DEFAULT FILTERS
+// CONSTANTS
 // ─────────────────────────────────────────────────────────────
 
-const DEFAULT_FILTERS: SummaryFilterState = {
+const ISSUERS_MONTHLY_PAGE = 'issuers-monthly' as const;
+
+const MONTHLY_FILTER_KEYS: MonthlyFilterKey[] = [
+    'ownershipType',
+    'sector',
+    'nature',
+    'securityType',
+    'creditRatingAgency',
+    'modeOfIssue',
+    'seniority',
+    'listingStatus',
+    'securedFlag',
+    'rating',
+];
+
+const FILTER_LABELS: Record<MonthlyFilterKey, string> = {
+    ownershipType: 'Ownership',
+    sector: 'Sector',
+    nature: 'Nature',
+    securityType: 'Security Type',
+    creditRatingAgency: 'Credit Rating Agency',
+    modeOfIssue: 'Mode Of Issue',
+    seniority: 'Seniority',
+    listingStatus: 'Listing Status',
+    securedFlag: 'Secured Flag',
+    rating: 'Rating',
+};
+
+const DEFAULT_MONTHLY_FILTERS: MonthlyFilters = {
     ownershipType: [],
-    sector: [],
     nature: [],
+    sector: [],
     securityType: [],
     creditRatingAgency: [],
     modeOfIssue: [],
@@ -147,95 +141,113 @@ const DEFAULT_FILTERS: SummaryFilterState = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// COMPONENTS
+// FINANCIAL YEAR OPTIONS
 // ─────────────────────────────────────────────────────────────
 
-function SectionCard({
-    children,
-    className = '',
-}: {
-    children: React.ReactNode;
-    className?: string;
-}) {
-    return (
-        <div
-            className={`bg-white dark:bg-[#1a1a2e] rounded-[12px] shadow-sm border border-gray-200 dark:border-gray-600 px-5 py-3 ${className}`}
-        >
-            {children}
-        </div>
-    );
+function generateFinancialYearOptions(count: number = 5) {
+    const now = new Date();
+
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const currentFYStart =
+        currentMonth >= 3
+            ? currentYear
+            : currentYear - 1;
+
+    const today = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, '0'),
+        String(now.getDate()).padStart(2, '0'),
+    ].join('-');
+
+    const options: {
+        label: string;
+        startDate: string;
+        endDate: string;
+    }[] = [];
+
+    for (let i = 0; i < count; i++) {
+        const startYear = currentFYStart - i;
+        const endYear = startYear + 1;
+
+        const label =
+            `FY ${startYear}-${String(endYear).slice(-2)}`;
+
+        const startDate =
+            `${startYear}-04-01`;
+
+        const financialYearEnd =
+            `${endYear}-03-31`;
+
+        const endDate =
+            financialYearEnd > today
+                ? today
+                : financialYearEnd;
+
+        options.push({
+            label,
+            startDate,
+            endDate,
+        });
+    }
+
+    return options;
 }
 
-function ChartSkeleton({ height = 260 }: { height?: number }) {
-    return (
-        <div style={{ height }} className="dark:bg-[#1a1a2e]">
-            <Skeleton height="100%" />
-        </div>
-    );
-}
+const FINANCIAL_YEAR_OPTIONS =
+    generateFinancialYearOptions(5);
 
-function NoDataState({
-    message = 'No data available',
-}: {
-    message?: string;
-}) {
-    return (
-        <div className="flex items-center justify-center py-20 bg-white dark:bg-[#1a1a2e]">
-            <p className="text-[9px] text-gray-500 dark:text-gray-400">
-                {message}
-            </p>
-        </div>
-    );
-}
-
-function FilterGroup({
-    label,
-    children,
-    className = ''
-}: {
-    label: string;
-    children: React.ReactNode;
-    className?: string
-}) {
-    return (
-        <div className={`flex flex-col gap-1.5 ${className}`}>
-            <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                {label}
-            </label>
-            {children}
-        </div>
-    );
-}
-
-function ActiveFilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
-    return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-medium rounded-full border border-indigo-100 dark:border-indigo-800">
-            {label}
-            <button onClick={onRemove} className="hover:text-indigo-900 dark:hover:text-indigo-100 transition-colors">
-                <X className="w-3 h-3" />
-            </button>
-        </span>
-    );
-}
-
-function DownloadPngButton({ onClick, label = 'Download PNG' }: { onClick: () => void; label?: string }) {
-    return (
-        <button
-            onClick={onClick}
-            className="flex items-center cursor-pointer gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 h-7 text-[10px] font-medium transition-colors"
-            title={label}
-        >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            PNG
-        </button>
-    );
-}
+const FY_DROPDOWN_OPTIONS =
+    FINANCIAL_YEAR_OPTIONS.map((item) => ({
+        value: item.label,
+        label: item.label,
+    }));
 
 // ─────────────────────────────────────────────────────────────
-// UTILS
+// HELPERS
 // ─────────────────────────────────────────────────────────────
+
+function createDefaultMonthlyFilters(): MonthlyFilters {
+    return {
+        ownershipType: [],
+        nature: [],
+        sector: [],
+        securityType: [],
+        creditRatingAgency: [],
+        modeOfIssue: [],
+        seniority: [],
+        listingStatus: [],
+        securedFlag: [],
+        rating: [],
+    };
+}
+
+function createDefaultMonthlyState(): MonthlyPageState {
+    return {
+        primaryStartDate:
+            FINANCIAL_YEAR_OPTIONS[0].startDate,
+
+        primaryEndDate:
+            FINANCIAL_YEAR_OPTIONS[0].endDate,
+
+        compareStartDate:
+            FINANCIAL_YEAR_OPTIONS[1].startDate,
+
+        compareEndDate:
+            FINANCIAL_YEAR_OPTIONS[1].endDate,
+
+        primaryFilters:
+            createDefaultMonthlyFilters(),
+
+        compareFilters:
+            createDefaultMonthlyFilters(),
+
+        enableCompare: false,
+
+        sizeUnit: 'Crores',
+    };
+}
 
 function getMonthName(monthNo: number): string {
     const months: Record<number, string> = {
@@ -252,64 +264,107 @@ function getMonthName(monthNo: number): string {
         11: 'Nov',
         12: 'Dec',
     };
+
     return months[monthNo] || '';
 }
 
 function getFinancialYearLabel(
     startDate: string,
     endDate: string,
-) {
-    const year = FINANCIAL_YEAR_OPTIONS.find(
-        (item) =>
-            item.startDate === startDate &&
-            item.endDate === endDate,
-    );
+): string {
+    const year =
+        FINANCIAL_YEAR_OPTIONS.find(
+            (item) =>
+                item.startDate === startDate &&
+                item.endDate === endDate,
+        );
 
     return year?.label || 'Custom FY';
 }
 
-function formatSameMonthDayInYear(date: string, year: number) {
+function formatSameMonthDayInYear(
+    date: string,
+    year: number,
+): string {
     const [, month, day] = date.split('-');
-    const parsedMonth = parseInt(month, 10);
-    const parsedDay = parseInt(day, 10);
-    const targetDate = new Date(year, parsedMonth - 1, parsedDay);
+
+    const parsedMonth = Number(month);
+    const parsedDay = Number(day);
+
+    const targetDate =
+        new Date(
+            year,
+            parsedMonth - 1,
+            parsedDay,
+        );
 
     if (
         targetDate.getFullYear() !== year ||
         targetDate.getMonth() + 1 !== parsedMonth ||
         targetDate.getDate() !== parsedDay
     ) {
-        const maxDay = new Date(year, parsedMonth, 0).getDate();
-        return `${year}-${String(parsedMonth).padStart(2, '0')}-${String(Math.min(parsedDay, maxDay)).padStart(2, '0')}`;
+        const maxDay =
+            new Date(
+                year,
+                parsedMonth,
+                0,
+            ).getDate();
+
+        return [
+            year,
+            String(parsedMonth).padStart(2, '0'),
+            String(
+                Math.min(parsedDay, maxDay),
+            ).padStart(2, '0'),
+        ].join('-');
     }
 
     return `${year}-${month}-${day}`;
 }
 
-function getCompareEndDate(compareStartDate: string, primaryEndDate: string) {
-    const compareYear = new Date(compareStartDate).getFullYear();
-    return formatSameMonthDayInYear(primaryEndDate, compareYear);
+function getCompareEndDate(
+    compareStartDate: string,
+    primaryEndDate: string,
+): string {
+    const compareYear =
+        new Date(compareStartDate).getFullYear();
+
+    return formatSameMonthDayInYear(
+        primaryEndDate,
+        compareYear,
+    );
 }
 
 function getComparisonData(
     primaryData: MonthlyApiData[],
     compareData: MonthlyApiData[],
 ): ChartData[] {
-    return primaryData?.map((item) => {
-        const compareMonth = compareData?.find(
-            (compare) =>
-                compare.issueMonthNo === item.issueMonthNo,
-        );
+    return primaryData.map((item) => {
+        const compareMonth =
+            compareData.find(
+                (compare) =>
+                    compare.issueMonthNo ===
+                    item.issueMonthNo,
+            );
 
         return {
-            monthNumber: item.issueMonthNo,
-            monthName: getMonthName(item.issueMonthNo),
+            monthNumber:
+                item.issueMonthNo,
 
-            primaryIssueCount: item.noOfIssue,
-            compareIssueCount: compareMonth?.noOfIssue || 0,
+            monthName:
+                getMonthName(item.issueMonthNo),
 
-            primaryIssueSize: item.issueSize,
-            compareIssueSize: compareMonth?.issueSize || 0,
+            primaryIssueCount:
+                item.noOfIssue,
+
+            compareIssueCount:
+                compareMonth?.noOfIssue || 0,
+
+            primaryIssueSize:
+                item.issueSize,
+
+            compareIssueSize:
+                compareMonth?.issueSize || 0,
         };
     });
 }
@@ -338,58 +393,271 @@ function getQuarterlyData(
 
     return quarters
         .map((quarter) => {
-            const quarterMonths = monthlyData.filter((month) =>
-                quarter.months.includes(month.monthNumber),
-            );
+            const quarterMonths =
+                monthlyData.filter(
+                    (month) =>
+                        quarter.months.includes(
+                            month.monthNumber,
+                        ),
+                );
 
             return {
                 quarter: quarter.label,
 
-                primaryIssueCount: quarterMonths.reduce(
-                    (sum, item) => sum + item.primaryIssueCount,
-                    0,
-                ),
+                primaryIssueCount:
+                    quarterMonths.reduce(
+                        (sum, item) =>
+                            sum +
+                            item.primaryIssueCount,
+                        0,
+                    ),
 
-                compareIssueCount: quarterMonths.reduce(
-                    (sum, item) => sum + item.compareIssueCount,
-                    0,
-                ),
+                compareIssueCount:
+                    quarterMonths.reduce(
+                        (sum, item) =>
+                            sum +
+                            item.compareIssueCount,
+                        0,
+                    ),
 
-                primaryIssueSize: quarterMonths.reduce(
-                    (sum, item) => sum + item.primaryIssueSize,
-                    0,
-                ),
+                primaryIssueSize:
+                    quarterMonths.reduce(
+                        (sum, item) =>
+                            sum +
+                            item.primaryIssueSize,
+                        0,
+                    ),
 
-                compareIssueSize: quarterMonths.reduce(
-                    (sum, item) => sum + item.compareIssueSize,
-                    0,
-                ),
+                compareIssueSize:
+                    quarterMonths.reduce(
+                        (sum, item) =>
+                            sum +
+                            item.compareIssueSize,
+                        0,
+                    ),
             };
         })
-        .filter((q) => q.primaryIssueCount > 0 || q.primaryIssueSize > 0 || q.compareIssueCount > 0 || q.compareIssueSize > 0);
+        .filter(
+            (q) =>
+                q.primaryIssueCount > 0 ||
+                q.primaryIssueSize > 0 ||
+                q.compareIssueCount > 0 ||
+                q.compareIssueSize > 0,
+        );
 }
 
 function formatNumber(value: number): string {
-    return value.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    return value.toLocaleString('en-IN', {
+        maximumFractionDigits: 2,
+    });
 }
 
-function formatNumberToFourChar(num: number) {
+function formatNumberToFourChar(
+    num: number,
+): string {
     if (num >= 1000) {
-        if (num < 1000000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
-        if (num < 1000000000) return (num / 1000000).toFixed(1).replace('.0', '') + 'm';
-        return (num / 1000000000).toFixed(1).replace('.0', '') + 'b';
+        if (num < 1000000) {
+            return (
+                (num / 1000)
+                    .toFixed(1)
+                    .replace('.0', '') +
+                'k'
+            );
+        }
+
+        if (num < 1000000000) {
+            return (
+                (num / 1000000)
+                    .toFixed(1)
+                    .replace('.0', '') +
+                'm'
+            );
+        }
+
+        return (
+            (num / 1000000000)
+                .toFixed(1)
+                .replace('.0', '') +
+            'b'
+        );
     }
 
     return Math.round(num).toString();
 }
 
-function convertApiData(data: MonthlyApiData[], unit: SizeUnit): MonthlyApiData[] {
-    const factor = unit === 'Lakhs' ? 100 : unit === 'Billions' ? 0.01 : 1;
+function convertApiData(
+    data: MonthlyApiData[],
+    unit: SizeUnit,
+): MonthlyApiData[] {
+    const factor =
+        unit === 'Lakhs'
+            ? 100
+            : unit === 'Billions'
+                ? 0.01
+                : 1;
+
     return data.map((item) => ({
         ...item,
-        issueSize: item.issueSize * factor,
-        actualIssueSize: item.actualIssueSize * factor,
+
+        issueSize:
+            item.issueSize * factor,
+
+        actualIssueSize:
+            item.actualIssueSize * factor,
     }));
+}
+
+function filterZeroData(
+    data: MonthlyApiData[],
+): MonthlyApiData[] {
+    return data.filter(
+        (item) =>
+            item.noOfIssue !== 0 ||
+            item.issueSize !== 0,
+    );
+}
+
+function escapeCsvCell(value: unknown): string {
+    const stringValue = String(value ?? '');
+
+    if (
+        stringValue.includes(',') ||
+        stringValue.includes('"') ||
+        stringValue.includes('\n')
+    ) {
+        return `"${stringValue.replace(
+            /"/g,
+            '""',
+        )}"`;
+    }
+
+    return stringValue;
+}
+
+// ─────────────────────────────────────────────────────────────
+// UI COMPONENTS
+// ─────────────────────────────────────────────────────────────
+
+function SectionCard({
+    children,
+    className = '',
+}: {
+    children: React.ReactNode;
+    className?: string;
+}) {
+    return (
+        <div
+            className={`bg-white dark:bg-[#1a1a2e] rounded-[12px] shadow-sm border border-gray-200 dark:border-gray-600 px-5 py-3 ${className}`}
+        >
+            {children}
+        </div>
+    );
+}
+
+function ChartSkeleton({
+    height = 260,
+}: {
+    height?: number;
+}) {
+    return (
+        <div
+            style={{ height }}
+            className="dark:bg-[#1a1a2e]"
+        >
+            <Skeleton height="100%" />
+        </div>
+    );
+}
+
+function NoDataState({
+    message = 'No data available',
+}: {
+    message?: string;
+}) {
+    return (
+        <div className="flex items-center justify-center py-20 bg-white dark:bg-[#1a1a2e]">
+            <p className="text-[9px] text-gray-500 dark:text-gray-400">
+                {message}
+            </p>
+        </div>
+    );
+}
+
+function FilterGroup({
+    label,
+    children,
+    className = '',
+}: {
+    label: string;
+    children: React.ReactNode;
+    className?: string;
+}) {
+    return (
+        <div
+            className={`flex flex-col gap-1.5 ${className}`}
+        >
+            <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                {label}
+            </label>
+
+            {children}
+        </div>
+    );
+}
+
+function ActiveFilterChip({
+    label,
+    onRemove,
+}: {
+    label: string;
+    onRemove: () => void;
+}) {
+    return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-medium rounded-full border border-indigo-100 dark:border-indigo-800">
+            {label}
+
+            <button
+                type="button"
+                onClick={onRemove}
+                className="hover:text-indigo-900 dark:hover:text-indigo-100 transition-colors"
+            >
+                <X className="w-3 h-3" />
+            </button>
+        </span>
+    );
+}
+
+function DownloadPngButton({
+    onClick,
+    label = 'Download PNG',
+}: {
+    onClick: () => void;
+    label?: string;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className="flex items-center cursor-pointer gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 h-7 text-[10px] font-medium transition-colors"
+            title={label}
+        >
+            <svg
+                className="w-3 h-3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+            >
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
+            </svg>
+
+            PNG
+        </button>
+    );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -397,543 +665,1228 @@ function convertApiData(data: MonthlyApiData[], unit: SizeUnit): MonthlyApiData[
 // ─────────────────────────────────────────────────────────────
 
 export default function IssuerMonthWiseSummary() {
-    const [isLoading, setIsLoading] = useState(false);
-    const [enableCompare, setEnableCompare] = useState(false);
-    const [sizeUnit, setSizeUnit] = useState<SizeUnit>('Crores');
-    const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
-
-    // ── Chart Refs for PNG Download ──
-    const areaChartRef = useRef<HTMLDivElement>(null);
-    const barChartRef = useRef<HTMLDivElement>(null);
-
-    const [filterOptions, setFilterOptions] =
-        useState<FilterOptions>({
-            ownershipType: [],
-            sector: [],
-            nature: [],
-            securityType: [],
-            creditRatingAgency: [],
-            modeOfIssue: [],
-            seniority: [],
-            listingStatus: [],
-            securedFlag: [],
-            creditRating: [],
-        });
-
     // ─────────────────────────────────────────────────────────
-    // PRIMARY FILTERS
+    // ZUSTAND
     // ─────────────────────────────────────────────────────────
 
-    const [primaryFilters, setPrimaryFilters] =
-        useState<SummaryFilterState>(DEFAULT_FILTERS);
+    const activeFilterPage =
+        useSummaryFilterStore(
+            (state) => state.activeFilterPage,
+        );
 
-    const [primaryStartDate, setPrimaryStartDate] = useState<string>(FINANCIAL_YEAR_OPTIONS[0].startDate);
-    const [primaryEndDate, setPrimaryEndDate] = useState<string>(FINANCIAL_YEAR_OPTIONS[0].endDate);
+    const storedMonthlyState =
+        useSummaryFilterStore(
+            (state) =>
+                state.monthlyPageState[
+                    ISSUERS_MONTHLY_PAGE
+                ],
+        );
+
+    const setMonthlyPageState =
+        useSummaryFilterStore(
+            (state) =>
+                state.setMonthlyPageState,
+        );
+
+    const updateMonthlyPageFilter =
+        useSummaryFilterStore(
+            (state) =>
+                state.updateMonthlyPageFilter,
+        );
+
+    const updateMonthlyPageField =
+        useSummaryFilterStore(
+            (state) =>
+                state.updateMonthlyPageField,
+        );
+
+    const clearMonthlyPageState =
+        useSummaryFilterStore(
+            (state) =>
+                state.clearMonthlyPageState,
+        );
 
     // ─────────────────────────────────────────────────────────
-    // COMPARE FILTERS (defaults to previous FY)
+    // DEFAULT STATE
     // ─────────────────────────────────────────────────────────
 
-    const [compareFilters, setCompareFilters] =
-        useState<SummaryFilterState>(DEFAULT_FILTERS);
+    const defaultMonthlyState =
+        useMemo(
+            () =>
+                createDefaultMonthlyState(),
+            [],
+        );
 
-    const [compareStartDate, setCompareStartDate] = useState<string>(FINANCIAL_YEAR_OPTIONS[1].startDate);
-    const [compareEndDate, setCompareEndDate] = useState<string>(FINANCIAL_YEAR_OPTIONS[1].endDate);
+    // Only restore Issuer Monthly state when this page
+    // is the active filter page.
+    const isActivePage =
+        activeFilterPage ===
+        ISSUERS_MONTHLY_PAGE;
+
+    const currentState =
+        isActivePage &&
+            storedMonthlyState
+            ? storedMonthlyState
+            : defaultMonthlyState;
+
+    const {
+        primaryStartDate,
+        primaryEndDate,
+        compareStartDate,
+        compareEndDate,
+        primaryFilters,
+        compareFilters,
+        enableCompare,
+        sizeUnit,
+    } = currentState;
 
     // ─────────────────────────────────────────────────────────
-    // DATA STATES
+    // LOCAL STATE
     // ─────────────────────────────────────────────────────────
 
-    const [primaryData, setPrimaryData] = useState<
-        MonthlyApiData[]
-    >([]);
+    const [isLoading, setIsLoading] =
+        useState(false);
 
-    const [compareData, setCompareData] = useState<
-        MonthlyApiData[]
-    >([]);
+    const [
+        isFiltersExpanded,
+        setIsFiltersExpanded,
+    ] = useState(false);
+
+    const [
+        filterOptions,
+        setFilterOptions,
+    ] = useState<FilterOptions>({
+        ownershipType: [],
+        sector: [],
+        nature: [],
+        securityType: [],
+        creditRatingAgency: [],
+        modeOfIssue: [],
+        seniority: [],
+        listingStatus: [],
+        securedFlag: [],
+        creditRating: [],
+    });
+
+    const [primaryData, setPrimaryData] =
+        useState<MonthlyApiData[]>([]);
+
+    const [compareData, setCompareData] =
+        useState<MonthlyApiData[]>([]);
 
     // ─────────────────────────────────────────────────────────
-    // CONVERTED DISPLAY DATA
+    // CHART REFS
     // ─────────────────────────────────────────────────────────
 
-    const displayPrimaryData = useMemo(() => {
-        return convertApiData(primaryData, sizeUnit);
-    }, [primaryData, sizeUnit]);
+    const areaChartRef =
+        useRef<HTMLDivElement>(null);
 
-    const displayCompareData = useMemo(() => {
-        return convertApiData(compareData, sizeUnit);
-    }, [compareData, sizeUnit]);
+    const barChartRef =
+        useRef<HTMLDivElement>(null);
+
+    // ─────────────────────────────────────────────────────────
+    // ACTIVATE PAGE
+    // ─────────────────────────────────────────────────────────
+
+    useEffect(() => {
+        const store =
+            useSummaryFilterStore.getState();
+
+        const existingState =
+            store.monthlyPageState[
+                ISSUERS_MONTHLY_PAGE
+            ];
+
+        if (
+            store.activeFilterPage ===
+                ISSUERS_MONTHLY_PAGE &&
+            !existingState
+        ) {
+            setMonthlyPageState(
+                ISSUERS_MONTHLY_PAGE,
+                defaultMonthlyState,
+            );
+        }
+    }, [
+        defaultMonthlyState,
+        setMonthlyPageState,
+    ]);
+
+    // ─────────────────────────────────────────────────────────
+    // ENSURE ACTIVE
+    // ─────────────────────────────────────────────────────────
+
+    const ensureActive =
+        useCallback(() => {
+            const store =
+                useSummaryFilterStore.getState();
+
+            if (
+                store.activeFilterPage !==
+                ISSUERS_MONTHLY_PAGE
+            ) {
+                setMonthlyPageState(
+                    ISSUERS_MONTHLY_PAGE,
+                    createDefaultMonthlyState(),
+                );
+            }
+        }, [
+            setMonthlyPageState,
+        ]);
+
+    // ─────────────────────────────────────────────────────────
+    // FILTER UPDATE
+    // ─────────────────────────────────────────────────────────
+
+    const updateFilter =
+        useCallback(
+            (
+                type: FilterType,
+                key: MonthlyFilterKey,
+                value: string[],
+            ) => {
+                ensureActive();
+
+                updateMonthlyPageFilter(
+                    ISSUERS_MONTHLY_PAGE,
+                    type,
+                    key,
+                    value,
+                );
+            },
+            [
+                ensureActive,
+                updateMonthlyPageFilter,
+            ],
+        );
+
+    // ─────────────────────────────────────────────────────────
+    // OPTIONS
+    // ─────────────────────────────────────────────────────────
+
+    const toOptions = useCallback(
+        (items: string[]) =>
+            items.map((item) => ({
+                value: item,
+                label: item,
+            })),
+        [],
+    );
 
     // ─────────────────────────────────────────────────────────
     // FETCH FILTER OPTIONS
     // ─────────────────────────────────────────────────────────
 
-    const fetchFilterOptions = useCallback(async () => {
-        try {
-            const query = {
-                startDate: primaryStartDate,
-                endDate: primaryEndDate,
-            };
+    const fetchFilterOptions =
+        useCallback(async () => {
+            try {
+                const response =
+                    await fetchIssueDetailsFilterInputsData(
+                        {
+                            startDate:
+                                primaryStartDate,
 
-            const res = await fetchIssueDetailsFilterInputsData(query);
+                            endDate:
+                                primaryEndDate,
+                        },
+                    );
 
-            console.log('filters data', res);
+                setFilterOptions({
+                    ownershipType:
+                        response?.ownershipType ||
+                        [],
 
-            setFilterOptions(res);
-        } catch (error) {
-            console.error(error);
-        }
-    }, [primaryStartDate, primaryEndDate]);
+                    sector:
+                        response?.sector || [],
+
+                    nature:
+                        response?.nature || [],
+
+                    securityType:
+                        response?.securityType ||
+                        [],
+
+                    creditRatingAgency:
+                        response?.creditRatingAgency ||
+                        [],
+
+                    modeOfIssue:
+                        response?.modeOfIssue ||
+                        [],
+
+                    seniority:
+                        response?.seniority ||
+                        [],
+
+                    listingStatus:
+                        response?.listingStatus ||
+                        [],
+
+                    securedFlag:
+                        response?.securedFlag ||
+                        [],
+
+                    creditRating:
+                        response?.creditRating ||
+                        [],
+                });
+            } catch (error) {
+                console.error(
+                    'Failed to fetch issuer filter options:',
+                    error,
+                );
+            }
+        }, [
+            primaryStartDate,
+            primaryEndDate,
+        ]);
 
     useEffect(() => {
         fetchFilterOptions();
     }, [fetchFilterOptions]);
 
-    function filterZeroData(data: MonthlyApiData[]): MonthlyApiData[] {
-        return data.filter((item) => item.noOfIssue !== 0 || item.issueSize !== 0);
-    }
-
     // ─────────────────────────────────────────────────────────
     // FETCH PRIMARY DATA
     // ─────────────────────────────────────────────────────────
 
-    const fetchPrimaryData = useCallback(async () => {
-        try {
-            setIsLoading(true);
+    const fetchPrimaryData =
+        useCallback(async () => {
+            try {
+                setIsLoading(true);
 
-            const res = await fetchIssuerMonthlySummaryData({
-                startDate: primaryStartDate,
-                endDate: primaryEndDate,
-                ownershipType: primaryFilters.ownershipType,
-                sector: primaryFilters.sector,
-                nature: primaryFilters.nature,
-                securityType: primaryFilters.securityType,
-                creditRatingAgency: primaryFilters.creditRatingAgency,
-                modeOfIssue: primaryFilters.modeOfIssue,
-                seniority: primaryFilters.seniority,
-                listingStatus: primaryFilters.listingStatus,
-                securedFlag: primaryFilters.securedFlag,
-                rating: primaryFilters.rating,
-            });
+                const response =
+                    await fetchIssuerMonthlySummaryData(
+                        {
+                            startDate:
+                                primaryStartDate,
 
-            console.log('primary data', res?.data);
+                            endDate:
+                                primaryEndDate,
 
-            setPrimaryData(filterZeroData(res?.data || []));
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [primaryStartDate, primaryEndDate, primaryFilters]);
+                            ownershipType:
+                                primaryFilters.ownershipType,
+
+                            sector:
+                                primaryFilters.sector,
+
+                            nature:
+                                primaryFilters.nature,
+
+                            securityType:
+                                primaryFilters.securityType,
+
+                            creditRatingAgency:
+                                primaryFilters.creditRatingAgency,
+
+                            modeOfIssue:
+                                primaryFilters.modeOfIssue,
+
+                            seniority:
+                                primaryFilters.seniority,
+
+                            listingStatus:
+                                primaryFilters.listingStatus,
+
+                            securedFlag:
+                                primaryFilters.securedFlag,
+
+                            rating:
+                                primaryFilters.rating,
+                        },
+                    );
+
+                setPrimaryData(
+                    filterZeroData(
+                        response?.data || [],
+                    ),
+                );
+            } catch (error) {
+                console.error(
+                    'Failed to fetch issuer monthly data:',
+                    error,
+                );
+
+                setPrimaryData([]);
+            } finally {
+                setIsLoading(false);
+            }
+        }, [
+            primaryStartDate,
+            primaryEndDate,
+            primaryFilters,
+        ]);
 
     useEffect(() => {
         fetchPrimaryData();
     }, [fetchPrimaryData]);
 
     // ─────────────────────────────────────────────────────────
+    // AUTO CALCULATE COMPARE END DATE
+    // ─────────────────────────────────────────────────────────
+
+    const expectedCompareEndDate =
+        useMemo(
+            () =>
+                getCompareEndDate(
+                    compareStartDate,
+                    primaryEndDate,
+                ),
+            [
+                compareStartDate,
+                primaryEndDate,
+            ],
+        );
+
+    useEffect(() => {
+        if (!enableCompare) {
+            return;
+        }
+
+        const store =
+            useSummaryFilterStore.getState();
+
+        const monthly =
+            store.monthlyPageState[
+                ISSUERS_MONTHLY_PAGE
+            ];
+
+        if (
+            monthly &&
+            monthly.compareEndDate !==
+                expectedCompareEndDate
+        ) {
+            updateMonthlyPageField(
+                ISSUERS_MONTHLY_PAGE,
+                'compareEndDate',
+                expectedCompareEndDate,
+            );
+        }
+    }, [
+        enableCompare,
+        expectedCompareEndDate,
+        updateMonthlyPageField,
+    ]);
+
+    // ─────────────────────────────────────────────────────────
     // FETCH COMPARE DATA
     // ─────────────────────────────────────────────────────────
 
-    const fetchCompareData = useCallback(async () => {
-        try {
-            const res = await fetchIssuerMonthlySummaryData({
-                startDate: compareStartDate,
-                endDate: compareEndDate,
-                ownershipType: compareFilters.ownershipType,
-                sector: compareFilters.sector,
-                nature: compareFilters.nature,
-                securityType: compareFilters.securityType,
-                creditRatingAgency: compareFilters.creditRatingAgency,
-                modeOfIssue: compareFilters.modeOfIssue,
-                seniority: compareFilters.seniority,
-                listingStatus: compareFilters.listingStatus,
-                securedFlag: compareFilters.securedFlag,
-                rating: compareFilters.rating,
-            });
+    const fetchCompareData =
+        useCallback(async () => {
+            try {
+                const response =
+                    await fetchIssuerMonthlySummaryData(
+                        {
+                            startDate:
+                                compareStartDate,
 
-            console.log('compare data', res?.data);
+                            endDate:
+                                compareEndDate,
 
-            setCompareData(filterZeroData(res?.data || []));
-        } catch (error) {
-            console.error(error);
-        }
-    }, [compareStartDate, compareEndDate, compareFilters]);
+                            ownershipType:
+                                compareFilters.ownershipType,
+
+                            sector:
+                                compareFilters.sector,
+
+                            nature:
+                                compareFilters.nature,
+
+                            securityType:
+                                compareFilters.securityType,
+
+                            creditRatingAgency:
+                                compareFilters.creditRatingAgency,
+
+                            modeOfIssue:
+                                compareFilters.modeOfIssue,
+
+                            seniority:
+                                compareFilters.seniority,
+
+                            listingStatus:
+                                compareFilters.listingStatus,
+
+                            securedFlag:
+                                compareFilters.securedFlag,
+
+                            rating:
+                                compareFilters.rating,
+                        },
+                    );
+
+                setCompareData(
+                    filterZeroData(
+                        response?.data || [],
+                    ),
+                );
+            } catch (error) {
+                console.error(
+                    'Failed to fetch issuer comparison data:',
+                    error,
+                );
+
+                setCompareData([]);
+            }
+        }, [
+            compareStartDate,
+            compareEndDate,
+            compareFilters,
+        ]);
 
     useEffect(() => {
-        if (!enableCompare) return;
+        if (!enableCompare) {
+            setCompareData([]);
+            return;
+        }
 
-        const expectedEndDate = getCompareEndDate(compareStartDate, primaryEndDate);
-        if (compareEndDate !== expectedEndDate) return;
+        if (
+            compareEndDate !==
+            expectedCompareEndDate
+        ) {
+            return;
+        }
 
         fetchCompareData();
-    }, [compareStartDate, compareEndDate, compareFilters, enableCompare, fetchCompareData, primaryEndDate]);
+    }, [
+        enableCompare,
+        compareEndDate,
+        expectedCompareEndDate,
+        fetchCompareData,
+    ]);
+
+    // ─────────────────────────────────────────────────────────
+    // DISPLAY DATA
+    // ─────────────────────────────────────────────────────────
+
+    const displayPrimaryData =
+        useMemo(
+            () =>
+                convertApiData(
+                    primaryData,
+                    sizeUnit,
+                ),
+            [
+                primaryData,
+                sizeUnit,
+            ],
+        );
+
+    const displayCompareData =
+        useMemo(
+            () =>
+                convertApiData(
+                    compareData,
+                    sizeUnit,
+                ),
+            [
+                compareData,
+                sizeUnit,
+            ],
+        );
 
     // ─────────────────────────────────────────────────────────
     // CHART DATA
     // ─────────────────────────────────────────────────────────
 
-    const primaryChartData = useMemo(() => {
-        return displayPrimaryData.map((item) => ({
-            ...item,
-            monthName: getMonthName(item.issueMonthNo),
-        }));
-    }, [displayPrimaryData]);
+    const primaryChartData =
+        useMemo(
+            () =>
+                displayPrimaryData.map(
+                    (item) => ({
+                        ...item,
 
-    const comparisonData = useMemo(() => {
-        return getComparisonData(
-            displayPrimaryData,
-            displayCompareData,
+                        monthName:
+                            getMonthName(
+                                item.issueMonthNo,
+                            ),
+                    }),
+                ),
+            [displayPrimaryData],
         );
-    }, [displayPrimaryData, displayCompareData]);
 
-    const quarterlyData = useMemo(() => {
-        return getQuarterlyData(comparisonData);
-    }, [comparisonData]);
+    const comparisonData =
+        useMemo(
+            () =>
+                getComparisonData(
+                    displayPrimaryData,
+                    displayCompareData,
+                ),
+            [
+                displayPrimaryData,
+                displayCompareData,
+            ],
+        );
+
+    const quarterlyData =
+        useMemo(
+            () =>
+                getQuarterlyData(
+                    comparisonData,
+                ),
+            [comparisonData],
+        );
 
     // ─────────────────────────────────────────────────────────
     // TOTALS
     // ─────────────────────────────────────────────────────────
 
-    const primaryTotalCount = useMemo(() => {
-        return comparisonData.reduce(
-            (sum, r) => sum + r.primaryIssueCount,
-            0,
+    const primaryTotalCount =
+        useMemo(
+            () =>
+                comparisonData.reduce(
+                    (sum, item) =>
+                        sum +
+                        item.primaryIssueCount,
+                    0,
+                ),
+            [comparisonData],
         );
-    }, [comparisonData]);
 
-    const compareTotalCount = useMemo(() => {
-        return comparisonData.reduce(
-            (sum, r) => sum + r.compareIssueCount,
-            0,
+    const compareTotalCount =
+        useMemo(
+            () =>
+                comparisonData.reduce(
+                    (sum, item) =>
+                        sum +
+                        item.compareIssueCount,
+                    0,
+                ),
+            [comparisonData],
         );
-    }, [comparisonData]);
 
-    const primaryTotalSize = useMemo(() => {
-        return comparisonData.reduce(
-            (sum, r) => sum + r.primaryIssueSize,
-            0,
+    const primaryTotalSize =
+        useMemo(
+            () =>
+                comparisonData.reduce(
+                    (sum, item) =>
+                        sum +
+                        item.primaryIssueSize,
+                    0,
+                ),
+            [comparisonData],
         );
-    }, [comparisonData]);
 
-    const compareTotalSize = useMemo(() => {
-        return comparisonData.reduce(
-            (sum, r) => sum + r.compareIssueSize,
-            0,
+    const compareTotalSize =
+        useMemo(
+            () =>
+                comparisonData.reduce(
+                    (sum, item) =>
+                        sum +
+                        item.compareIssueSize,
+                    0,
+                ),
+            [comparisonData],
         );
-    }, [comparisonData]);
 
-    const totalCountGrowth = useMemo(() => {
-        return compareTotalCount > 0
-            ? ((primaryTotalCount - compareTotalCount) /
-                compareTotalCount) *
+    const totalCountGrowth =
+        compareTotalCount > 0
+            ? (
+                (
+                    primaryTotalCount -
+                    compareTotalCount
+                ) /
+                compareTotalCount
+            ) *
             100
             : 0;
-    }, [primaryTotalCount, compareTotalCount]);
 
-    const totalSizeGrowth = useMemo(() => {
-        return compareTotalSize > 0
-            ? ((primaryTotalSize - compareTotalSize) /
-                compareTotalSize) *
+    const totalSizeGrowth =
+        compareTotalSize > 0
+            ? (
+                (
+                    primaryTotalSize -
+                    compareTotalSize
+                ) /
+                compareTotalSize
+            ) *
             100
             : 0;
-    }, [primaryTotalSize, compareTotalSize]);
 
-    const avgPrimarySize = displayPrimaryData.length
-        ? primaryTotalSize /
-        displayPrimaryData.length
-        : 0;
+    const avgPrimarySize =
+        displayPrimaryData.length > 0
+            ? primaryTotalSize /
+            displayPrimaryData.length
+            : 0;
 
-    const avgCompareSize = displayCompareData.length
-        ? compareTotalSize /
-        displayCompareData.length
-        : 0;
+    const avgCompareSize =
+        displayCompareData.length > 0
+            ? compareTotalSize /
+            displayCompareData.length
+            : 0;
 
-    const primaryYearLabel = getFinancialYearLabel(
-        primaryStartDate,
-        primaryEndDate,
-    );
-
-    const compareYearLabel = getFinancialYearLabel(
-        compareStartDate,
-        compareEndDate,
-    );
-
-    // ─────────────────────────────────────────────────────────
-    // ACTIVE FILTER CHIPS LOGIC
-    // ─────────────────────────────────────────────────────────
-
-    const activeFilterCount = useMemo(() => {
-        return Object.values(primaryFilters).reduce((acc, arr) => acc + arr.length, 0);
-    }, [primaryFilters]);
-
-    const compareActiveFilterCount = useMemo(() => {
-        return Object.values(compareFilters).reduce((acc, arr) => acc + arr.length, 0);
-    }, [compareFilters]);
-
-    const totalActiveFilterCount = activeFilterCount + compareActiveFilterCount;
-
-    const activeFilterChips = useMemo(() => {
-        const chips: { key: keyof SummaryFilterState; label: string; index: number; type: 'primary' | 'compare' }[] = [];
-        const labelMap: Record<keyof SummaryFilterState, string> = {
-            ownershipType: 'Ownership',
-            sector: 'Sector',
-            nature: 'Nature',
-            securityType: 'Security Type',
-            creditRatingAgency: 'Credit Rating Agency',
-            modeOfIssue: 'Mode Of Issue',
-            seniority: 'Seniority',
-            listingStatus: 'Listing Status',
-            securedFlag: 'Secured Flag',
-            rating: 'Rating',
-        };
-
-        // Primary filters
-        (Object.keys(primaryFilters) as Array<keyof SummaryFilterState>).forEach((key) => {
-            primaryFilters[key].forEach((val, idx) => {
-                chips.push({ key, index: idx, type: 'primary', label: `${labelMap[key]}: ${val}` });
-            });
-        });
-
-        // Compare filters
-        (Object.keys(compareFilters) as Array<keyof SummaryFilterState>).forEach((key) => {
-            compareFilters[key].forEach((val, idx) => {
-                chips.push({ key, index: idx, type: 'compare', label: `Compare ${labelMap[key]}: ${val}` });
-            });
-        });
-
-        return chips;
-    }, [primaryFilters, compareFilters]);
-
-    const updateFilter = useCallback((type: 'primary' | 'compare', key: keyof SummaryFilterState, value: string[]) => {
-        if (type === 'primary') {
-            setPrimaryFilters(prev => ({ ...prev, [key]: value }));
-        } else {
-            setCompareFilters(prev => ({ ...prev, [key]: value }));
-        }
-    }, []);
-
-    const toOptions = (items: string[]): { value: string; label: string }[] => {
-        return items.map(item => ({ value: item, label: item }));
-    };
+    const avgSizeGrowth =
+        avgCompareSize > 0
+            ? (
+                (
+                    avgPrimarySize -
+                    avgCompareSize
+                ) /
+                avgCompareSize
+            ) *
+            100
+            : 0;
 
     // ─────────────────────────────────────────────────────────
-    // DOWNLOAD HELPERS
+    // YEAR LABELS
     // ─────────────────────────────────────────────────────────
 
-    const downloadChartAsPng = useCallback(async (chartRef: HTMLElement | null, filename: string) => {
-        if (!chartRef) return;
-        try {
-            const canvas = await html2canvas(chartRef, {
-                backgroundColor: '#ffffff',
-                scale: 2,
-                useCORS: true,
-            });
-            const link = document.createElement('a');
-            link.download = `${filename}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        } catch (err) {
-            console.error('Error downloading chart:', err);
-        }
-    }, []);
+    const primaryYearLabel =
+        getFinancialYearLabel(
+            primaryStartDate,
+            primaryEndDate,
+        );
 
-    const handleExportMonthWiseCSV = useCallback(() => {
-        if (!comparisonData.length) return;
-
-        const headers = enableCompare
-            ? [
-                'Month',
-                `${primaryYearLabel} Issue Count`,
-                `${compareYearLabel} Issue Count`,
-                `${primaryYearLabel} Issue Size (${sizeUnit})`,
-                `${compareYearLabel} Issue Size (${sizeUnit})`,
-            ]
-            : [
-                'Month',
-                'Issue Count',
-                `Issue Size (${sizeUnit})`,
-            ];
-
-        const rows = comparisonData.map((row) => {
-            if (enableCompare) {
-                return [
-                    row.monthName,
-                    String(row.primaryIssueCount),
-                    String(row.compareIssueCount),
-                    formatNumber(row.primaryIssueSize),
-                    formatNumber(row.compareIssueSize),
-                ];
-            }
-            return [
-                row.monthName,
-                String(row.primaryIssueCount),
-                formatNumber(row.primaryIssueSize),
-            ];
-        });
-
-        const csvContent = [
-            headers.join(','),
-            ...rows.map((row) =>
-                row.map((cell) => {
-                    const str = String(cell);
-                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                        return `"${str.replace(/"/g, '""')}"`;
-                    }
-                    return str;
-                }).join(',')
-            ),
-        ].join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.href = url;
-        link.download = `month_wise_issuers_${primaryYearLabel}${enableCompare ? `_vs_${compareYearLabel}` : ''}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }, [comparisonData, enableCompare, primaryYearLabel, compareYearLabel, sizeUnit]);
-
-    const handleExportQuarterWiseCSV = useCallback(() => {
-        if (!quarterlyData.length) return;
-
-        const headers = enableCompare
-            ? [
-                'Quarter',
-                `${primaryYearLabel} Issue Count`,
-                `${compareYearLabel} Issue Count`,
-                `${primaryYearLabel} Issue Size (${sizeUnit})`,
-                `${compareYearLabel} Issue Size (${sizeUnit})`,
-            ]
-            : [
-                'Quarter',
-                'Issue Count',
-                `Issue Size (${sizeUnit})`,
-            ];
-
-        const rows = quarterlyData.map((row) => {
-            if (enableCompare) {
-                return [
-                    row.quarter,
-                    String(row.primaryIssueCount),
-                    String(row.compareIssueCount),
-                    formatNumber(row.primaryIssueSize),
-                    formatNumber(row.compareIssueSize),
-                ];
-            }
-            return [
-                row.quarter,
-                String(row.primaryIssueCount),
-                formatNumber(row.primaryIssueSize),
-            ];
-        });
-
-        const csvContent = [
-            headers.join(','),
-            ...rows.map((row) =>
-                row.map((cell) => {
-                    const str = String(cell);
-                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                        return `"${str.replace(/"/g, '""')}"`;
-                    }
-                    return str;
-                }).join(',')
-            ),
-        ].join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.href = url;
-        link.download = `quarter_wise_issuers_${primaryYearLabel}${enableCompare ? `_vs_${compareYearLabel}` : ''}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }, [quarterlyData, enableCompare, primaryYearLabel, compareYearLabel, sizeUnit]);
+    const compareYearLabel =
+        getFinancialYearLabel(
+            compareStartDate,
+            compareEndDate,
+        );
 
     // ─────────────────────────────────────────────────────────
-    // TOOLTIP COMPONENT (unit-aware)
+    // ACTIVE FILTER COUNTS
     // ─────────────────────────────────────────────────────────
 
-    const CustomTooltipComponent = useMemo(() => {
-        return function TooltipComponent({ active, payload, label }: any) {
-            if (active && payload && payload.length) {
-                return (
-                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-[12px] shadow-lg p-3 text-[9px]">
-                        <p className="font-semibold mb-2 text-gray-700 dark:text-gray-200">{label}</p>
+    const activeFilterCount =
+        useMemo(
+            () =>
+                MONTHLY_FILTER_KEYS.reduce(
+                    (count, key) =>
+                        count +
+                        (
+                            primaryFilters[key]
+                                ?.length || 0
+                        ),
+                    0,
+                ),
+            [primaryFilters],
+        );
 
-                        {payload.map((item: any, index: number) => (
-                            <p
-                                key={index}
-                                style={{ color: item.color }}
-                                className="mb-1 text-gray-700 dark:text-gray-200"
-                            >
-                                {item.name}: {formatNumber(item.value)} {sizeUnit}
-                            </p>
-                        ))}
-                    </div>
-                );
-            }
-            return null;
-        };
-    }, [sizeUnit]);
+    const compareActiveFilterCount =
+        useMemo(
+            () =>
+                MONTHLY_FILTER_KEYS.reduce(
+                    (count, key) =>
+                        count +
+                        (
+                            compareFilters[key]
+                                ?.length || 0
+                        ),
+                    0,
+                ),
+            [compareFilters],
+        );
+
+    const totalActiveFilterCount =
+        activeFilterCount +
+        compareActiveFilterCount;
 
     // ─────────────────────────────────────────────────────────
-    // HANDLERS
+    // ACTIVE FILTER CHIPS
     // ─────────────────────────────────────────────────────────
 
-    const handleFinancialYearChange = (
-        value: string,
-        type: 'primary' | 'compare',
-    ) => {
-        const selectedYear =
-            FINANCIAL_YEAR_OPTIONS.find(
-                (item) => item.label === value,
+    const activeFilterChips =
+        useMemo(() => {
+            const chips: {
+                key: MonthlyFilterKey;
+                label: string;
+                index: number;
+                type: FilterType;
+            }[] = [];
+
+            MONTHLY_FILTER_KEYS.forEach(
+                (key) => {
+                    primaryFilters[key].forEach(
+                        (value, index) => {
+                            chips.push({
+                                key,
+                                index,
+                                type: 'primary',
+                                label:
+                                    `${FILTER_LABELS[key]}: ${value}`,
+                            });
+                        },
+                    );
+                },
             );
 
-        if (!selectedYear) return;
+            MONTHLY_FILTER_KEYS.forEach(
+                (key) => {
+                    compareFilters[key].forEach(
+                        (value, index) => {
+                            chips.push({
+                                key,
+                                index,
+                                type: 'compare',
+                                label:
+                                    `Compare ${FILTER_LABELS[key]}: ${value}`,
+                            });
+                        },
+                    );
+                },
+            );
 
-        if (type === 'primary') {
-            setPrimaryStartDate(selectedYear.startDate);
-            setPrimaryEndDate(selectedYear.endDate);
-        } else {
-            setCompareStartDate(selectedYear.startDate);
-            setCompareEndDate(enableCompare
-                ? getCompareEndDate(selectedYear.startDate, primaryEndDate)
-                : selectedYear.endDate);
-        }
-    };
+            return chips;
+        }, [
+            primaryFilters,
+            compareFilters,
+        ]);
 
-    useEffect(() => {
-        if (!enableCompare) return;
+    // ─────────────────────────────────────────────────────────
+    // DOWNLOAD PNG
+    // ─────────────────────────────────────────────────────────
 
-        setCompareEndDate(getCompareEndDate(compareStartDate, primaryEndDate));
-    }, [enableCompare, compareStartDate, primaryEndDate]);
+    const downloadChartAsPng =
+        useCallback(
+            async (
+                chartRef: HTMLElement | null,
+                filename: string,
+            ) => {
+                if (!chartRef) {
+                    return;
+                }
 
-    const handleResetFilters = () => {
-        setPrimaryFilters(DEFAULT_FILTERS);
-        setCompareFilters(DEFAULT_FILTERS);
-        setPrimaryStartDate(FINANCIAL_YEAR_OPTIONS[0].startDate);
-        setPrimaryEndDate(FINANCIAL_YEAR_OPTIONS[0].endDate);
-        setCompareStartDate(FINANCIAL_YEAR_OPTIONS[1].startDate);
-        setCompareEndDate(FINANCIAL_YEAR_OPTIONS[1].endDate);
-    };
+                try {
+                    const canvas =
+                        await html2canvas(
+                            chartRef,
+                            {
+                                backgroundColor:
+                                    '#ffffff',
+                                scale: 2,
+                                useCORS: true,
+                            },
+                        );
 
-    const handleSearch = () => {
-        setIsFiltersExpanded(false);
-    };
+                    const link =
+                        document.createElement(
+                            'a',
+                        );
 
-    const clearAllPrimaryDropdowns = () => {
-        setPrimaryFilters(DEFAULT_FILTERS);
-    };
+                    link.download =
+                        `${filename}.png`;
 
-    const clearAllCompareDropdowns = () => {
-        setCompareFilters(DEFAULT_FILTERS);
-    };
+                    link.href =
+                        canvas.toDataURL(
+                            'image/png',
+                        );
 
+                    link.click();
+                } catch (error) {
+                    console.error(
+                        'Error downloading chart:',
+                        error,
+                    );
+                }
+            },
+            [],
+        );
 
+    // ─────────────────────────────────────────────────────────
+    // CSV EXPORT
+    // ─────────────────────────────────────────────────────────
+
+    const handleExportMonthWiseCSV =
+        useCallback(() => {
+            if (
+                comparisonData.length === 0
+            ) {
+                return;
+            }
+
+            const headers =
+                enableCompare
+                    ? [
+                        'Month',
+                        `${primaryYearLabel} Issue Count`,
+                        `${compareYearLabel} Issue Count`,
+                        `${primaryYearLabel} Issue Size (${sizeUnit})`,
+                        `${compareYearLabel} Issue Size (${sizeUnit})`,
+                    ]
+                    : [
+                        'Month',
+                        'Issue Count',
+                        `Issue Size (${sizeUnit})`,
+                    ];
+
+            const rows =
+                comparisonData.map(
+                    (row) =>
+                        enableCompare
+                            ? [
+                                row.monthName,
+                                row.primaryIssueCount,
+                                row.compareIssueCount,
+                                formatNumber(
+                                    row.primaryIssueSize,
+                                ),
+                                formatNumber(
+                                    row.compareIssueSize,
+                                ),
+                            ]
+                            : [
+                                row.monthName,
+                                row.primaryIssueCount,
+                                formatNumber(
+                                    row.primaryIssueSize,
+                                ),
+                            ],
+                );
+
+            const csvContent = [
+                headers.map(escapeCsvCell).join(','),
+                ...rows.map((row) =>
+                    row
+                        .map(escapeCsvCell)
+                        .join(','),
+                ),
+            ].join('\n');
+
+            const blob =
+                new Blob(
+                    [csvContent],
+                    {
+                        type:
+                            'text/csv;charset=utf-8;',
+                    },
+                );
+
+            const url =
+                URL.createObjectURL(blob);
+
+            const link =
+                document.createElement('a');
+
+            link.href = url;
+
+            link.download =
+                `month_wise_issuers_${primaryYearLabel}${enableCompare
+                    ? `_vs_${compareYearLabel}`
+                    : ''
+                }.csv`;
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(url);
+        }, [
+            comparisonData,
+            enableCompare,
+            primaryYearLabel,
+            compareYearLabel,
+            sizeUnit,
+        ]);
+
+    const handleExportQuarterWiseCSV =
+        useCallback(() => {
+            if (
+                quarterlyData.length === 0
+            ) {
+                return;
+            }
+
+            const headers =
+                enableCompare
+                    ? [
+                        'Quarter',
+                        `${primaryYearLabel} Issue Count`,
+                        `${compareYearLabel} Issue Count`,
+                        `${primaryYearLabel} Issue Size (${sizeUnit})`,
+                        `${compareYearLabel} Issue Size (${sizeUnit})`,
+                    ]
+                    : [
+                        'Quarter',
+                        'Issue Count',
+                        `Issue Size (${sizeUnit})`,
+                    ];
+
+            const rows =
+                quarterlyData.map(
+                    (row) =>
+                        enableCompare
+                            ? [
+                                row.quarter,
+                                row.primaryIssueCount,
+                                row.compareIssueCount,
+                                formatNumber(
+                                    row.primaryIssueSize,
+                                ),
+                                formatNumber(
+                                    row.compareIssueSize,
+                                ),
+                            ]
+                            : [
+                                row.quarter,
+                                row.primaryIssueCount,
+                                formatNumber(
+                                    row.primaryIssueSize,
+                                ),
+                            ],
+                );
+
+            const csvContent = [
+                headers.map(escapeCsvCell).join(','),
+                ...rows.map((row) =>
+                    row
+                        .map(escapeCsvCell)
+                        .join(','),
+                ),
+            ].join('\n');
+
+            const blob =
+                new Blob(
+                    [csvContent],
+                    {
+                        type:
+                            'text/csv;charset=utf-8;',
+                    },
+                );
+
+            const url =
+                URL.createObjectURL(blob);
+
+            const link =
+                document.createElement('a');
+
+            link.href = url;
+
+            link.download =
+                `quarter_wise_issuers_${primaryYearLabel}${enableCompare
+                    ? `_vs_${compareYearLabel}`
+                    : ''
+                }.csv`;
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(url);
+        }, [
+            quarterlyData,
+            enableCompare,
+            primaryYearLabel,
+            compareYearLabel,
+            sizeUnit,
+        ]);
+
+    // ─────────────────────────────────────────────────────────
+    // TOOLTIP
+    // ─────────────────────────────────────────────────────────
+
+    const CustomTooltipComponent =
+        useMemo(() => {
+            return function TooltipComponent({
+                active,
+                payload,
+                label,
+            }: any) {
+                if (
+                    !active ||
+                    !payload ||
+                    payload.length === 0
+                ) {
+                    return null;
+                }
+
+                return (
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-[12px] shadow-lg p-3 text-[9px]">
+                        <p className="font-semibold mb-2 text-gray-700 dark:text-gray-200">
+                            {label}
+                        </p>
+
+                        {payload.map(
+                            (
+                                item: any,
+                                index: number,
+                            ) => (
+                                <p
+                                    key={index}
+                                    className="mb-1 text-gray-700 dark:text-gray-200"
+                                >
+                                    <span
+                                        style={{
+                                            color:
+                                                item.color,
+                                        }}
+                                    >
+                                        {item.name}
+                                    </span>
+                                    :{' '}
+                                    {formatNumber(
+                                        item.value,
+                                    )}{' '}
+                                    {sizeUnit}
+                                </p>
+                            ),
+                        )}
+                    </div>
+                );
+            };
+        }, [sizeUnit]);
+
+    // ─────────────────────────────────────────────────────────
+    // YEAR CHANGE
+    // ─────────────────────────────────────────────────────────
+
+    const handleFinancialYearChange =
+        useCallback(
+            (
+                value: string,
+                type: FilterType,
+            ) => {
+                const selectedYear =
+                    FINANCIAL_YEAR_OPTIONS.find(
+                        (item) =>
+                            item.label ===
+                            value,
+                    );
+
+                if (!selectedYear) {
+                    return;
+                }
+
+                ensureActive();
+
+                if (type === 'primary') {
+                    updateMonthlyPageField(
+                        ISSUERS_MONTHLY_PAGE,
+                        'primaryStartDate',
+                        selectedYear.startDate,
+                    );
+
+                    updateMonthlyPageField(
+                        ISSUERS_MONTHLY_PAGE,
+                        'primaryEndDate',
+                        selectedYear.endDate,
+                    );
+
+                    return;
+                }
+
+                updateMonthlyPageField(
+                    ISSUERS_MONTHLY_PAGE,
+                    'compareStartDate',
+                    selectedYear.startDate,
+                );
+
+                const newCompareEnd =
+                    enableCompare
+                        ? getCompareEndDate(
+                            selectedYear.startDate,
+                            primaryEndDate,
+                        )
+                        : selectedYear.endDate;
+
+                updateMonthlyPageField(
+                    ISSUERS_MONTHLY_PAGE,
+                    'compareEndDate',
+                    newCompareEnd,
+                );
+            },
+            [
+                ensureActive,
+                enableCompare,
+                primaryEndDate,
+                updateMonthlyPageField,
+            ],
+        );
+
+    // ─────────────────────────────────────────────────────────
+    // RESET
+    // ─────────────────────────────────────────────────────────
+
+    const handleResetFilters =
+        useCallback(() => {
+            clearMonthlyPageState(
+                ISSUERS_MONTHLY_PAGE,
+                createDefaultMonthlyState(),
+            );
+
+            setIsFiltersExpanded(false);
+        }, [
+            clearMonthlyPageState,
+        ]);
+
+    const clearAllPrimaryDropdowns =
+        useCallback(() => {
+            ensureActive();
+
+            updateMonthlyPageField(
+                ISSUERS_MONTHLY_PAGE,
+                'primaryFilters',
+                createDefaultMonthlyFilters(),
+            );
+        }, [
+            ensureActive,
+            updateMonthlyPageField,
+        ]);
+
+    const clearAllCompareDropdowns =
+        useCallback(() => {
+            ensureActive();
+
+            updateMonthlyPageField(
+                ISSUERS_MONTHLY_PAGE,
+                'compareFilters',
+                createDefaultMonthlyFilters(),
+            );
+        }, [
+            ensureActive,
+            updateMonthlyPageField,
+        ]);
+
+    // ─────────────────────────────────────────────────────────
+    // RENDER FILTER
+    // ─────────────────────────────────────────────────────────
+
+    const renderFilterDropdown =
+        (
+            type: FilterType,
+            key: MonthlyFilterKey,
+            placeholder: string,
+        ) => {
+            const filters =
+                type === 'primary'
+                    ? primaryFilters
+                    : compareFilters;
+
+            return (
+                <FilterGroup
+                    label={
+                        FILTER_LABELS[key]
+                    }
+                >
+                    <CustomDropdown
+                        options={toOptions(
+                            filterOptions[
+                                key === 'rating'
+                                    ? 'creditRating'
+                                    : key as keyof FilterOptions
+                            ] || [],
+                        )}
+                        value={
+                            filters[key]
+                        }
+                        onChange={(value) =>
+                            updateFilter(
+                                type,
+                                key,
+                                value as string[],
+                            )
+                        }
+                        placeholder={
+                            placeholder
+                        }
+                        menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
+                    />
+                </FilterGroup>
+            );
+        };
 
     // ─────────────────────────────────────────────────────────
     // RENDER
@@ -941,82 +1894,149 @@ export default function IssuerMonthWiseSummary() {
 
     return (
         <SkeletonTheme
-            enableAnimation={true} baseColor="#1F2937" highlightColor="#90969bff" borderRadius="0.5rem"
+            enableAnimation
+            baseColor="#1F2937"
+            highlightColor="#90969bff"
+            borderRadius="0.5rem"
         >
             <div className="min-h-full p-4 md:p-6 space-y-4 font-sans text-gray-700 dark:text-gray-200">
 
-                {/* HEADER */}
+                {/* PAGE HEADER */}
 
-                {/* ── Page Title ── */}
                 <div>
-                    <h1 className="text-xl font-bold text-gray-700 dark:text-gray-200">Issuer Monthly Summary</h1>
-                    <p className="text-[9px] text-gray-400 mb-6 mt-1">Issuer &gt; Monthly Summary</p>
+                    <h1 className="text-xl font-bold text-gray-700 dark:text-gray-200">
+                        Issuer Monthly Summary
+                    </h1>
+
+                    <p className="text-[9px] text-gray-400 mb-6 mt-1">
+                        Issuer &gt; Monthly Summary
+                    </p>
                 </div>
 
                 {/* FILTERS */}
 
-                <SectionCard className="">
-                    {/* ── Collapsible Header ── */}
+                <SectionCard>
                     <button
-                        onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+                        type="button"
+                        onClick={() =>
+                            setIsFiltersExpanded(
+                                (previous) =>
+                                    !previous,
+                            )
+                        }
                         className="w-full flex items-center justify-between px-5 py-1 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                     >
                         <div className="flex items-center gap-3">
                             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30">
                                 <SlidersHorizontal className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                             </div>
+
                             <div className="flex flex-col items-start">
                                 <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                                     Filters
                                 </span>
-                                {totalActiveFilterCount > 0 && (
-                                    <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
-                                        {totalActiveFilterCount} active
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            {!isFiltersExpanded && activeFilterChips.length > 0 && (
-                                <div className="hidden md:flex items-center gap-1.5 flex-wrap max-w-md">
-                                    {activeFilterChips.slice(0, 3).map((chip) => (
-                                        <ActiveFilterChip
-                                            key={`${chip.type}-${chip.key}-${chip.index}`}
-                                            label={chip.label}
-                                            onRemove={() => {
-                                                const newValues = chip.type === 'primary'
-                                                    ? primaryFilters[chip.key].filter((_, i) => i !== chip.index)
-                                                    : compareFilters[chip.key].filter((_, i) => i !== chip.index);
-                                                updateFilter(chip.type, chip.key, newValues);
-                                            }}
-                                        />
-                                    ))}
-                                    {activeFilterChips.length > 3 && (
-                                        <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                                            +{activeFilterChips.length - 3} more
+
+                                {totalActiveFilterCount >
+                                    0 && (
+                                        <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                                            {
+                                                totalActiveFilterCount
+                                            }{' '}
+                                            active
                                         </span>
                                     )}
-                                </div>
-                            )}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            {!isFiltersExpanded &&
+                                activeFilterChips.length >
+                                0 && (
+                                    <div className="hidden md:flex items-center gap-1.5 flex-wrap max-w-md">
+                                        {activeFilterChips
+                                            .slice(0, 3)
+                                            .map(
+                                                (
+                                                    chip,
+                                                ) => (
+                                                    <ActiveFilterChip
+                                                        key={`${chip.type}-${chip.key}-${chip.index}`}
+                                                        label={
+                                                            chip.label
+                                                        }
+                                                        onRemove={() => {
+                                                            const filters =
+                                                                chip.type ===
+                                                                    'primary'
+                                                                    ? primaryFilters
+                                                                    : compareFilters;
+
+                                                            const newValues =
+                                                                filters[
+                                                                    chip.key
+                                                                ].filter(
+                                                                    (
+                                                                        _,
+                                                                        index,
+                                                                    ) =>
+                                                                        index !==
+                                                                        chip.index,
+                                                                );
+
+                                                            updateFilter(
+                                                                chip.type,
+                                                                chip.key,
+                                                                newValues,
+                                                            );
+                                                        }}
+                                                    />
+                                                ),
+                                            )}
+
+                                        {activeFilterChips.length >
+                                            3 && (
+                                                <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                                    +
+                                                    {activeFilterChips.length -
+                                                        3}{' '}
+                                                    more
+                                                </span>
+                                            )}
+                                    </div>
+                                )}
+
                             <ChevronDown
-                                className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isFiltersExpanded ? 'rotate-180' : ''}`}
+                                className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isFiltersExpanded
+                                    ? 'rotate-180'
+                                    : ''
+                                    }`}
                             />
                         </div>
                     </button>
 
-                    {/* ── Expanded Filter Content ── */}
                     <AnimatePresence>
                         {isFiltersExpanded && (
                             <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.25 }}
+                                initial={{
+                                    height: 0,
+                                    opacity: 0,
+                                }}
+                                animate={{
+                                    height: 'auto',
+                                    opacity: 1,
+                                }}
+                                exit={{
+                                    height: 0,
+                                    opacity: 0,
+                                }}
+                                transition={{
+                                    duration: 0.25,
+                                }}
                                 className="overflow-hidden"
                             >
                                 <div className="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800 space-y-8">
 
-                                    {/* PRIMARY FILTERS */}
+                                    {/* PRIMARY */}
 
                                     <div>
                                         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
@@ -1026,33 +2046,64 @@ export default function IssuerMonthWiseSummary() {
 
                                             <div className="flex items-center gap-3">
                                                 <div className="flex items-center gap-2">
-                                                    <label className="text-[9px] text-gray-400 block mb-1">
+                                                    <label className="text-[9px] text-gray-400">
                                                         Size Unit
                                                     </label>
+
                                                     <select
-                                                        value={sizeUnit}
-                                                        onChange={(e) => setSizeUnit(e.target.value as SizeUnit)}
+                                                        value={
+                                                            sizeUnit
+                                                        }
+                                                        onChange={(
+                                                            event,
+                                                        ) => {
+                                                            ensureActive();
+
+                                                            updateMonthlyPageField(
+                                                                ISSUERS_MONTHLY_PAGE,
+                                                                'sizeUnit',
+                                                                event
+                                                                    .target
+                                                                    .value as SizeUnit,
+                                                            );
+                                                        }}
                                                         className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
                                                     >
-                                                        <option value="Crores">Crores</option>
-                                                        <option value="Lakhs">Lakhs</option>
-                                                        <option value="Billions">Billions</option>
+                                                        <option value="Crores">
+                                                            Crores
+                                                        </option>
+
+                                                        <option value="Lakhs">
+                                                            Lakhs
+                                                        </option>
+
+                                                        <option value="Billions">
+                                                            Billions
+                                                        </option>
                                                     </select>
                                                 </div>
 
                                                 <button
-                                                    onClick={handleResetFilters}
-                                                    className="cursor-pointer px-4 py-1.5 rounded-[12px] text-[9px] font-medium bg-white dark:bg-[#13131f] border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition-all hover:bg-gray-100 dark:hover:bg-[#1b1b2d]"
+                                                    type="button"
+                                                    onClick={
+                                                        handleResetFilters
+                                                    }
+                                                    className="cursor-pointer px-4 py-1.5 rounded-[12px] text-[9px] font-medium bg-white dark:bg-[#13131f] border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#1b1b2d]"
                                                 >
                                                     Reset Filters
                                                 </button>
 
                                                 <button
-                                                    onClick={() =>
-                                                        setEnableCompare(
+                                                    type="button"
+                                                    onClick={() => {
+                                                        ensureActive();
+
+                                                        updateMonthlyPageField(
+                                                            ISSUERS_MONTHLY_PAGE,
+                                                            'enableCompare',
                                                             !enableCompare,
-                                                        )
-                                                    }
+                                                        );
+                                                    }}
                                                     className={`cursor-pointer px-4 py-1.5 rounded-[12px] text-[9px] font-medium transition-all ${enableCompare
                                                         ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
                                                         : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'
@@ -1069,122 +2120,98 @@ export default function IssuerMonthWiseSummary() {
 
                                             <FilterGroup label="Financial Year">
                                                 <CustomDropdown
-                                                    options={fyDropdownOptions}
-                                                    value={getFinancialYearLabel(primaryStartDate, primaryEndDate)}
-                                                    onChange={(val) => handleFinancialYearChange(String(val[0] || ''), 'primary')}
+                                                    options={
+                                                        FY_DROPDOWN_OPTIONS
+                                                    }
+                                                    value={getFinancialYearLabel(
+                                                        primaryStartDate,
+                                                        primaryEndDate,
+                                                    )}
+                                                    onChange={(
+                                                        value,
+                                                    ) =>
+                                                        handleFinancialYearChange(
+                                                            String(
+                                                                value[0] ||
+                                                                '',
+                                                            ),
+                                                            'primary',
+                                                        )
+                                                    }
                                                     placeholder="Select FY"
                                                     menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                    multiSelect={false}
+                                                    multiSelect={
+                                                        false
+                                                    }
                                                 />
                                             </FilterGroup>
 
-                                            <FilterGroup label="Ownership Type">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.ownershipType)}
-                                                    value={primaryFilters.ownershipType}
-                                                    onChange={(val) => updateFilter('primary', 'ownershipType', val as string[])}
-                                                    placeholder="Select Ownership"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                            {renderFilterDropdown(
+                                                'primary',
+                                                'ownershipType',
+                                                'Select Ownership',
+                                            )}
 
-                                            <FilterGroup label="Sector">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.sector)}
-                                                    value={primaryFilters.sector}
-                                                    onChange={(val) => updateFilter('primary', 'sector', val as string[])}
-                                                    placeholder="Select Sector"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                            {renderFilterDropdown(
+                                                'primary',
+                                                'sector',
+                                                'Select Sector',
+                                            )}
 
-                                            <FilterGroup label="Nature">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.nature)}
-                                                    value={primaryFilters.nature}
-                                                    onChange={(val) => updateFilter('primary', 'nature', val as string[])}
-                                                    placeholder="Select Nature"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                            {renderFilterDropdown(
+                                                'primary',
+                                                'nature',
+                                                'Select Nature',
+                                            )}
 
-                                            <FilterGroup label="Security Type">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.securityType)}
-                                                    value={primaryFilters.securityType}
-                                                    onChange={(val) => updateFilter('primary', 'securityType', val as string[])}
-                                                    placeholder="Select Security"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                            {renderFilterDropdown(
+                                                'primary',
+                                                'securityType',
+                                                'Select Security',
+                                            )}
 
-                                            <FilterGroup label="Credit Rating Agency">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.creditRatingAgency)}
-                                                    value={primaryFilters.creditRatingAgency}
-                                                    onChange={(val) => updateFilter('primary', 'creditRatingAgency', val as string[])}
-                                                    placeholder="Select Agency"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                            {renderFilterDropdown(
+                                                'primary',
+                                                'creditRatingAgency',
+                                                'Select Agency',
+                                            )}
 
-                                            <FilterGroup label="Mode Of Issue">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.modeOfIssue)}
-                                                    value={primaryFilters.modeOfIssue}
-                                                    onChange={(val) => updateFilter('primary', 'modeOfIssue', val as string[])}
-                                                    placeholder="Select Mode"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                            {renderFilterDropdown(
+                                                'primary',
+                                                'modeOfIssue',
+                                                'Select Mode',
+                                            )}
 
-                                            <FilterGroup label="Seniority">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.seniority)}
-                                                    value={primaryFilters.seniority}
-                                                    onChange={(val) => updateFilter('primary', 'seniority', val as string[])}
-                                                    placeholder="Select Seniority"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                            {renderFilterDropdown(
+                                                'primary',
+                                                'seniority',
+                                                'Select Seniority',
+                                            )}
 
-                                            <FilterGroup label="Listing Status">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.listingStatus)}
-                                                    value={primaryFilters.listingStatus}
-                                                    onChange={(val) => updateFilter('primary', 'listingStatus', val as string[])}
-                                                    placeholder="Select Status"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                            {renderFilterDropdown(
+                                                'primary',
+                                                'listingStatus',
+                                                'Select Status',
+                                            )}
 
-                                            <FilterGroup label="Secured Flag">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.securedFlag)}
-                                                    value={primaryFilters.securedFlag}
-                                                    onChange={(val) => updateFilter('primary', 'securedFlag', val as string[])}
-                                                    placeholder="Select Flag"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                            {renderFilterDropdown(
+                                                'primary',
+                                                'securedFlag',
+                                                'Select Flag',
+                                            )}
 
-                                            <FilterGroup label="Rating">
-                                                <CustomDropdown
-                                                    options={toOptions(filterOptions.creditRating)}
-                                                    value={primaryFilters.rating}
-                                                    onChange={(val) => updateFilter('primary', 'rating', val as string[])}
-                                                    placeholder="Select Rating"
-                                                    menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                />
-                                            </FilterGroup>
+                                            {renderFilterDropdown(
+                                                'primary',
+                                                'rating',
+                                                'Select Rating',
+                                            )}
                                         </div>
                                     </div>
 
-                                    {/* COMPARE FILTERS */}
+                                    {/* COMPARE */}
 
                                     {enableCompare && (
                                         <div className="border-t border-gray-200 dark:border-gray-600 pt-8">
-
                                             <h2 className="text-sm font-semibold mb-5 text-gray-700 dark:text-gray-200">
                                                 Compare Filters
                                             </h2>
@@ -1193,213 +2220,227 @@ export default function IssuerMonthWiseSummary() {
 
                                                 <FilterGroup label="Compare Financial Year">
                                                     <CustomDropdown
-                                                        options={fyDropdownOptions}
-                                                        value={getFinancialYearLabel(compareStartDate, compareEndDate)}
-                                                        onChange={(val) => handleFinancialYearChange(String(val[0] || ''), 'compare')}
+                                                        options={
+                                                            FY_DROPDOWN_OPTIONS
+                                                        }
+                                                        value={getFinancialYearLabel(
+                                                            compareStartDate,
+                                                            compareEndDate,
+                                                        )}
+                                                        onChange={(
+                                                            value,
+                                                        ) =>
+                                                            handleFinancialYearChange(
+                                                                String(
+                                                                    value[0] ||
+                                                                    '',
+                                                                ),
+                                                                'compare',
+                                                            )
+                                                        }
                                                         placeholder="Select FY"
                                                         menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                        multiSelect={false}
+                                                        multiSelect={
+                                                            false
+                                                        }
                                                     />
                                                 </FilterGroup>
 
-                                                <FilterGroup label="Ownership Type">
-                                                    <CustomDropdown
-                                                        options={toOptions(filterOptions.ownershipType)}
-                                                        value={compareFilters.ownershipType}
-                                                        onChange={(val) => updateFilter('compare', 'ownershipType', val as string[])}
-                                                        placeholder="Select Ownership"
-                                                        menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                    />
-                                                </FilterGroup>
+                                                {renderFilterDropdown(
+                                                    'compare',
+                                                    'ownershipType',
+                                                    'Select Ownership',
+                                                )}
 
-                                                <FilterGroup label="Sector">
-                                                    <CustomDropdown
-                                                        options={toOptions(filterOptions.sector)}
-                                                        value={compareFilters.sector}
-                                                        onChange={(val) => updateFilter('compare', 'sector', val as string[])}
-                                                        placeholder="Select Sector"
-                                                        menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                    />
-                                                </FilterGroup>
+                                                {renderFilterDropdown(
+                                                    'compare',
+                                                    'sector',
+                                                    'Select Sector',
+                                                )}
 
-                                                <FilterGroup label="Nature">
-                                                    <CustomDropdown
-                                                        options={toOptions(filterOptions.nature)}
-                                                        value={compareFilters.nature}
-                                                        onChange={(val) => updateFilter('compare', 'nature', val as string[])}
-                                                        placeholder="Select Nature"
-                                                        menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                    />
-                                                </FilterGroup>
+                                                {renderFilterDropdown(
+                                                    'compare',
+                                                    'nature',
+                                                    'Select Nature',
+                                                )}
 
-                                                <FilterGroup label="Security Type">
-                                                    <CustomDropdown
-                                                        options={toOptions(filterOptions.securityType)}
-                                                        value={compareFilters.securityType}
-                                                        onChange={(val) => updateFilter('compare', 'securityType', val as string[])}
-                                                        placeholder="Select Security"
-                                                        menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                    />
-                                                </FilterGroup>
+                                                {renderFilterDropdown(
+                                                    'compare',
+                                                    'securityType',
+                                                    'Select Security',
+                                                )}
 
-                                                <FilterGroup label="Credit Rating Agency">
-                                                    <CustomDropdown
-                                                        options={toOptions(filterOptions.creditRatingAgency)}
-                                                        value={compareFilters.creditRatingAgency}
-                                                        onChange={(val) => updateFilter('compare', 'creditRatingAgency', val as string[])}
-                                                        placeholder="Select Agency"
-                                                        menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                    />
-                                                </FilterGroup>
+                                                {renderFilterDropdown(
+                                                    'compare',
+                                                    'creditRatingAgency',
+                                                    'Select Agency',
+                                                )}
 
-                                                <FilterGroup label="Mode Of Issue">
-                                                    <CustomDropdown
-                                                        options={toOptions(filterOptions.modeOfIssue)}
-                                                        value={compareFilters.modeOfIssue}
-                                                        onChange={(val) => updateFilter('compare', 'modeOfIssue', val as string[])}
-                                                        placeholder="Select Mode"
-                                                        menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                    />
-                                                </FilterGroup>
+                                                {renderFilterDropdown(
+                                                    'compare',
+                                                    'modeOfIssue',
+                                                    'Select Mode',
+                                                )}
 
-                                                <FilterGroup label="Seniority">
-                                                    <CustomDropdown
-                                                        options={toOptions(filterOptions.seniority)}
-                                                        value={compareFilters.seniority}
-                                                        onChange={(val) => updateFilter('compare', 'seniority', val as string[])}
-                                                        placeholder="Select Seniority"
-                                                        menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                    />
-                                                </FilterGroup>
+                                                {renderFilterDropdown(
+                                                    'compare',
+                                                    'seniority',
+                                                    'Select Seniority',
+                                                )}
 
-                                                <FilterGroup label="Listing Status">
-                                                    <CustomDropdown
-                                                        options={toOptions(filterOptions.listingStatus)}
-                                                        value={compareFilters.listingStatus}
-                                                        onChange={(val) => updateFilter('compare', 'listingStatus', val as string[])}
-                                                        placeholder="Select Status"
-                                                        menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                    />
-                                                </FilterGroup>
+                                                {renderFilterDropdown(
+                                                    'compare',
+                                                    'listingStatus',
+                                                    'Select Status',
+                                                )}
 
-                                                <FilterGroup label="Secured Flag">
-                                                    <CustomDropdown
-                                                        options={toOptions(filterOptions.securedFlag)}
-                                                        value={compareFilters.securedFlag}
-                                                        onChange={(val) => updateFilter('compare', 'securedFlag', val as string[])}
-                                                        placeholder="Select Flag"
-                                                        menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                    />
-                                                </FilterGroup>
+                                                {renderFilterDropdown(
+                                                    'compare',
+                                                    'securedFlag',
+                                                    'Select Flag',
+                                                )}
 
-                                                <FilterGroup label="Rating">
-                                                    <CustomDropdown
-                                                        options={toOptions(filterOptions.creditRating)}
-                                                        value={compareFilters.rating}
-                                                        onChange={(val) => updateFilter('compare', 'rating', val as string[])}
-                                                        placeholder="Select Rating"
-                                                        menuClassName="w-48 max-h-56 overflow-y-auto overflow-x-hidden"
-                                                    />
-                                                </FilterGroup>
+                                                {renderFilterDropdown(
+                                                    'compare',
+                                                    'rating',
+                                                    'Select Rating',
+                                                )}
                                             </div>
 
-                                            {/* Compare Active Filter Chips */}
-                                            {compareActiveFilterCount > 0 && (
-                                                <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                                    <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                        Compare Active:
-                                                    </span>
-                                                    {(Object.keys(compareFilters) as Array<keyof SummaryFilterState>).map((key) =>
-                                                        compareFilters[key].map((val, idx) => {
-                                                            const labelMap: Record<keyof SummaryFilterState, string> = {
-                                                                ownershipType: 'Ownership',
-                                                                sector: 'Sector',
-                                                                nature: 'Nature',
-                                                                securityType: 'Security Type',
-                                                                creditRatingAgency: 'Credit Rating Agency',
-                                                                modeOfIssue: 'Mode Of Issue',
-                                                                seniority: 'Seniority',
-                                                                listingStatus: 'Listing Status',
-                                                                securedFlag: 'Secured Flag',
-                                                                rating: 'Rating',
-                                                            };
-                                                            return (
+                                            {compareActiveFilterCount >
+                                                0 && (
+                                                    <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                            Compare Active:
+                                                        </span>
+
+                                                        {MONTHLY_FILTER_KEYS.map(
+                                                            (
+                                                                key,
+                                                            ) =>
+                                                                compareFilters[
+                                                                    key
+                                                                ].map(
+                                                                    (
+                                                                        value,
+                                                                        index,
+                                                                    ) => (
+                                                                        <ActiveFilterChip
+                                                                            key={`compare-${key}-${index}`}
+                                                                            label={`${FILTER_LABELS[key]}: ${value}`}
+                                                                            onRemove={() => {
+                                                                                updateFilter(
+                                                                                    'compare',
+                                                                                    key,
+                                                                                    compareFilters[
+                                                                                        key
+                                                                                    ].filter(
+                                                                                        (
+                                                                                            _,
+                                                                                            itemIndex,
+                                                                                        ) =>
+                                                                                            itemIndex !==
+                                                                                            index,
+                                                                                    ),
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                    ),
+                                                                ),
+                                                        )}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={
+                                                                clearAllCompareDropdowns
+                                                            }
+                                                            className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1"
+                                                        >
+                                                            Clear all compare
+                                                        </button>
+                                                    </div>
+                                                )}
+                                        </div>
+                                    )}
+
+                                    {/* PRIMARY ACTIVE */}
+
+                                    {activeFilterCount >
+                                        0 && (
+                                            <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                                <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                    Primary Active:
+                                                </span>
+
+                                                {MONTHLY_FILTER_KEYS.map(
+                                                    (
+                                                        key,
+                                                    ) =>
+                                                        primaryFilters[
+                                                            key
+                                                        ].map(
+                                                            (
+                                                                value,
+                                                                index,
+                                                            ) => (
                                                                 <ActiveFilterChip
-                                                                    key={`compare-${key}-${idx}`}
-                                                                    label={`${labelMap[key]}: ${val}`}
+                                                                    key={`primary-${key}-${index}`}
+                                                                    label={`${FILTER_LABELS[key]}: ${value}`}
                                                                     onRemove={() => {
-                                                                        const newValues = compareFilters[key].filter((_, i) => i !== idx);
-                                                                        updateFilter('compare', key, newValues);
+                                                                        updateFilter(
+                                                                            'primary',
+                                                                            key,
+                                                                            primaryFilters[
+                                                                                key
+                                                                            ].filter(
+                                                                                (
+                                                                                    _,
+                                                                                    itemIndex,
+                                                                                ) =>
+                                                                                    itemIndex !==
+                                                                                    index,
+                                                                            ),
+                                                                        );
                                                                     }}
                                                                 />
-                                                            );
-                                                        })
-                                                    )}
-                                                    <button
-                                                        onClick={clearAllCompareDropdowns}
-                                                        className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
-                                                    >
-                                                        Clear all compare
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                                            ),
+                                                        )
+                                                )}
 
-                                    {/* Primary Active Filter Chips */}
-                                    {activeFilterCount > 0 && (
-                                        <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                            <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                Primary Active:
-                                            </span>
-                                            {(Object.keys(primaryFilters) as Array<keyof SummaryFilterState>).map((key) =>
-                                                primaryFilters[key].map((val, idx) => {
-                                                    const labelMap: Record<keyof SummaryFilterState, string> = {
-                                                        ownershipType: 'Ownership',
-                                                        sector: 'Sector',
-                                                        nature: 'Nature',
-                                                        securityType: 'Security Type',
-                                                        creditRatingAgency: 'Credit Rating Agency',
-                                                        modeOfIssue: 'Mode Of Issue',
-                                                        seniority: 'Seniority',
-                                                        listingStatus: 'Listing Status',
-                                                        securedFlag: 'Secured Flag',
-                                                        rating: 'Rating',
-                                                    };
-                                                    return (
-                                                        <ActiveFilterChip
-                                                            key={`primary-${key}-${idx}`}
-                                                            label={`${labelMap[key]}: ${val}`}
-                                                            onRemove={() => {
-                                                                const newValues = primaryFilters[key].filter((_, i) => i !== idx);
-                                                                updateFilter('primary', key, newValues);
-                                                            }}
-                                                        />
-                                                    );
-                                                })
-                                            )}
-                                            <button
-                                                onClick={clearAllPrimaryDropdowns}
-                                                className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
-                                            >
-                                                Clear all primary
-                                            </button>
-                                        </div>
-                                    )}
+                                                <button
+                                                    type="button"
+                                                    onClick={
+                                                        clearAllPrimaryDropdowns
+                                                    }
+                                                    className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1"
+                                                >
+                                                    Clear all primary
+                                                </button>
+                                            </div>
+                                        )}
 
-                                    {/* Action Buttons */}
+                                    {/* ACTIONS */}
+
                                     <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
                                         <button
-                                            onClick={handleSearch}
-                                            className="flex items-center gap-2 bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-8 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md"
+                                            type="button"
+                                            onClick={() =>
+                                                setIsFiltersExpanded(
+                                                    false,
+                                                )
+                                            }
+                                            className="flex items-center gap-2 bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-5 h-8 text-xs font-medium transition-all duration-150 shadow-sm"
                                         >
                                             <Search className="w-3.5 h-3.5" />
                                             Search
                                         </button>
 
                                         <button
-                                            onClick={handleResetFilters}
-                                            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg px-5 h-8 text-xs font-medium transition-colors duration-150"
+                                            type="button"
+                                            onClick={
+                                                handleResetFilters
+                                            }
+                                            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg px-5 h-8 text-xs font-medium"
                                         >
                                             <X className="w-3.5 h-3.5" />
                                             Clear
@@ -1411,36 +2452,58 @@ export default function IssuerMonthWiseSummary() {
                     </AnimatePresence>
                 </SectionCard>
 
-                {/* SUMMARY */}
+                {/* SUMMARY CARDS */}
 
-                <div
-                    className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5`}
-                >
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
 
                     <SummaryDiagonalCard
                         title="Total Issue Count"
                         primaryValue={primaryTotalCount.toLocaleString()}
                         compareValue={compareTotalCount.toLocaleString()}
-                        primaryNumber={primaryTotalCount}
-                        compareNumber={compareTotalCount}
-                        primaryLabel={primaryYearLabel}
-                        compareLabel={compareYearLabel}
-                        growth={totalCountGrowth}
+                        primaryNumber={
+                            primaryTotalCount
+                        }
+                        compareNumber={
+                            compareTotalCount
+                        }
+                        primaryLabel={
+                            primaryYearLabel
+                        }
+                        compareLabel={
+                            compareYearLabel
+                        }
+                        growth={
+                            totalCountGrowth
+                        }
                         color="#423CAB"
-                        enableCompare={enableCompare}
+                        enableCompare={
+                            enableCompare
+                        }
                     />
 
                     <SummaryDiagonalCard
                         title="Total Issue Size"
                         primaryValue={`₹${formatNumberToFourChar(primaryTotalSize)}`}
                         compareValue={`₹${formatNumberToFourChar(compareTotalSize)}`}
-                        primaryNumber={primaryTotalSize}
-                        compareNumber={compareTotalSize}
-                        primaryLabel={primaryYearLabel}
-                        compareLabel={compareYearLabel}
-                        growth={totalSizeGrowth}
+                        primaryNumber={
+                            primaryTotalSize
+                        }
+                        compareNumber={
+                            compareTotalSize
+                        }
+                        primaryLabel={
+                            primaryYearLabel
+                        }
+                        compareLabel={
+                            compareYearLabel
+                        }
+                        growth={
+                            totalSizeGrowth
+                        }
                         color="#059669"
-                        enableCompare={enableCompare}
+                        enableCompare={
+                            enableCompare
+                        }
                     />
 
                     <SummaryDiagonalCard
@@ -1448,61 +2511,66 @@ export default function IssuerMonthWiseSummary() {
                         primaryValue={`₹${formatNumberToFourChar(avgPrimarySize)}`}
                         compareValue={`₹${formatNumberToFourChar(avgCompareSize)}`}
                         primaryNumber={
-                            displayPrimaryData.length
-                                ? primaryTotalSize /
-                                displayPrimaryData.length
-                                : 0
+                            avgPrimarySize
                         }
                         compareNumber={
-                            displayCompareData.length
-                                ? compareTotalSize /
-                                displayCompareData.length
-                                : 0
+                            avgCompareSize
                         }
-                        primaryLabel={primaryYearLabel}
-                        compareLabel={compareYearLabel}
+                        primaryLabel={
+                            primaryYearLabel
+                        }
+                        compareLabel={
+                            compareYearLabel
+                        }
                         growth={
-                            compareTotalSize > 0
-                                ? (
-                                    (
-                                        (primaryTotalSize /
-                                            Math.max(displayPrimaryData.length, 1) -
-                                            compareTotalSize /
-                                            Math.max(displayCompareData.length, 1)) /
-                                        (compareTotalSize /
-                                            Math.max(displayCompareData.length, 1))
-                                    ) *
-                                    100
-                                )
-                                : 0
+                            avgSizeGrowth
                         }
                         color="#D97706"
-                        enableCompare={enableCompare}
+                        enableCompare={
+                            enableCompare
+                        }
                     />
-
                 </div>
 
                 {/* CHARTS */}
 
                 <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
 
-                    {/* AREA CHART */}
+                    {/* MONTHLY AREA */}
 
-                    <SectionCard className='my-3'>
+                    <SectionCard className="my-3">
                         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                Monthly Issue Size Trend (₹ {sizeUnit})
+                                Monthly Issue Size Trend
+                                {' '}
+                                (₹ {sizeUnit})
                             </h2>
-                            <DownloadPngButton onClick={() => downloadChartAsPng(areaChartRef.current, `monthly_issue_size_trend_${primaryYearLabel}`)} />
+
+                            <DownloadPngButton
+                                onClick={() =>
+                                    downloadChartAsPng(
+                                        areaChartRef.current,
+                                        `monthly_issue_size_trend_${primaryYearLabel}`,
+                                    )
+                                }
+                            />
                         </div>
 
                         {isLoading ? (
                             <ChartSkeleton />
-                        ) : primaryData.length > 0 ? (
-                            <div ref={areaChartRef} className="bg-white dark:bg-[#1a1a2e]">
+                        ) : primaryData.length >
+                            0 ? (
+                            <div
+                                ref={
+                                    areaChartRef
+                                }
+                                className="bg-white dark:bg-[#1a1a2e]"
+                            >
                                 <ResponsiveContainer
                                     width="100%"
-                                    height={300}
+                                    height={
+                                        300
+                                    }
                                 >
                                     <AreaChart
                                         data={
@@ -1522,13 +2590,17 @@ export default function IssuerMonthWiseSummary() {
                                                 <stop
                                                     offset="5%"
                                                     stopColor="#423CAB"
-                                                    stopOpacity={0.3}
+                                                    stopOpacity={
+                                                        0.3
+                                                    }
                                                 />
 
                                                 <stop
                                                     offset="95%"
                                                     stopColor="#423CAB"
-                                                    stopOpacity={0.02}
+                                                    stopOpacity={
+                                                        0.02
+                                                    }
                                                 />
                                             </linearGradient>
 
@@ -1542,33 +2614,55 @@ export default function IssuerMonthWiseSummary() {
                                                 <stop
                                                     offset="5%"
                                                     stopColor="#06B6D4"
-                                                    stopOpacity={0.25}
+                                                    stopOpacity={
+                                                        0.25
+                                                    }
                                                 />
 
                                                 <stop
                                                     offset="95%"
                                                     stopColor="#06B6D4"
-                                                    stopOpacity={0.02}
+                                                    stopOpacity={
+                                                        0.02
+                                                    }
                                                 />
                                             </linearGradient>
                                         </defs>
 
                                         <CartesianGrid
                                             strokeDasharray="3 3"
-                                            vertical={false}
+                                            vertical={
+                                                false
+                                            }
                                             stroke="#e5e7eb"
                                         />
 
                                         <XAxis
                                             dataKey="monthName"
-                                            tick={{ fill: '#6b7280', fontSize: 12 }}
-                                            axisLine={{ stroke: '#e5e7eb' }}
+                                            tick={{
+                                                fill: '#6b7280',
+                                                fontSize: 12,
+                                            }}
+                                            axisLine={{
+                                                stroke: '#e5e7eb',
+                                            }}
                                         />
 
                                         <YAxis
-                                            tickFormatter={(value) => formatNumber(value)}
-                                            tick={{ fill: '#6b7280', fontSize: 12 }}
-                                            axisLine={{ stroke: '#e5e7eb' }}
+                                            tickFormatter={(
+                                                value,
+                                            ) =>
+                                                formatNumber(
+                                                    value,
+                                                )
+                                            }
+                                            tick={{
+                                                fill: '#6b7280',
+                                                fontSize: 12,
+                                            }}
+                                            axisLine={{
+                                                stroke: '#e5e7eb',
+                                            }}
                                         />
 
                                         <Tooltip
@@ -1577,9 +2671,7 @@ export default function IssuerMonthWiseSummary() {
                                             }
                                         />
 
-                                        <Legend
-                                            wrapperStyle={{ color: '#374151' }}
-                                        />
+                                        <Legend />
 
                                         <Area
                                             type="monotone"
@@ -1588,26 +2680,28 @@ export default function IssuerMonthWiseSummary() {
                                                     ? 'primaryIssueSize'
                                                     : 'issueSize'
                                             }
-                                            name={getFinancialYearLabel(
-                                                primaryStartDate,
-                                                primaryEndDate,
-                                            )}
+                                            name={
+                                                primaryYearLabel
+                                            }
                                             stroke="#423CAB"
                                             fill="url(#primaryGrad)"
-                                            strokeWidth={2}
+                                            strokeWidth={
+                                                2
+                                            }
                                         />
 
                                         {enableCompare && (
                                             <Area
                                                 type="monotone"
                                                 dataKey="compareIssueSize"
-                                                name={getFinancialYearLabel(
-                                                    compareStartDate,
-                                                    compareEndDate,
-                                                )}
+                                                name={
+                                                    compareYearLabel
+                                                }
                                                 stroke="#06B6D4"
                                                 fill="url(#compareGrad)"
-                                                strokeWidth={2}
+                                                strokeWidth={
+                                                    2
+                                                }
                                             />
                                         )}
                                     </AreaChart>
@@ -1618,43 +2712,81 @@ export default function IssuerMonthWiseSummary() {
                         )}
                     </SectionCard>
 
-                    {/* BAR CHART */}
+                    {/* QUARTERLY BAR */}
 
-                    <SectionCard className='my-3'>
+                    <SectionCard className="my-3">
                         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                Quarterly Summary (₹ {sizeUnit})
+                                Quarterly Summary
+                                {' '}
+                                (₹ {sizeUnit})
                             </h2>
-                            <DownloadPngButton onClick={() => downloadChartAsPng(barChartRef.current, `quarterly_summary_${primaryYearLabel}`)} />
+
+                            <DownloadPngButton
+                                onClick={() =>
+                                    downloadChartAsPng(
+                                        barChartRef.current,
+                                        `quarterly_summary_${primaryYearLabel}`,
+                                    )
+                                }
+                            />
                         </div>
 
                         {isLoading ? (
                             <ChartSkeleton />
-                        ) : quarterlyData.length > 0 ? (
-                            <div ref={barChartRef} className="bg-white dark:bg-[#1a1a2e]">
+                        ) : quarterlyData.length >
+                            0 ? (
+                            <div
+                                ref={
+                                    barChartRef
+                                }
+                                className="bg-white dark:bg-[#1a1a2e]"
+                            >
                                 <ResponsiveContainer
                                     width="100%"
-                                    height={300}
+                                    height={
+                                        300
+                                    }
                                 >
                                     <BarChart
-                                        data={quarterlyData}
+                                        data={
+                                            quarterlyData
+                                        }
                                     >
                                         <CartesianGrid
                                             strokeDasharray="3 3"
-                                            vertical={false}
+                                            vertical={
+                                                false
+                                            }
                                             stroke="#e5e7eb"
                                         />
 
                                         <XAxis
                                             dataKey="quarter"
-                                            tick={{ fill: '#6b7280', fontSize: 12 }}
-                                            axisLine={{ stroke: '#e5e7eb' }}
+                                            tick={{
+                                                fill: '#6b7280',
+                                                fontSize: 12,
+                                            }}
+                                            axisLine={{
+                                                stroke: '#e5e7eb',
+                                            }}
                                         />
 
                                         <YAxis
-                                            tickFormatter={(value) => formatNumber(value)}
-                                            tick={{ fill: '#6b7280', fontSize: 12 }}
-                                            axisLine={{ stroke: '#e5e7eb' }}
+                                            tickFormatter={(
+                                                value,
+                                            ) =>
+                                                formatNumber(
+                                                    value,
+                                                )
+                                            }
+                                            tick={{
+                                                fill: '#6b7280',
+                                                fontSize: 12,
+                                            }}
+                                            axisLine={{
+                                                stroke: '#e5e7eb',
+                                            }}
                                         />
 
                                         <Tooltip
@@ -1663,32 +2795,34 @@ export default function IssuerMonthWiseSummary() {
                                             }
                                         />
 
-                                        <Legend
-                                            wrapperStyle={{ color: '#374151' }}
-                                        />
+                                        <Legend />
 
                                         <Bar
                                             dataKey="primaryIssueSize"
-                                            name={getFinancialYearLabel(
-                                                primaryStartDate,
-                                                primaryEndDate,
-                                            )}
+                                            name={
+                                                primaryYearLabel
+                                            }
                                             fill="#423CAB"
                                             radius={[
-                                                4, 4, 0, 0,
+                                                4,
+                                                4,
+                                                0,
+                                                0,
                                             ]}
                                         />
 
                                         {enableCompare && (
                                             <Bar
                                                 dataKey="compareIssueSize"
-                                                name={getFinancialYearLabel(
-                                                    compareStartDate,
-                                                    compareEndDate,
-                                                )}
+                                                name={
+                                                    compareYearLabel
+                                                }
                                                 fill="#06B6D4"
                                                 radius={[
-                                                    4, 4, 0, 0,
+                                                    4,
+                                                    4,
+                                                    0,
+                                                    0,
                                                 ]}
                                             />
                                         )}
@@ -1706,47 +2840,113 @@ export default function IssuerMonthWiseSummary() {
                 <SectionCard className="!p-0 overflow-hidden my-3">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
                         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                            Month-Wise Data (Rupees in {sizeUnit})
+                            Month-Wise Data
+                            {' '}
+                            (Rupees in {sizeUnit})
                         </h2>
+
                         <div className="flex items-center gap-3">
                             <button
-                                onClick={handleExportMonthWiseCSV}
-                                disabled={isLoading || comparisonData.length === 0}
+                                type="button"
+                                onClick={
+                                    handleExportMonthWiseCSV
+                                }
+                                disabled={
+                                    isLoading ||
+                                    comparisonData.length ===
+                                    0
+                                }
                                 className="flex items-center gap-1.5 cursor-pointer bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-4 h-8 text-xs font-medium transition-colors"
                             >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                <svg
+                                    className="w-3.5 h-3.5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                    />
                                 </svg>
+
                                 Export CSV
                             </button>
+
                             <div className="flex items-center gap-2">
-                                <label className="text-[9px] text-gray-400 block mb-1">
+                                <label className="text-[9px] text-gray-400">
                                     Value Convention
                                 </label>
+
                                 <select
-                                    value={sizeUnit}
-                                    onChange={(e) => setSizeUnit(e.target.value as SizeUnit)}
-                                    className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
+                                    value={
+                                        sizeUnit
+                                    }
+                                    onChange={(
+                                        event,
+                                    ) => {
+                                        ensureActive();
+
+                                        updateMonthlyPageField(
+                                            ISSUERS_MONTHLY_PAGE,
+                                            'sizeUnit',
+                                            event
+                                                .target
+                                                .value as SizeUnit,
+                                        );
+                                    }}
+                                    className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none"
                                 >
-                                    <option value="Crores">Crores</option>
-                                    <option value="Lakhs">Lakhs</option>
-                                    <option value="Billions">Billions</option>
+                                    <option value="Crores">
+                                        Crores
+                                    </option>
+
+                                    <option value="Lakhs">
+                                        Lakhs
+                                    </option>
+
+                                    <option value="Billions">
+                                        Billions
+                                    </option>
                                 </select>
                             </div>
                         </div>
                     </div>
+
                     <div className="p-5 pt-0">
                         <MonthWiseTable
-                            data={comparisonData}
-                            enableCompare={enableCompare}
-                            primaryLabel={primaryYearLabel}
-                            compareLabel={compareYearLabel}
-                            isLoading={isLoading}
-                            sizeUnit={sizeUnit}
-                            primaryStartDate={primaryStartDate}
-                            compareStartDate={compareStartDate}
-                            primaryFilters={primaryFilters}
-                            compareFilters={compareFilters}
+                            data={
+                                comparisonData
+                            }
+                            enableCompare={
+                                enableCompare
+                            }
+                            primaryLabel={
+                                primaryYearLabel
+                            }
+                            compareLabel={
+                                compareYearLabel
+                            }
+                            isLoading={
+                                isLoading
+                            }
+                            sizeUnit={
+                                sizeUnit
+                            }
+                            primaryStartDate={
+                                primaryStartDate
+                            }
+                            compareStartDate={
+                                compareStartDate
+                            }
+                            primaryFilters={
+                                primaryFilters
+                            }
+                            compareFilters={
+                                compareFilters
+                            }
                             tableName="issuers"
                         />
                     </div>
@@ -1757,47 +2957,113 @@ export default function IssuerMonthWiseSummary() {
                 <SectionCard className="!p-0 overflow-hidden my-3">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
                         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                            Quarter-Wise Data (Rupees in {sizeUnit})
+                            Quarter-Wise Data
+                            {' '}
+                            (Rupees in {sizeUnit})
                         </h2>
+
                         <div className="flex items-center gap-3">
                             <button
-                                onClick={handleExportQuarterWiseCSV}
-                                disabled={isLoading || quarterlyData.length === 0}
+                                type="button"
+                                onClick={
+                                    handleExportQuarterWiseCSV
+                                }
+                                disabled={
+                                    isLoading ||
+                                    quarterlyData.length ===
+                                    0
+                                }
                                 className="flex items-center gap-1.5 cursor-pointer bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-4 h-8 text-xs font-medium transition-colors"
                             >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                <svg
+                                    className="w-3.5 h-3.5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2-2z"
+                                    />
                                 </svg>
+
                                 Export CSV
                             </button>
+
                             <div className="flex items-center gap-2">
-                                <label className="text-[9px] text-gray-400 block mb-1">
+                                <label className="text-[9px] text-gray-400">
                                     Value Convention
                                 </label>
+
                                 <select
-                                    value={sizeUnit}
-                                    onChange={(e) => setSizeUnit(e.target.value as SizeUnit)}
-                                    className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-[#423CAB]/50 focus:border-[#423CAB]"
+                                    value={
+                                        sizeUnit
+                                    }
+                                    onChange={(
+                                        event,
+                                    ) => {
+                                        ensureActive();
+
+                                        updateMonthlyPageField(
+                                            ISSUERS_MONTHLY_PAGE,
+                                            'sizeUnit',
+                                            event
+                                                .target
+                                                .value as SizeUnit,
+                                        );
+                                    }}
+                                    className="h-6 border border-gray-200 dark:border-gray-600 rounded-[12px] bg-white dark:bg-[#1a1a2e] px-3 py-1.5 text-[9px] text-gray-700 dark:text-gray-200 outline-none"
                                 >
-                                    <option value="Crores">Crores</option>
-                                    <option value="Lakhs">Lakhs</option>
-                                    <option value="Billions">Billions</option>
+                                    <option value="Crores">
+                                        Crores
+                                    </option>
+
+                                    <option value="Lakhs">
+                                        Lakhs
+                                    </option>
+
+                                    <option value="Billions">
+                                        Billions
+                                    </option>
                                 </select>
                             </div>
                         </div>
                     </div>
+
                     <div className="p-5 pt-0">
                         <QuarterWiseTable
-                            data={quarterlyData}
-                            enableCompare={enableCompare}
-                            primaryLabel={primaryYearLabel}
-                            compareLabel={compareYearLabel}
-                            isLoading={isLoading}
-                            sizeUnit={sizeUnit}
-                            primaryStartDate={primaryStartDate}
-                            compareStartDate={compareStartDate}
-                            primaryFilters={primaryFilters}
-                            compareFilters={compareFilters}
+                            data={
+                                quarterlyData
+                            }
+                            enableCompare={
+                                enableCompare
+                            }
+                            primaryLabel={
+                                primaryYearLabel
+                            }
+                            compareLabel={
+                                compareYearLabel
+                            }
+                            isLoading={
+                                isLoading
+                            }
+                            sizeUnit={
+                                sizeUnit
+                            }
+                            primaryStartDate={
+                                primaryStartDate
+                            }
+                            compareStartDate={
+                                compareStartDate
+                            }
+                            primaryFilters={
+                                primaryFilters
+                            }
+                            compareFilters={
+                                compareFilters
+                            }
                             tableName="issuers"
                         />
                     </div>

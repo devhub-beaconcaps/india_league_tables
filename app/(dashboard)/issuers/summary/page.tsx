@@ -75,24 +75,34 @@ import {
     formatRatingsData,
 } from './utils';
 
-// ─── Local Types for Filters ─────────────────────────────────────────────────
+// ─── Zustand Filter Store ────────────────────────────────────────────────────
+
+import {
+    useSummaryFilterStore,
+    IssuerFilters,
+    PageState,
+} from '@/lib/filtersState';
+
+const ISSUERS_PAGE = 'issuers-summary' as const;
+
+const DEFAULT_ISSUER_FILTERS: IssuerFilters = {
+    issuerOwnershipType: [],
+    issuerNatureType: [],
+    businessSector: [],
+    securityType: [],
+    modeOfIssue: [],
+    creditRatingAgency: [],
+    creditRating: [],
+    seniority: [],
+    servicedFlag: [],
+    listingStatus: [],
+};
+
+// ─── Local Types ─────────────────────────────────────────────────────────────
 
 interface FilterOption {
     value: string;
     label: string;
-}
-
-interface SummaryFilterState {
-    issuerOwnershipType: string[];
-    issuerNatureType: string[];
-    businessSector: string[];
-    securityType: string[];
-    modeOfIssue: string[];
-    creditRatingAgency: string[];
-    creditRating: string[];
-    seniority: string[];
-    servicedFlag: string[];
-    listingStatus: string[];
 }
 
 interface FilterInputsResponse {
@@ -345,40 +355,47 @@ function DownloadPngButton({ onClick, label = 'Download PNG' }: { onClick: () =>
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function IssuerSummary() {
+    // ── Zustand Store ──
+    const activeFilterPage = useSummaryFilterStore((s) => s.activeFilterPage);
+    const storedPageState = useSummaryFilterStore((s) => s.pageState[ISSUERS_PAGE]);
+    const setPageState = useSummaryFilterStore((s) => s.setPageState);
+    const updatePageFilter = useSummaryFilterStore((s) => s.updatePageFilter);
+    const updatePageField = useSummaryFilterStore((s) => s.updatePageField);
+    const clearPageState = useSummaryFilterStore((s) => s.clearPageState);
+
+    // ── FY options ──
     const fyOptions = useMemo<FYOption[]>(() => getFinancialYears(), []);
 
-    const [selectedFY, setSelectedFY] = useState<string>(fyOptions[0]?.value);
-    const [frequency, setFrequency] = useState<FrequencyValue>('Yearly');
-    const [period, setPeriod] = useState<SelectedPeriod>(null);
-    const [issueType, setIssueType] = useState<IssueType>('size');
-    const router = useRouter();
+    // ── Defaults ──
+    const defaultPageState = useMemo<PageState<typeof ISSUERS_PAGE>>(
+        () => ({
+            selectedFY: fyOptions[0]?.value ?? '',
+            frequency: 'Yearly',
+            period: null,
+            issueType: 'size',
+            valueConvention: 'Crores',
+            filters: DEFAULT_ISSUER_FILTERS,
+        }),
+        [fyOptions]
+    );
 
-    const sectorChartRef = useRef<HTMLDivElement>(null);
-    const marketShareChartRef = useRef<HTMLDivElement>(null);
-    const outstandingChartRef = useRef<HTMLDivElement>(null);
-    const debtCurrentChartRef = useRef<HTMLDivElement>(null);
-    const debtNextChartRef = useRef<HTMLDivElement>(null);
-    const ratingChartRef = useRef<HTMLDivElement>(null);
+    // ── Effective state (only use persisted if this page is active) ──
+    const isActivePage = activeFilterPage === ISSUERS_PAGE;
+    const currentState = isActivePage && storedPageState ? storedPageState : defaultPageState;
 
-    const [valueConvention, setValueConvention] = useState<ValueConvention>('Crores');
+    const {
+        selectedFY,
+        frequency,
+        period,
+        issueType,
+        valueConvention,
+        filters,
+    } = currentState;
 
-    // ── Collapsible Filters State ──
+    // ── Local UI state (not persisted) ──
     const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
-    // ── New Filter States (MULTI-SELECT) ──
-    const [filters, setFilters] = useState<SummaryFilterState>({
-        issuerOwnershipType: [],
-        issuerNatureType: [],
-        businessSector: [],
-        securityType: [],
-        modeOfIssue: [],
-        creditRatingAgency: [],
-        creditRating: [],
-        seniority: [],
-        servicedFlag: [],
-        listingStatus: [],
-    });
-
+    // ── Data State ──
     const [filterOptions, setFilterOptions] = useState<FilterInputsResponse>({
         ownershipType: [],
         nature: [],
@@ -411,6 +428,14 @@ export default function IssuerSummary() {
     const [isFiltersLoading, setIsFiltersLoading] = useState(true);
 
     const { setRedemptionMonthDateRange } = useRedemptionMonthStore();
+    const router = useRouter();
+
+    const sectorChartRef = useRef<HTMLDivElement>(null);
+    const marketShareChartRef = useRef<HTMLDivElement>(null);
+    const outstandingChartRef = useRef<HTMLDivElement>(null);
+    const debtCurrentChartRef = useRef<HTMLDivElement>(null);
+    const debtNextChartRef = useRef<HTMLDivElement>(null);
+    const ratingChartRef = useRef<HTMLDivElement>(null);
 
     const selectedYearsDateRange = useMemo<DateRange | null>(
         () => getDateRange({ fy: selectedFY, frequency, period }),
@@ -425,22 +450,42 @@ export default function IssuerSummary() {
         }));
     };
 
-    const updateFilter = useCallback((key: keyof SummaryFilterState, value: string[]) => {
-        setFilters(prev => ({ ...prev, [key]: value }));
-    }, []);
+    const ensureActive = useCallback(() => {
+        if (useSummaryFilterStore.getState().activeFilterPage !== ISSUERS_PAGE) {
+            setPageState(ISSUERS_PAGE, defaultPageState);
+        }
+    }, [setPageState, defaultPageState]);
+
+    const updateFilter = useCallback(
+        <K extends keyof IssuerFilters>(
+            key: K,
+            value: IssuerFilters[K]
+        ) => {
+            ensureActive();
+            updatePageFilter(ISSUERS_PAGE, key, value as string[]);
+        },
+        [ensureActive, updatePageFilter]
+    );
 
     const handleFYChange = (value: string | number): void => {
-        setSelectedFY(String(value));
+        ensureActive();
+        updatePageField(ISSUERS_PAGE, 'selectedFY', String(value));
     };
 
     const handleFrequencyChange = (value: string | number): void => {
         const freq = value as FrequencyValue;
-        setFrequency(freq);
+        ensureActive();
+        updatePageField(ISSUERS_PAGE, 'frequency', freq);
 
-        if (freq === 'Half-Yearly') setPeriod('H1');
-        else if (freq === 'Quarterly') setPeriod('Q1');
-        else if (freq === 'Monthly') setPeriod(3);
-        else setPeriod(null);
+        if (freq === 'Half-Yearly') {
+            updatePageField(ISSUERS_PAGE, 'period', 'H1');
+        } else if (freq === 'Quarterly') {
+            updatePageField(ISSUERS_PAGE, 'period', 'Q1');
+        } else if (freq === 'Monthly') {
+            updatePageField(ISSUERS_PAGE, 'period', 3);
+        } else {
+            updatePageField(ISSUERS_PAGE, 'period', null);
+        }
     };
 
     const handleSearch = (): void => {
@@ -448,22 +493,7 @@ export default function IssuerSummary() {
     };
 
     const handleReset = (): void => {
-        setSelectedFY(fyOptions[0]?.value);
-        setFrequency('Yearly');
-        setPeriod(null);
-        setValueConvention('Crores');
-        setFilters({
-            issuerOwnershipType: [],
-            issuerNatureType: [],
-            businessSector: [],
-            securityType: [],
-            modeOfIssue: [],
-            creditRatingAgency: [],
-            creditRating: [],
-            seniority: [],
-            servicedFlag: [],
-            listingStatus: [],
-        });
+        clearPageState(ISSUERS_PAGE, defaultPageState);
     };
 
     const downloadChartAsPng = useCallback(async (chartRef: HTMLElement | null, filename: string) => {
@@ -579,8 +609,8 @@ export default function IssuerSummary() {
     }, [filters]);
 
     const activeFilterChips = useMemo(() => {
-        const chips: { key: keyof SummaryFilterState; label: string; index: number }[] = [];
-        const labelMap: Record<keyof SummaryFilterState, string> = {
+        const chips: { key: keyof IssuerFilters; label: string; index: number }[] = [];
+        const labelMap: Record<keyof IssuerFilters, string> = {
             issuerOwnershipType: 'Ownership',
             issuerNatureType: 'Nature',
             businessSector: 'Sector',
@@ -592,7 +622,7 @@ export default function IssuerSummary() {
             servicedFlag: 'Secured',
             listingStatus: 'Listing',
         };
-        (Object.keys(filters) as Array<keyof SummaryFilterState>).forEach((key) => {
+        (Object.keys(filters) as Array<keyof IssuerFilters>).forEach((key) => {
             filters[key].forEach((val, idx) => {
                 chips.push({ key, index: idx, label: `${labelMap[key]}: ${val}` });
             });
@@ -775,7 +805,10 @@ export default function IssuerSummary() {
                                         {(['H1', 'H2'] as HalfYearlyPeriod[]).map((h) => (
                                             <button
                                                 key={h}
-                                                onClick={() => setPeriod(h)}
+                                                onClick={() => {
+                                                    ensureActive();
+                                                    updatePageField(ISSUERS_PAGE, 'period', h);
+                                                }}
                                                 className={`px-3 py-1 rounded-full text-xs ${period === h
                                                     ? 'bg-indigo-600 text-white'
                                                     : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
@@ -792,7 +825,10 @@ export default function IssuerSummary() {
                                         {(['Q1', 'Q2', 'Q3', 'Q4'] as QuarterlyPeriod[]).map((q) => (
                                             <button
                                                 key={q}
-                                                onClick={() => setPeriod(q)}
+                                                onClick={() => {
+                                                    ensureActive();
+                                                    updatePageField(ISSUERS_PAGE, 'period', q);
+                                                }}
                                                 className={`px-3 py-1 rounded-full text-xs ${period === q
                                                     ? 'bg-indigo-600 text-white'
                                                     : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
@@ -810,7 +846,10 @@ export default function IssuerSummary() {
                                             label="Months"
                                             options={monthOptions}
                                             value={period as number}
-                                            onChange={(val) => setPeriod(Number(val[0]) || 3)}
+                                            onChange={(val) => {
+                                                ensureActive();
+                                                updatePageField(ISSUERS_PAGE, 'period', Number(val[0]) || 3);
+                                            }}
                                             multiSelect={false}
                                         />
                                     </div>
@@ -1026,18 +1065,7 @@ export default function IssuerSummary() {
                                                             />
                                                         ))}
                                                         <button
-                                                            onClick={() => setFilters({
-                                                                issuerOwnershipType: [],
-                                                                issuerNatureType: [],
-                                                                businessSector: [],
-                                                                securityType: [],
-                                                                modeOfIssue: [],
-                                                                creditRatingAgency: [],
-                                                                creditRating: [],
-                                                                seniority: [],
-                                                                servicedFlag: [],
-                                                                listingStatus: [],
-                                                            })}
+                                                            onClick={() => clearPageState(ISSUERS_PAGE, defaultPageState)}
                                                             className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
                                                         >
                                                             Clear all
@@ -1096,7 +1124,10 @@ export default function IssuerSummary() {
                                         label="Value Convention"
                                         options={valueConventionOptions}
                                         value={valueConvention}
-                                        onChange={(val) => setValueConvention(val[0] as ValueConvention || 'Crores')}
+                                        onChange={(val) => {
+                                            ensureActive();
+                                            updatePageField(ISSUERS_PAGE, 'valueConvention', val[0] as ValueConvention || 'Crores');
+                                        }}
                                         multiSelect={false}
                                     />
                                 </div>
@@ -1106,7 +1137,10 @@ export default function IssuerSummary() {
                         <div className="flex flex-row justify-center items-center">
                             <div className="flex flex-row justify-center mb-4 rounded-full border border-gray-300 dark:border-gray-600 p-2 bg-gray-100 dark:bg-gray-800 p-0.5 w-fit">
                                 <button
-                                    onClick={() => setIssueType('size')}
+                                    onClick={() => {
+                                        ensureActive();
+                                        updatePageField(ISSUERS_PAGE, 'issueType', 'size');
+                                    }}
                                     className={`px-5 py-1.5 text-xs font-medium rounded-full transition-all ${issueType === 'size'
                                         ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white shadow'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
@@ -1115,7 +1149,10 @@ export default function IssuerSummary() {
                                     ISSUE SIZE
                                 </button>
                                 <button
-                                    onClick={() => setIssueType('count')}
+                                    onClick={() => {
+                                        ensureActive();
+                                        updatePageField(ISSUERS_PAGE, 'issueType', 'count');
+                                    }}
                                     className={`px-5 py-1.5 text-xs font-medium rounded-full transition-all ${issueType === 'count'
                                         ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white shadow'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'

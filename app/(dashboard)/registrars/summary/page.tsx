@@ -7,9 +7,6 @@ import {
     PieChart, Pie, Cell,
 } from 'recharts';
 import FinanceTable from '@/components/Financetable';
-import {
-    fetchOutstandingData,
-} from '@/features/issuers/services';
 import CustomDropdown from '@/components/CustomDropdown';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -18,12 +15,10 @@ import { Search, X, ChevronDown, SlidersHorizontal } from 'lucide-react';
 // Import types
 import {
     FormattedIssuerItem,
-    FormattedOutstandingItem,
     FormattedRatingItem,
     FormattedMarketShareItem,
     TotalsData,
     TableApiResponse,
-    RawOutstandingItem,
     RawRatingItem,
     FYOption,
     DateRange,
@@ -50,7 +45,6 @@ import {
 // Import utils
 import {
     formatData,
-    formatOutstandingData,
     formatMarketShareData,
     getFinancialYears,
     getDateRange,
@@ -63,23 +57,33 @@ import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
 import { motion, AnimatePresence } from 'framer-motion'
 import { TextInput } from '@/components/TextInput';
 
+import {
+    useSummaryFilterStore,
+    RegistrarFilters,
+    PageState,
+} from '@/lib/filtersState';
 
-// ─── Types ─────────────────────────────────────────────────────────────────
 
-interface SummaryFilterState {
-    [key: string]: string[];
-    registrar: string[];
-    issuerOwnershipType: string[];
-    issuerNatureType: string[];
-    businessSector: string[];
-    securityType: string[];
-    modeOfIssue: string[];
-    creditRatingAgency: string[];
-    creditRating: string[];
-    seniority: string[];
-    servicedFlag: string[];
-    listingStatus: string[];
-}
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const REGISTRARS_PAGE = 'registrars-summary' as const;
+
+const DEFAULT_REGISTRAR_FILTERS: RegistrarFilters = {
+    registrar: [],
+    issuerOwnershipType: [],
+    issuerNatureType: [],
+    businessSector: [],
+    securityType: [],
+    modeOfIssue: [],
+    creditRatingAgency: [],
+    creditRating: [],
+    seniority: [],
+    servicedFlag: [],
+    listingStatus: [],
+};
+
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface FilterInputsResponse {
     ownershipType: string[];
@@ -210,7 +214,6 @@ const formatValueByConvention = (value: number, convention: ValueConvention): st
     if (convention === 'Crores') {
         return `${value.toLocaleString()} Cr`;
     }
-    // Lakhs
     return `${(value * 100).toLocaleString()} L`;
 };
 
@@ -221,7 +224,6 @@ const formatYAxisTick = (value: number, convention: ValueConvention): string => 
     if (convention === 'Crores') {
         return value >= 1000 ? `${(value / 1000).toFixed(0)}k` : String(value);
     }
-    // Lakhs
     return value >= 100 ? `${(value / 100).toFixed(0)}k L` : `${value} L`;
 };
 
@@ -250,15 +252,10 @@ const renderLabel = ({
     percent = 0,
 }: PieLabelProps) => {
     const percentage = percent * 100;
-
-    // Hide labels for slices <= 5%
-    if (percentage <= 5) {
-        return null;
-    }
+    if (percentage <= 5) return null;
 
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -311,7 +308,7 @@ function DownloadPngButton({ onClick, label = 'Download PNG' }: { onClick: () =>
 
 interface CreditRatingsSectionProps {
     selectedYearsDateRange: DateRange | null;
-    filters: SummaryFilterState;
+    filters: RegistrarFilters;
     valueConvention: ValueConvention;
     registrarOptions: { value: string; label: string }[];
     selectedFY: string;
@@ -342,7 +339,6 @@ function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention
         }
     }, []);
 
-    // Use refs to prevent unnecessary re-renders and track previous values
     const prevQueryRef = useRef<string>('');
 
     useEffect(() => {
@@ -458,44 +454,57 @@ function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Summary() {
+    // ── Zustand selectors ──
+    const activeFilterPage = useSummaryFilterStore((s) => s.activeFilterPage);
+    const storedPageState = useSummaryFilterStore((s) => s.pageState[REGISTRARS_PAGE]);
+    const setPageState = useSummaryFilterStore((s) => s.setPageState);
+    const updatePageFilter = useSummaryFilterStore((s) => s.updatePageFilter);
+    const updatePageField = useSummaryFilterStore((s) => s.updatePageField);
+    const clearPageState = useSummaryFilterStore((s) => s.clearPageState);
+
+    // ── FY options (stable) ──
     const fyOptions = useMemo<FYOption[]>(() => getFinancialYears(), []);
 
-    const [selectedFY, setSelectedFY] = useState<string>(fyOptions[0]?.value);
-    const [frequency, setFrequency] = useState<FrequencyValue>('Yearly');
-    const [period, setPeriod] = useState<SelectedPeriod>(null);
-    const [issueType, setIssueType] = useState<IssueType>('size');
+    // ── Default state for this page ──
+    const defaultPageState = useMemo<PageState<typeof REGISTRARS_PAGE>>(() => ({
+        selectedFY: fyOptions[0]?.value ?? '',
+        frequency: 'Yearly',
+        period: null,
+        issueType: 'size',
+        valueConvention: 'Crores',
+        filters: DEFAULT_REGISTRAR_FILTERS,
+    }), [fyOptions]);
 
-    const [valueConvention, setValueConvention] = useState<ValueConvention>('Crores');
+    // ── Determine effective state ──
+    const isActivePage = activeFilterPage === REGISTRARS_PAGE;
+    const currentState = isActivePage && storedPageState ? storedPageState : defaultPageState;
+
+    const {
+        selectedFY,
+        frequency,
+        period,
+        issueType,
+        valueConvention,
+        filters,
+    } = currentState;
+
+    // ── Local UI state (not persisted) ──
+    const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+
+    // ── Data state ──
     const [issueTableData, setIssueTableData] = useState<FormattedIssuerItem[]>([]);
     const [listTableData, setListTableData] = useState<FormattedIssuerItem[]>([]);
     const [topSectorsData, setTopSectorsData] = useState<SectorItem[]>([]);
     const [marketShareData, setMarketShareData] = useState<FormattedMarketShareItem[]>([]);
     const [totalsData, setTotalsData] = useState<TotalsData | null>(null);
 
-    // Loading states
+    // ── Loading states ──
     const [isTableLoading, setIsTableLoading] = useState(true);
     const [isSectorsLoading, setIsSectorsLoading] = useState(true);
     const [isMarketShareLoading, setIsMarketShareLoading] = useState(true);
+    const [isFiltersLoading, setIsFiltersLoading] = useState(false);
 
-    // ─── Collapsible Filters State ──
-    const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
-
-    // ─── New Detailed Filters ──────────────────────────────────────────────────
-
-    const [filters, setFilters] = useState<SummaryFilterState>({
-        registrar: [],
-        issuerOwnershipType: [],
-        issuerNatureType: [],
-        businessSector: [],
-        securityType: [],
-        modeOfIssue: [],
-        creditRatingAgency: [],
-        creditRating: [],
-        seniority: [],
-        servicedFlag: [],
-        listingStatus: [],
-    });
-
+    // ── Filter options from API ──
     const [filterOptions, setFilterOptions] = useState<FilterInputsResponse>({
         ownershipType: [],
         nature: [],
@@ -509,13 +518,11 @@ export default function Summary() {
         listingStatus: [],
     });
 
-    const [isFiltersLoading, setIsFiltersLoading] = useState(false);
-
-    // ─── Chart Refs for PNG Download ──
+    // ── Chart refs for PNG download ──
     const sectorChartRef = useRef<HTMLDivElement>(null);
     const marketShareChartRef = useRef<HTMLDivElement>(null);
 
-    // ─── Download Chart as PNG ──
+    // ── Download chart as PNG ──
     const downloadChartAsPng = useCallback(async (chartRef: HTMLElement | null, filename: string) => {
         if (!chartRef) return;
 
@@ -534,13 +541,24 @@ export default function Summary() {
         }
     }, []);
 
-    const updateFilter = useCallback((key: keyof SummaryFilterState, value: string[]) => {
-        setFilters(prev => ({ ...prev, [key]: value }));
-    }, []);
-
+    // ── Helpers ─────────────────────────────────────────────────────────────
     const toOptions = (items: string[]): { value: string; label: string }[] => {
         return items.map(item => ({ value: item, label: item }));
     };
+
+    const ensureActive = useCallback(() => {
+        if (useSummaryFilterStore.getState().activeFilterPage !== REGISTRARS_PAGE) {
+            setPageState(REGISTRARS_PAGE, defaultPageState);
+        }
+    }, [setPageState, defaultPageState]);
+
+    const updateFilter = useCallback(
+        <K extends keyof RegistrarFilters>(key: K, value: RegistrarFilters[K]) => {
+            ensureActive();
+            updatePageFilter(REGISTRARS_PAGE, key, value as string[]);
+        },
+        [ensureActive, updatePageFilter]
+    );
 
     const selectedYearsDateRange = useMemo<DateRange | null>(
         () => getDateRange({ fy: selectedFY, frequency, period }),
@@ -553,8 +571,8 @@ export default function Summary() {
     }, [filters]);
 
     const activeFilterChips = useMemo(() => {
-        const chips: { key: keyof SummaryFilterState; label: string; index: number }[] = [];
-        const labelMap: Record<keyof SummaryFilterState, string> = {
+        const chips: { key: keyof RegistrarFilters; label: string; index: number }[] = [];
+        const labelMap: Record<keyof RegistrarFilters, string> = {
             registrar: 'Registrar',
             issuerOwnershipType: 'Ownership',
             issuerNatureType: 'Nature',
@@ -567,7 +585,7 @@ export default function Summary() {
             servicedFlag: 'Secured',
             listingStatus: 'Listing',
         };
-        (Object.keys(filters) as Array<keyof SummaryFilterState>).forEach((key) => {
+        (Object.keys(filters) as Array<keyof RegistrarFilters>).forEach((key) => {
             filters[key].forEach((val, idx) => {
                 chips.push({ key, index: idx, label: `${labelMap[key]}: ${val}` });
             });
@@ -608,56 +626,35 @@ export default function Summary() {
     }, [fetchFilterInputs]);
 
     const handleFYChange = (value: string | number): void => {
-        setSelectedFY(String(value));
+        ensureActive();
+        updatePageField(REGISTRARS_PAGE, 'selectedFY', String(value));
     };
 
     const handleFrequencyChange = (value: string | number): void => {
         const freq = String(value) as FrequencyValue;
-        setFrequency(freq);
+        ensureActive();
+        updatePageField(REGISTRARS_PAGE, 'frequency', freq);
 
-        if (freq === 'Half-Yearly') setPeriod('H1');
-        else if (freq === 'Quarterly') setPeriod('Q1');
-        else if (freq === 'Monthly') setPeriod(3);
-        else setPeriod(null);
+        if (freq === 'Half-Yearly') updatePageField(REGISTRARS_PAGE, 'period', 'H1');
+        else if (freq === 'Quarterly') updatePageField(REGISTRARS_PAGE, 'period', 'Q1');
+        else if (freq === 'Monthly') updatePageField(REGISTRARS_PAGE, 'period', 3);
+        else updatePageField(REGISTRARS_PAGE, 'period', null);
     };
 
     const handleSearch = (): void => {
-        // Filters are already in state; fetchData will auto-trigger via useEffect
         setIsFiltersExpanded(false);
     };
 
     const handleReset = (): void => {
-        setSelectedFY(fyOptions[0]?.value);
-        setFrequency('Yearly');
-        setPeriod(null);
-        setValueConvention('Crores');
-        setFilters({
-            registrar: [],
-            issuerOwnershipType: [],
-            issuerNatureType: [],
-            businessSector: [],
-            securityType: [],
-            modeOfIssue: [],
-            creditRatingAgency: [],
-            creditRating: [],
-            seniority: [],
-            servicedFlag: [],
-            listingStatus: [],
-        });
+        clearPageState(REGISTRARS_PAGE, defaultPageState);
     };
 
     function getFinancialYearRanges(rangeStr: string) {
         const [start, end] = rangeStr.split("-").map(Number);
-
         const currentYearRange: string = `${start}-${String(end).slice(-2)}`;
         const previousYearRange: string = `${start - 1}-${String(end - 1).slice(-2)}`;
-
-        return {
-            currentYearRange,
-            previousYearRange,
-        };
+        return { currentYearRange, previousYearRange };
     }
-
 
     const handleExportCSV = useCallback(() => {
         if (!issueTableData.length) return;
@@ -666,17 +663,14 @@ export default function Summary() {
 
         const exportData = issueTableData.map((row) => ({
             Registrar: row.name,
-
             [`${currentYearRange}\r\nIssue Size`]: row.issueSize,
             [`${currentYearRange}\r\nDeals`]: row.deals,
             [`${currentYearRange}\r\nMarket Share (%)`]: row.mktShare,
             [`${currentYearRange}\r\nRank`]: row.rank,
-
             [`${previousYearRange}\r\nIssue Size`]: row.prevSize,
             [`${previousYearRange}\r\nDeals`]: row.prevDeals,
             [`${previousYearRange}\r\nMarket Share (%)`]: row.prevMkt,
             [`${previousYearRange}\r\nRank`]: row.prevRank,
-
             "YoY (%)": row.yoy,
         }));
 
@@ -687,15 +681,9 @@ export default function Summary() {
                 .map((header) => {
                     const cell = row[header as keyof typeof row];
                     const str = String(cell ?? "");
-
-                    if (
-                        str.includes(",") ||
-                        str.includes('"') ||
-                        str.includes("\n")
-                    ) {
+                    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
                         return `"${str.replace(/"/g, '""')}"`;
                     }
-
                     return str;
                 })
                 .join(",")
@@ -704,26 +692,16 @@ export default function Summary() {
         const headerRow = headers
             .map((header) => {
                 const str = String(header);
-
-                if (
-                    str.includes(",") ||
-                    str.includes('"') ||
-                    str.includes("\n") ||
-                    str.includes("\r")
-                ) {
+                if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
                     return `"${str.replace(/"/g, '""')}"`;
                 }
-
                 return str;
             })
             .join(",");
 
         const csv = [headerRow, ...rows].join("\n");
 
-        const blob = new Blob([csv], {
-            type: "text/csv;charset=utf-8;",
-        });
-
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
 
@@ -733,11 +711,9 @@ export default function Summary() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
         URL.revokeObjectURL(url);
     }, [issueTableData, selectedFY, issueType]);
 
-    // ─── Export All Registrars List as CSV ──
     const handleExportListCSV = useCallback(() => {
         if (!listTableData.length) return;
 
@@ -745,17 +721,14 @@ export default function Summary() {
 
         const exportData = listTableData.map((row) => ({
             Registrar: row.name,
-
             [`${currentYearRange}\r\nIssue Size`]: row.issueSize,
             [`${currentYearRange}\r\nDeals`]: row.deals,
             [`${currentYearRange}\r\nMarket Share (%)`]: row.mktShare,
             [`${currentYearRange}\r\nRank`]: row.rank,
-
             [`${previousYearRange}\r\nIssue Size`]: row.prevSize,
             [`${previousYearRange}\r\nDeals`]: row.prevDeals,
             [`${previousYearRange}\r\nMarket Share (%)`]: row.prevMkt,
             [`${previousYearRange}\r\nRank`]: row.prevRank,
-
             "YoY (%)": row.yoy,
         }));
 
@@ -766,15 +739,9 @@ export default function Summary() {
                 .map((header) => {
                     const cell = row[header as keyof typeof row];
                     const str = String(cell ?? "");
-
-                    if (
-                        str.includes(",") ||
-                        str.includes('"') ||
-                        str.includes("\n")
-                    ) {
+                    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
                         return `"${str.replace(/"/g, '""')}"`;
                     }
-
                     return str;
                 })
                 .join(",")
@@ -783,26 +750,16 @@ export default function Summary() {
         const headerRow = headers
             .map((header) => {
                 const str = String(header);
-
-                if (
-                    str.includes(",") ||
-                    str.includes('"') ||
-                    str.includes("\n") ||
-                    str.includes("\r")
-                ) {
+                if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
                     return `"${str.replace(/"/g, '""')}"`;
                 }
-
                 return str;
             })
             .join(",");
 
         const csv = [headerRow, ...rows].join("\n");
 
-        const blob = new Blob([csv], {
-            type: "text/csv;charset=utf-8;",
-        });
-
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
 
@@ -812,7 +769,6 @@ export default function Summary() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
         URL.revokeObjectURL(url);
     }, [listTableData, selectedFY]);
 
@@ -879,6 +835,7 @@ export default function Summary() {
                 setListTableData([]);
                 setTopSectorsData([]);
                 setMarketShareData([]);
+                setTotalsData(null);
             } finally {
                 setIsTableLoading(false);
                 setIsSectorsLoading(false);
@@ -935,7 +892,10 @@ export default function Summary() {
                                         {(['H1', 'H2'] as HalfYearlyPeriod[]).map((h) => (
                                             <button
                                                 key={h}
-                                                onClick={() => setPeriod(h)}
+                                                onClick={() => {
+                                                    ensureActive();
+                                                    updatePageField(REGISTRARS_PAGE, 'period', h);
+                                                }}
                                                 className={`px-3 py-1 rounded-full text-xs ${period === h
                                                     ? 'bg-indigo-600 text-white'
                                                     : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
@@ -952,7 +912,10 @@ export default function Summary() {
                                         {(['Q1', 'Q2', 'Q3', 'Q4'] as QuarterlyPeriod[]).map((q) => (
                                             <button
                                                 key={q}
-                                                onClick={() => setPeriod(q)}
+                                                onClick={() => {
+                                                    ensureActive();
+                                                    updatePageField(REGISTRARS_PAGE, 'period', q);
+                                                }}
                                                 className={`px-3 py-1 rounded-full text-xs ${period === q
                                                     ? 'bg-indigo-600 text-white'
                                                     : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
@@ -970,7 +933,10 @@ export default function Summary() {
                                             label="Months"
                                             options={monthOptions}
                                             value={period as number}
-                                            onChange={(val) => setPeriod(Number(val[0]) || 3)}
+                                            onChange={(val) => {
+                                                ensureActive();
+                                                updatePageField(REGISTRARS_PAGE, 'period', Number(val[0]) || 3);
+                                            }}
                                             multiSelect={false}
                                         />
                                     </div>
@@ -1026,7 +992,6 @@ export default function Summary() {
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                {/* Active Filter Chips (visible when collapsed) */}
                                 {!isFiltersExpanded && activeFilterChips.length > 0 && (
                                     <div className="hidden md:flex items-center gap-1.5 flex-wrap max-w-md">
                                         {activeFilterChips.slice(0, 3).map((chip) => (
@@ -1053,7 +1018,6 @@ export default function Summary() {
                         </button>
 
                         {/* Expanded Filter Content */}
-
                         <AnimatePresence>
                             {isFiltersExpanded && (
                                 <motion.div
@@ -1195,19 +1159,7 @@ export default function Summary() {
                                                             />
                                                         ))}
                                                         <button
-                                                            onClick={() => setFilters({
-                                                                registrar: [],
-                                                                issuerOwnershipType: [],
-                                                                issuerNatureType: [],
-                                                                businessSector: [],
-                                                                securityType: [],
-                                                                modeOfIssue: [],
-                                                                creditRatingAgency: [],
-                                                                creditRating: [],
-                                                                seniority: [],
-                                                                servicedFlag: [],
-                                                                listingStatus: [],
-                                                            })}
+                                                            onClick={() => clearPageState(REGISTRARS_PAGE, defaultPageState)}
                                                             className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
                                                         >
                                                             Clear all
@@ -1238,7 +1190,6 @@ export default function Summary() {
                                     </div>
                                 </motion.div>
                             )}
-
                         </AnimatePresence>
                     </SectionCard>
 
@@ -1264,7 +1215,10 @@ export default function Summary() {
                                         label="Value Convention"
                                         options={valueConventionOptions}
                                         value={valueConvention}
-                                        onChange={(val) => setValueConvention(val[0] as ValueConvention || 'Crores')}
+                                        onChange={(val) => {
+                                            ensureActive();
+                                            updatePageField(REGISTRARS_PAGE, 'valueConvention', val[0] as ValueConvention || 'Crores');
+                                        }}
                                         multiSelect={false}
                                     />
                                 </div>
@@ -1274,7 +1228,10 @@ export default function Summary() {
                         <div className="flex flex-row justify-center items-center">
                             <div className="flex flex-row justify-center mb-4 rounded-full border border-gray-300 dark:border-gray-600 p-2 bg-gray-100 dark:bg-gray-800 p-0.5 w-fit">
                                 <button
-                                    onClick={() => setIssueType('size')}
+                                    onClick={() => {
+                                        ensureActive();
+                                        updatePageField(REGISTRARS_PAGE, 'issueType', 'size');
+                                    }}
                                     className={`px-5 py-1.5 text-xs font-medium rounded-full transition-all ${issueType === 'size'
                                         ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white shadow'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
@@ -1283,7 +1240,10 @@ export default function Summary() {
                                     ISSUE SIZE
                                 </button>
                                 <button
-                                    onClick={() => setIssueType('count')}
+                                    onClick={() => {
+                                        ensureActive();
+                                        updatePageField(REGISTRARS_PAGE, 'issueType', 'count');
+                                    }}
                                     className={`px-5 py-1.5 text-xs font-medium rounded-full transition-all ${issueType === 'count'
                                         ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white shadow'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'

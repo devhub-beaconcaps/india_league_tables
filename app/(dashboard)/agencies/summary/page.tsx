@@ -56,22 +56,32 @@ import { fetchRatingAgencyCreditRatingsData, fetchRatingAgencyPageData } from '@
 import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
 import { motion, AnimatePresence } from 'framer-motion'
 
+import {
+    useSummaryFilterStore,
+    AgencyFilters,
+    PageState,
+} from '@/lib/filtersState';
 
-// ─── Types ─────────────────────────────────────────────────────────────────
 
-interface SummaryFilterState {
-    [key: string]: string[];
-    ownershipType: string[];
-    nature: string[];
-    sector: string[];
-    securityType: string[];
-    modeOfIssue: string[];
-    creditRatingAgency: string[];
-    rating: string[];
-    seniority: string[];
-    securedFlag: string[];
-    listingStatus: string[];
-}
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const RATING_AGENCIES_PAGE = 'rating-agencies-summary' as const;
+
+const DEFAULT_AGENCY_FILTERS: AgencyFilters = {
+    ownershipType: [],
+    nature: [],
+    sector: [],
+    securityType: [],
+    modeOfIssue: [],
+    creditRatingAgency: [],
+    rating: [],
+    seniority: [],
+    securedFlag: [],
+    listingStatus: [],
+};
+
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface FilterInputsResponse {
     ownershipType: string[];
@@ -303,7 +313,7 @@ function DownloadPngButton({ onClick, label = 'Download PNG' }: { onClick: () =>
 
 interface CreditRatingsSectionProps {
     selectedYearsDateRange: DateRange | null;
-    filters: SummaryFilterState;
+    filters: AgencyFilters;
     valueConvention: ValueConvention;
     agencyOptions: { value: string; label: string }[];
     selectedFY: string;
@@ -448,43 +458,57 @@ function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Summary() {
+    // ── Zustand store hooks ──
+    const activeFilterPage = useSummaryFilterStore((s) => s.activeFilterPage);
+    const storedPageState = useSummaryFilterStore((s) => s.pageState[RATING_AGENCIES_PAGE]);
+    const setPageState = useSummaryFilterStore((s) => s.setPageState);
+    const updatePageFilter = useSummaryFilterStore((s) => s.updatePageFilter);
+    const updatePageField = useSummaryFilterStore((s) => s.updatePageField);
+    const clearPageState = useSummaryFilterStore((s) => s.clearPageState);
+
+    // ── FY options ──
     const fyOptions = useMemo<FYOption[]>(() => getFinancialYears(), []);
 
-    const [selectedFY, setSelectedFY] = useState<string>(fyOptions[0]?.value);
-    const [frequency, setFrequency] = useState<FrequencyValue>('Yearly');
-    const [period, setPeriod] = useState<SelectedPeriod>(null);
-    const [issueType, setIssueType] = useState<IssueType>('size');
+    // ── Default page state ──
+    const defaultPageState = useMemo<PageState<typeof RATING_AGENCIES_PAGE>>(() => ({
+        selectedFY: fyOptions[0]?.value ?? '',
+        frequency: 'Yearly',
+        period: null,
+        issueType: 'size',
+        valueConvention: 'Crores',
+        filters: DEFAULT_AGENCY_FILTERS,
+    }), [fyOptions]);
 
-    const [valueConvention, setValueConvention] = useState<ValueConvention>('Crores');
+    // ── Effective state (only use persisted if this page is active) ──
+    const isActivePage = activeFilterPage === RATING_AGENCIES_PAGE;
+    const currentState = isActivePage && storedPageState ? storedPageState : defaultPageState;
+
+    const {
+        selectedFY,
+        frequency,
+        period,
+        issueType,
+        valueConvention,
+        filters,
+    } = currentState;
+
+    // ── Local UI state (not persisted) ──
+    const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+
+    // ── Data state ──
     const [issueTableData, setIssueTableData] = useState<FormattedIssuerItem[]>([]);
     const [listTableData, setListTableData] = useState<FormattedIssuerItem[]>([]);
     const [topSectorsData, setTopSectorsData] = useState<SectorItem[]>([]);
     const [marketShareData, setMarketShareData] = useState<FormattedMarketShareItem[]>([]);
     const [totalsData, setTotalsData] = useState<TotalsData | null>(null);
 
-    // Loading states
+    // ── Loading states ──
     const [isTableLoading, setIsTableLoading] = useState(true);
     const [isSectorsLoading, setIsSectorsLoading] = useState(true);
     const [isMarketShareLoading, setIsMarketShareLoading] = useState(true);
+    const [isFiltersLoading, setIsFiltersLoading] = useState(false);
 
-    // ─── Collapsible Filters State ──
-    const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
-
-    // ─── New Detailed Filters ──────────────────────────────────────────────────
-
-    const [filters, setFilters] = useState<SummaryFilterState>({
-        ownershipType: [],
-        nature: [],
-        sector: [],
-        securityType: [],
-        modeOfIssue: [],
-        creditRatingAgency: [],
-        rating: [],
-        seniority: [],
-        securedFlag: [],
-        listingStatus: [],
-    });
-
+    // ── Filter options ──
     const [filterOptions, setFilterOptions] = useState<FilterInputsResponse>({
         ownershipType: [],
         nature: [],
@@ -498,52 +522,47 @@ export default function Summary() {
         listingStatus: [],
     });
 
-    const [isFiltersLoading, setIsFiltersLoading] = useState(false);
-
-    // ─── Chart Refs for PNG Download ──────────────────────────────────────────
+    // ── Chart refs for PNG download ──
     const sectorChartRef = useRef<HTMLDivElement>(null);
     const marketShareChartRef = useRef<HTMLDivElement>(null);
 
-    // ─── Download Chart as PNG Helper ─────────────────────────────────────────
-    const downloadChartAsPng = useCallback(async (chartRef: HTMLElement | null, filename: string) => {
-        if (!chartRef) return;
-
-        try {
-            const canvas = await html2canvas(chartRef, {
-                backgroundColor: '#ffffff',
-                scale: 2,
-                useCORS: true,
-            });
-            const link = document.createElement('a');
-            link.download = `${filename}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        } catch (err) {
-            console.error('Error downloading chart:', err);
-        }
-    }, []);
-
-    const updateFilter = useCallback((key: keyof SummaryFilterState, value: string[]) => {
-        setFilters(prev => ({ ...prev, [key]: value }));
-    }, []);
-
+    // ── Helpers ──
     const toOptions = (items: string[]): { value: string; label: string }[] => {
         return items.map(item => ({ value: item, label: item }));
     };
 
+    const ensureActive = useCallback(() => {
+        if (useSummaryFilterStore.getState().activeFilterPage !== RATING_AGENCIES_PAGE) {
+            setPageState(RATING_AGENCIES_PAGE, defaultPageState);
+        }
+    }, [setPageState, defaultPageState]);
+
+    const updateFilter = useCallback(
+        <K extends keyof AgencyFilters>(
+            key: K,
+            value: AgencyFilters[K]
+        ) => {
+            ensureActive();
+            updatePageFilter(RATING_AGENCIES_PAGE, key, value as string[]);
+        },
+        [ensureActive, updatePageFilter]
+    );
+
+    // ── Date range ──
     const selectedYearsDateRange = useMemo<DateRange | null>(
         () => getDateRange({ fy: selectedFY, frequency, period }),
         [selectedFY, frequency, period]
     );
 
-    // ── Active Filters Count ──
+    // ── Active filters count ──
     const activeFilterCount = useMemo(() => {
         return Object.values(filters).reduce((acc, arr) => acc + arr.length, 0);
     }, [filters]);
 
+    // ── Active filter chips ──
     const activeFilterChips = useMemo(() => {
-        const chips: { key: keyof SummaryFilterState; label: string; index: number }[] = [];
-        const labelMap: Record<keyof SummaryFilterState, string> = {
+        const chips: { key: keyof AgencyFilters; label: string; index: number }[] = [];
+        const labelMap: Record<keyof AgencyFilters, string> = {
             ownershipType: 'Ownership',
             nature: 'Nature',
             sector: 'Sector',
@@ -555,7 +574,7 @@ export default function Summary() {
             securedFlag: 'Secured',
             listingStatus: 'Listing',
         };
-        (Object.keys(filters) as Array<keyof SummaryFilterState>).forEach((key) => {
+        (Object.keys(filters) as Array<keyof AgencyFilters>).forEach((key) => {
             filters[key].forEach((val, idx) => {
                 chips.push({ key, index: idx, label: `${labelMap[key]}: ${val}` });
             });
@@ -563,7 +582,7 @@ export default function Summary() {
         return chips;
     }, [filters]);
 
-    // ── Agency Options for Ratings Dropdown ──
+    // ── Agency options for ratings dropdown ──
     const agencyOptionsForRatings = useMemo(() => {
         const names = new Set<string>();
         listTableData.forEach((item) => {
@@ -573,7 +592,7 @@ export default function Summary() {
         return Array.from(names).sort().map(name => ({ value: name, label: name }));
     }, [listTableData]);
 
-    // ── Fetch Filter Inputs ──
+    // ── Fetch filter inputs ──
     const fetchFilterInputs = useCallback(async () => {
         if (!selectedYearsDateRange) return;
         setIsFiltersLoading(true);
@@ -595,18 +614,26 @@ export default function Summary() {
         fetchFilterInputs();
     }, [fetchFilterInputs]);
 
+    // ── Handlers ──
     const handleFYChange = (value: string | number): void => {
-        setSelectedFY(String(value));
+        ensureActive();
+        updatePageField(RATING_AGENCIES_PAGE, 'selectedFY', String(value));
     };
 
     const handleFrequencyChange = (value: string | number): void => {
         const freq = String(value) as FrequencyValue;
-        setFrequency(freq);
+        ensureActive();
+        updatePageField(RATING_AGENCIES_PAGE, 'frequency', freq);
 
-        if (freq === 'Half-Yearly') setPeriod('H1');
-        else if (freq === 'Quarterly') setPeriod('Q1');
-        else if (freq === 'Monthly') setPeriod(3);
-        else setPeriod(null);
+        if (freq === 'Half-Yearly') {
+            updatePageField(RATING_AGENCIES_PAGE, 'period', 'H1');
+        } else if (freq === 'Quarterly') {
+            updatePageField(RATING_AGENCIES_PAGE, 'period', 'Q1');
+        } else if (freq === 'Monthly') {
+            updatePageField(RATING_AGENCIES_PAGE, 'period', 3);
+        } else {
+            updatePageField(RATING_AGENCIES_PAGE, 'period', null);
+        }
     };
 
     const handleSearch = (): void => {
@@ -614,36 +641,36 @@ export default function Summary() {
     };
 
     const handleReset = (): void => {
-        setSelectedFY(fyOptions[0]?.value);
-        setFrequency('Yearly');
-        setPeriod(null);
-        setValueConvention('Crores');
-        setFilters({
-            ownershipType: [],
-            nature: [],
-            sector: [],
-            securityType: [],
-            modeOfIssue: [],
-            creditRatingAgency: [],
-            rating: [],
-            seniority: [],
-            securedFlag: [],
-            listingStatus: [],
-        });
+        clearPageState(RATING_AGENCIES_PAGE, defaultPageState);
     };
+
+    // ── Download chart as PNG helper ──
+    const downloadChartAsPng = useCallback(async (chartRef: HTMLElement | null, filename: string) => {
+        if (!chartRef) return;
+
+        try {
+            const canvas = await html2canvas(chartRef, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true,
+            });
+            const link = document.createElement('a');
+            link.download = `${filename}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (err) {
+            console.error('Error downloading chart:', err);
+        }
+    }, []);
 
     function getFinancialYearRanges(rangeStr: string) {
         const [start, end] = rangeStr.split("-").map(Number);
-
         const currentYearRange: string = `${start}-${String(end).slice(-2)}`;
         const previousYearRange: string = `${start - 1}-${String(end - 1).slice(-2)}`;
-
-        return {
-            currentYearRange,
-            previousYearRange,
-        };
+        return { currentYearRange, previousYearRange };
     }
 
+    // ── Export top 10 CSV ──
     const handleExportCSV = useCallback(() => {
         if (!issueTableData.length) return;
 
@@ -651,17 +678,14 @@ export default function Summary() {
 
         const exportData = issueTableData.map((row) => ({
             RatingAgency: row.name,
-
             [`${currentYearRange}\r\nIssue Size`]: row.issueSize,
             [`${currentYearRange}\r\nDeals`]: row.deals,
             [`${currentYearRange}\r\nMarket Share (%)`]: row.mktShare,
             [`${currentYearRange}\r\nRank`]: row.rank,
-
             [`${previousYearRange}\r\nIssue Size`]: row.prevSize,
             [`${previousYearRange}\r\nDeals`]: row.prevDeals,
             [`${previousYearRange}\r\nMarket Share (%)`]: row.prevMkt,
             [`${previousYearRange}\r\nRank`]: row.prevRank,
-
             "YoY (%)": row.yoy,
         }));
 
@@ -722,7 +746,7 @@ export default function Summary() {
         URL.revokeObjectURL(url);
     }, [issueTableData, selectedFY, issueType]);
 
-    // ─── Export List CSV ───────────────────────────────────────────────────────
+    // ── Export list CSV ──
     const handleExportListCSV = useCallback(() => {
         if (!listTableData.length) return;
 
@@ -730,17 +754,14 @@ export default function Summary() {
 
         const exportData = listTableData.map((row) => ({
             RatingAgency: row.name,
-
             [`${currentYearRange}\r\nIssue Size`]: row.issueSize,
             [`${currentYearRange}\r\nDeals`]: row.deals,
             [`${currentYearRange}\r\nMarket Share (%)`]: row.mktShare,
             [`${currentYearRange}\r\nRank`]: row.rank,
-
             [`${previousYearRange}\r\nIssue Size`]: row.prevSize,
             [`${previousYearRange}\r\nDeals`]: row.prevDeals,
             [`${previousYearRange}\r\nMarket Share (%)`]: row.prevMkt,
             [`${previousYearRange}\r\nRank`]: row.prevRank,
-
             "YoY (%)": row.yoy,
         }));
 
@@ -801,7 +822,7 @@ export default function Summary() {
         URL.revokeObjectURL(url);
     }, [listTableData, selectedFY]);
 
-    // Fetch main data
+    // ── Fetch main data ──
     useEffect(() => {
         if (!selectedYearsDateRange) return;
 
@@ -919,7 +940,10 @@ export default function Summary() {
                                         {(['H1', 'H2'] as HalfYearlyPeriod[]).map((h) => (
                                             <button
                                                 key={h}
-                                                onClick={() => setPeriod(h)}
+                                                onClick={() => {
+                                                    ensureActive();
+                                                    updatePageField(RATING_AGENCIES_PAGE, 'period', h);
+                                                }}
                                                 className={`px-3 py-1 rounded-full text-xs ${period === h
                                                     ? 'bg-indigo-600 text-white'
                                                     : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
@@ -936,7 +960,10 @@ export default function Summary() {
                                         {(['Q1', 'Q2', 'Q3', 'Q4'] as QuarterlyPeriod[]).map((q) => (
                                             <button
                                                 key={q}
-                                                onClick={() => setPeriod(q)}
+                                                onClick={() => {
+                                                    ensureActive();
+                                                    updatePageField(RATING_AGENCIES_PAGE, 'period', q);
+                                                }}
                                                 className={`px-3 py-1 rounded-full text-xs ${period === q
                                                     ? 'bg-indigo-600 text-white'
                                                     : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
@@ -954,7 +981,10 @@ export default function Summary() {
                                             label="Months"
                                             options={monthOptions}
                                             value={period as number}
-                                            onChange={(val) => setPeriod(Number(val[0]) || 3)}
+                                            onChange={(val) => {
+                                                ensureActive();
+                                                updatePageField(RATING_AGENCIES_PAGE, 'period', Number(val[0]) || 3);
+                                            }}
                                             multiSelect={false}
                                         />
                                     </div>
@@ -1170,18 +1200,7 @@ export default function Summary() {
                                                             />
                                                         ))}
                                                         <button
-                                                            onClick={() => setFilters({
-                                                                ownershipType: [],
-                                                                nature: [],
-                                                                sector: [],
-                                                                securityType: [],
-                                                                modeOfIssue: [],
-                                                                creditRatingAgency: [],
-                                                                rating: [],
-                                                                seniority: [],
-                                                                securedFlag: [],
-                                                                listingStatus: [],
-                                                            })}
+                                                            onClick={() => clearPageState(RATING_AGENCIES_PAGE, defaultPageState)}
                                                             className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
                                                         >
                                                             Clear all
@@ -1238,7 +1257,10 @@ export default function Summary() {
                                         label="Value Convention"
                                         options={valueConventionOptions}
                                         value={valueConvention}
-                                        onChange={(val) => setValueConvention(val[0] as ValueConvention || 'Crores')}
+                                        onChange={(val) => {
+                                            ensureActive();
+                                            updatePageField(RATING_AGENCIES_PAGE, 'valueConvention', val[0] as ValueConvention || 'Crores');
+                                        }}
                                         multiSelect={false}
                                     />
                                 </div>
@@ -1248,7 +1270,10 @@ export default function Summary() {
                         <div className="flex flex-row justify-center items-center">
                             <div className="flex flex-row justify-center mb-4 rounded-full border border-gray-300 dark:border-gray-600 p-2 bg-gray-100 dark:bg-gray-800 p-0.5 w-fit">
                                 <button
-                                    onClick={() => setIssueType('size')}
+                                    onClick={() => {
+                                        ensureActive();
+                                        updatePageField(RATING_AGENCIES_PAGE, 'issueType', 'size');
+                                    }}
                                     className={`px-5 py-1.5 text-xs font-medium rounded-full transition-all ${issueType === 'size'
                                         ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white shadow'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
@@ -1257,7 +1282,10 @@ export default function Summary() {
                                     ISSUE SIZE
                                 </button>
                                 <button
-                                    onClick={() => setIssueType('count')}
+                                    onClick={() => {
+                                        ensureActive();
+                                        updatePageField(RATING_AGENCIES_PAGE, 'issueType', 'count');
+                                    }}
                                     className={`px-5 py-1.5 text-xs font-medium rounded-full transition-all ${issueType === 'count'
                                         ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white shadow'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'

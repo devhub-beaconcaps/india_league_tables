@@ -82,6 +82,7 @@ import {
 import {
     useSummaryFilterStore,
     ArrangerFilters,
+    PageState,
 } from '@/lib/filtersState';
 
 
@@ -805,56 +806,38 @@ export default function Summary() {
     // Zustand
     // ─────────────────────────────────────────────────────────
 
-    const storedFilters =
+    const activeFilterPage =
         useSummaryFilterStore(
-            (state) =>
-                state.filters[
-                    ARRANGERS_PAGE
-                ]
+            (s) => s.activeFilterPage
         );
 
-    const setPageFilters =
+    const storedPageState =
         useSummaryFilterStore(
-            (state) =>
-                state.setPageFilters
+            (s) => s.pageState[ARRANGERS_PAGE]
+        );
+
+    const setPageState =
+        useSummaryFilterStore(
+            (s) => s.setPageState
         );
 
     const updatePageFilter =
         useSummaryFilterStore(
-            (state) =>
-                state.updatePageFilter
+            (s) => s.updatePageFilter
         );
 
-    const clearPageFilters =
+    const updatePageField =
         useSummaryFilterStore(
-            (state) =>
-                state.clearPageFilters
+            (s) => s.updatePageField
         );
 
-    const filters: ArrangerFilters =
-        storedFilters ??
-        DEFAULT_ARRANGER_FILTERS;
-
-
-    // ─────────────────────────────────────────────────────────
-    // Initialize Arranger filters
-    // ─────────────────────────────────────────────────────────
-
-    useEffect(() => {
-        if (!storedFilters) {
-            setPageFilters(
-                ARRANGERS_PAGE,
-                DEFAULT_ARRANGER_FILTERS
-            );
-        }
-    }, [
-        storedFilters,
-        setPageFilters,
-    ]);
-
+    const clearPageState =
+        useSummaryFilterStore(
+            (s) => s.clearPageState
+        );
 
     // ─────────────────────────────────────────────────────────
-    // Page State
+    // FY options
     // ─────────────────────────────────────────────────────────
 
     const fyOptions =
@@ -863,40 +846,47 @@ export default function Summary() {
             []
         );
 
-    const [
+    // ─────────────────────────────────────────────────────────
+    // Defaults
+    // ─────────────────────────────────────────────────────────
+
+    const defaultPageState =
+        useMemo<PageState<typeof ARRANGERS_PAGE>>(
+            () => ({
+                selectedFY: fyOptions[0]?.value ?? '',
+                frequency: 'Yearly',
+                period: null,
+                issueType: 'size',
+                valueConvention: 'Crores',
+                filters: DEFAULT_ARRANGER_FILTERS,
+            }),
+            [fyOptions]
+        );
+
+    // ─────────────────────────────────────────────────────────
+    // Effective state (only use persisted if this page is active)
+    // ─────────────────────────────────────────────────────────
+
+    const isActivePage =
+        activeFilterPage === ARRANGERS_PAGE;
+
+    const currentState =
+        isActivePage && storedPageState
+            ? storedPageState
+            : defaultPageState;
+
+    const {
         selectedFY,
-        setSelectedFY,
-    ] = useState<string>(
-        fyOptions[0]?.value
-    );
-
-    const [
         frequency,
-        setFrequency,
-    ] = useState<FrequencyValue>(
-        'Yearly'
-    );
-
-    const [
         period,
-        setPeriod,
-    ] = useState<SelectedPeriod>(
-        null
-    );
-
-    const [
         issueType,
-        setIssueType,
-    ] = useState<IssueType>(
-        'size'
-    );
-
-    const [
         valueConvention,
-        setValueConvention,
-    ] = useState<ValueConvention>(
-        'Crores'
-    );
+        filters,
+    } = currentState;
+
+    // ─────────────────────────────────────────────────────────
+    // Local UI state (not persisted)
+    // ─────────────────────────────────────────────────────────
 
     const [
         isFiltersExpanded,
@@ -1018,19 +1008,28 @@ export default function Summary() {
             label: item,
         }));
 
+    const ensureActive = useCallback(() => {
+        if (
+            useSummaryFilterStore.getState().activeFilterPage !==
+            ARRANGERS_PAGE
+        ) {
+            setPageState(ARRANGERS_PAGE, defaultPageState);
+        }
+    }, [setPageState, defaultPageState]);
 
     const updateFilter = useCallback(
         <K extends keyof ArrangerFilters>(
             key: K,
             value: ArrangerFilters[K]
         ) => {
+            ensureActive();
             updatePageFilter(
                 ARRANGERS_PAGE,
                 key,
                 value as string[]
             );
         },
-        [updatePageFilter]
+        [ensureActive, updatePageFilter]
     );
 
 
@@ -1041,7 +1040,10 @@ export default function Summary() {
     const handleFYChange = (
         value: string | number
     ) => {
-        setSelectedFY(
+        ensureActive();
+        updatePageField(
+            ARRANGERS_PAGE,
+            'selectedFY',
             String(value)
         );
     };
@@ -1057,20 +1059,25 @@ export default function Summary() {
         const freq =
             value as FrequencyValue;
 
-        setFrequency(freq);
+        ensureActive();
+        updatePageField(
+            ARRANGERS_PAGE,
+            'frequency',
+            freq
+        );
 
         if (freq === 'Half-Yearly') {
-            setPeriod('H1');
+            updatePageField(ARRANGERS_PAGE, 'period', 'H1');
         } else if (
             freq === 'Quarterly'
         ) {
-            setPeriod('Q1');
+            updatePageField(ARRANGERS_PAGE, 'period', 'Q1');
         } else if (
             freq === 'Monthly'
         ) {
-            setPeriod(3);
+            updatePageField(ARRANGERS_PAGE, 'period', 3);
         } else {
-            setPeriod(null);
+            updatePageField(ARRANGERS_PAGE, 'period', null);
         }
     };
 
@@ -1089,22 +1096,9 @@ export default function Summary() {
     // ─────────────────────────────────────────────────────────
 
     const handleReset = () => {
-
-        setSelectedFY(
-            fyOptions[0]?.value
-        );
-
-        setFrequency('Yearly');
-
-        setPeriod(null);
-
-        setValueConvention(
-            'Crores'
-        );
-
-        clearPageFilters(
+        clearPageState(
             ARRANGERS_PAGE,
-            DEFAULT_ARRANGER_FILTERS
+            defaultPageState
         );
     };
 
@@ -1935,11 +1929,10 @@ export default function Summary() {
                                                 (h) => (
                                                     <button
                                                         key={h}
-                                                        onClick={() =>
-                                                            setPeriod(
-                                                                h
-                                                            )
-                                                        }
+                                                        onClick={() => {
+                                                            ensureActive();
+                                                            updatePageField(ARRANGERS_PAGE, 'period', h);
+                                                        }}
                                                         className={`px-3 py-1 rounded-full text-xs ${
                                                             period ===
                                                             h
@@ -1968,11 +1961,10 @@ export default function Summary() {
                                                 (q) => (
                                                     <button
                                                         key={q}
-                                                        onClick={() =>
-                                                            setPeriod(
-                                                                q
-                                                            )
-                                                        }
+                                                        onClick={() => {
+                                                            ensureActive();
+                                                            updatePageField(ARRANGERS_PAGE, 'period', q);
+                                                        }}
                                                         className={`px-3 py-1 rounded-full text-xs ${
                                                             period ===
                                                             q
@@ -1995,13 +1987,10 @@ export default function Summary() {
                                             value={
                                                 period as number
                                             }
-                                            onChange={(val) =>
-                                                setPeriod(
-                                                    Number(
-                                                        val[0]
-                                                    ) || 3
-                                                )
-                                            }
+                                            onChange={(val) => {
+                                                ensureActive();
+                                                updatePageField(ARRANGERS_PAGE, 'period', Number(val[0]) || 3);
+                                            }}
                                             multiSelect={
                                                 false
                                             }
@@ -2382,9 +2371,9 @@ export default function Summary() {
 
                                                         <button
                                                             onClick={() =>
-                                                                clearPageFilters(
+                                                                clearPageState(
                                                                     ARRANGERS_PAGE,
-                                                                    DEFAULT_ARRANGER_FILTERS
+                                                                    defaultPageState
                                                                 )
                                                             }
                                                             className="text-[10px] text-red-500 font-medium ml-1"
@@ -2465,12 +2454,14 @@ export default function Summary() {
                                 value={
                                     valueConvention
                                 }
-                                onChange={(val) =>
-                                    setValueConvention(
-                                        val[0] as ValueConvention ||
-                                        'Crores'
-                                    )
-                                }
+                                onChange={(val) => {
+                                    ensureActive();
+                                    updatePageField(
+                                        ARRANGERS_PAGE,
+                                        'valueConvention',
+                                        val[0] as ValueConvention || 'Crores'
+                                    );
+                                }}
                                 multiSelect={
                                     false
                                 }
@@ -2485,11 +2476,10 @@ export default function Summary() {
                         <div className="rounded-full border border-gray-300 dark:border-gray-600 p-0.5 bg-gray-100 dark:bg-gray-800">
 
                             <button
-                                onClick={() =>
-                                    setIssueType(
-                                        'size'
-                                    )
-                                }
+                                onClick={() => {
+                                    ensureActive();
+                                    updatePageField(ARRANGERS_PAGE, 'issueType', 'size');
+                                }}
                                 className={`px-5 py-1.5 text-xs font-medium rounded-full ${
                                     issueType ===
                                     'size'
@@ -2501,11 +2491,10 @@ export default function Summary() {
                             </button>
 
                             <button
-                                onClick={() =>
-                                    setIssueType(
-                                        'count'
-                                    )
-                                }
+                                onClick={() => {
+                                    ensureActive();
+                                    updatePageField(ARRANGERS_PAGE, 'issueType', 'count');
+                                }}
                                 className={`px-5 py-1.5 text-xs font-medium rounded-full ${
                                     issueType ===
                                     'count'

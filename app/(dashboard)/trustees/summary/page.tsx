@@ -60,6 +60,7 @@ import { TextInput } from '@/components/TextInput';
 import {
     useSummaryFilterStore,
     TrusteeFilters,
+    PageState,
 } from '@/lib/filtersState';
 
 
@@ -213,19 +214,7 @@ const formatValueByConvention = (value: number, convention: ValueConvention): st
     if (convention === 'Crores') {
         return `${value.toLocaleString()} Cr`;
     }
-    // Lakhs
     return `${(value * 100).toLocaleString()} L`;
-};
-
-const formatYAxisTick = (value: number, convention: ValueConvention): string => {
-    if (convention === 'Billions') {
-        return value >= 100 ? `${(value / 100).toFixed(0)}B` : `${(value / 100).toFixed(1)}B`;
-    }
-    if (convention === 'Crores') {
-        return value >= 1000 ? `${(value / 1000).toFixed(0)}k` : String(value);
-    }
-    // Lakhs
-    return value >= 100 ? `${(value / 100).toFixed(0)}k L` : `${value} L`;
 };
 
 const CustomTooltip = ({ active, payload, label, valueConvention = 'Crores' }: CustomTooltipProps & { valueConvention?: ValueConvention }) => {
@@ -452,56 +441,59 @@ function CreditRatingsSection({ selectedYearsDateRange, filters, valueConvention
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Summary() {
-    // ── Zustand Filter Store ──
-    const storedFilters = useSummaryFilterStore(
-        (state) => state.filters[TRUSTEES_PAGE]
-    );
+    // ── Zustand selectors ──
+    const activeFilterPage = useSummaryFilterStore((s) => s.activeFilterPage);
+    const storedPageState = useSummaryFilterStore((s) => s.pageState[TRUSTEES_PAGE]);
+    const setPageState = useSummaryFilterStore((s) => s.setPageState);
+    const updatePageFilter = useSummaryFilterStore((s) => s.updatePageFilter);
+    const updatePageField = useSummaryFilterStore((s) => s.updatePageField);
+    const clearPageState = useSummaryFilterStore((s) => s.clearPageState);
 
-    const setPageFilters = useSummaryFilterStore(
-        (state) => state.setPageFilters
-    );
-
-    const updatePageFilter = useSummaryFilterStore(
-        (state) => state.updatePageFilter
-    );
-
-    const clearPageFilters = useSummaryFilterStore(
-        (state) => state.clearPageFilters
-    );
-
-    const filters: TrusteeFilters =
-        storedFilters ?? DEFAULT_TRUSTEE_FILTERS;
-
-    // Initialize store if empty
-    useEffect(() => {
-        if (!storedFilters) {
-            setPageFilters(TRUSTEES_PAGE, DEFAULT_TRUSTEE_FILTERS);
-        }
-    }, [storedFilters, setPageFilters]);
-
+    // ── FY options (stable) ──
     const fyOptions = useMemo<FYOption[]>(() => getFinancialYears(), []);
 
-    const [selectedFY, setSelectedFY] = useState<string>(fyOptions[0]?.value);
-    const [frequency, setFrequency] = useState<FrequencyValue>('Yearly');
-    const [period, setPeriod] = useState<SelectedPeriod>(null);
-    const [issueType, setIssueType] = useState<IssueType>('size');
-    const [valueConvention, setValueConvention] = useState<ValueConvention>('Crores');
+    // ── Default state for this page ──
+    const defaultPageState = useMemo<PageState<typeof TRUSTEES_PAGE>>(() => ({
+        selectedFY: fyOptions[0]?.value ?? '',
+        frequency: 'Yearly',
+        period: null,
+        issueType: 'size',
+        valueConvention: 'Crores',
+        filters: DEFAULT_TRUSTEE_FILTERS,
+    }), [fyOptions]);
 
-    // ── Collapsible Filters State ──
+    // ── Determine effective state ──
+    // Only use persisted state if THIS page is the active filter page.
+    // Otherwise fall back to defaults (as if fresh load).
+    const isActivePage = activeFilterPage === TRUSTEES_PAGE;
+    const currentState = isActivePage && storedPageState ? storedPageState : defaultPageState;
+
+    const {
+        selectedFY,
+        frequency,
+        period,
+        issueType,
+        valueConvention,
+        filters,
+    } = currentState;
+
+    // ── Local UI state (not persisted) ──
     const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
+    // ── Data state ──
     const [issueTableData, setIssueTableData] = useState<FormattedIssuerItem[]>([]);
     const [listTableData, setListTableData] = useState<FormattedIssuerItem[]>([]);
     const [topSectorsData, setTopSectorsData] = useState<SectorItem[]>([]);
     const [marketShareData, setMarketShareData] = useState<FormattedMarketShareItem[]>([]);
     const [totalsData, setTotalsData] = useState<TotalsData | null>(null);
 
-    // Loading states
+    // ── Loading states ──
     const [isTableLoading, setIsTableLoading] = useState(true);
     const [isSectorsLoading, setIsSectorsLoading] = useState(true);
     const [isMarketShareLoading, setIsMarketShareLoading] = useState(true);
     const [isFiltersLoading, setIsFiltersLoading] = useState(true);
 
+    // ── Filter options from API ──
     const [filterOptions, setFilterOptions] = useState<FilterInputsResponse>({
         ownershipType: [],
         nature: [],
@@ -517,6 +509,52 @@ export default function Summary() {
 
     const sectorChartRef = useRef<HTMLDivElement>(null);
     const marketShareChartRef = useRef<HTMLDivElement>(null);
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    const toOptions = (items: string[]) => items.map(item => ({ value: item, label: item }));
+
+    /**
+     * If the user interacts with this page after coming from another page,
+     * reset this page's stored state to defaults first so old stale data
+     * doesn't re-appear, then mark this page as active.
+     */
+    const ensureActive = useCallback(() => {
+        if (useSummaryFilterStore.getState().activeFilterPage !== TRUSTEES_PAGE) {
+            setPageState(TRUSTEES_PAGE, defaultPageState);
+        }
+    }, [setPageState, defaultPageState]);
+
+    const updateFilter = useCallback(
+        <K extends keyof TrusteeFilters>(key: K, value: TrusteeFilters[K]) => {
+            ensureActive();
+            updatePageFilter(TRUSTEES_PAGE, key, value as string[]);
+        },
+        [ensureActive, updatePageFilter]
+    );
+
+    const handleFYChange = (value: string | number): void => {
+        ensureActive();
+        updatePageField(TRUSTEES_PAGE, 'selectedFY', String(value));
+    };
+
+    const handleFrequencyChange = (value: string | number): void => {
+        const freq = value as FrequencyValue;
+        ensureActive();
+        updatePageField(TRUSTEES_PAGE, 'frequency', freq);
+
+        if (freq === 'Half-Yearly') updatePageField(TRUSTEES_PAGE, 'period', 'H1');
+        else if (freq === 'Quarterly') updatePageField(TRUSTEES_PAGE, 'period', 'Q1');
+        else if (freq === 'Monthly') updatePageField(TRUSTEES_PAGE, 'period', 3);
+        else updatePageField(TRUSTEES_PAGE, 'period', null);
+    };
+
+    const handleSearch = (): void => {
+        setIsFiltersExpanded(false);
+    };
+
+    const handleReset = (): void => {
+        clearPageState(TRUSTEES_PAGE, defaultPageState);
+    };
 
     const downloadChartAsPng = useCallback(async (chartRef: HTMLElement | null, filename: string) => {
         if (!chartRef) return;
@@ -536,50 +574,6 @@ export default function Summary() {
         }
     }, []);
 
-    const selectedYearsDateRange = useMemo<DateRange | null>(
-        () => getDateRange({ fy: selectedFY, frequency, period }),
-        [selectedFY, frequency, period]
-    );
-
-    // ─── Helpers ─────────────────────────────────────────────────────────────
-    const toOptions = (items: string[]) => items.map(item => ({ value: item, label: item }));
-
-    const updateFilter = useCallback(
-        <K extends keyof TrusteeFilters>(
-            key: K,
-            value: TrusteeFilters[K]
-        ) => {
-            updatePageFilter(TRUSTEES_PAGE, key, value as string[]);
-        },
-        [updatePageFilter]
-    );
-
-    const handleFYChange = (value: string | number): void => {
-        setSelectedFY(String(value));
-    };
-
-    const handleFrequencyChange = (value: string | number): void => {
-        const freq = value as FrequencyValue;
-        setFrequency(freq);
-
-        if (freq === 'Half-Yearly') setPeriod('H1');
-        else if (freq === 'Quarterly') setPeriod('Q1');
-        else if (freq === 'Monthly') setPeriod(3);
-        else setPeriod(null);
-    };
-
-    const handleSearch = (): void => {
-        setIsFiltersExpanded(false);
-    };
-
-    const handleReset = (): void => {
-        setSelectedFY(fyOptions[0]?.value);
-        setFrequency('Yearly');
-        setPeriod(null);
-        setValueConvention('Crores');
-        clearPageFilters(TRUSTEES_PAGE, DEFAULT_TRUSTEE_FILTERS);
-    };
-
     function getFinancialYearRanges(rangeStr: string) {
         const [start, end] = rangeStr.split("-").map(Number);
 
@@ -591,7 +585,6 @@ export default function Summary() {
             previousYearRange,
         };
     }
-
 
     const handleExportCSV = useCallback(() => {
         if (!issueTableData.length) return;
@@ -787,9 +780,11 @@ export default function Summary() {
         return Array.from(names).sort().map(name => ({ value: name, label: name }));
     }, [listTableData]);
 
-    /**
-     * Build query payload for the backend.
-     */
+    const selectedYearsDateRange = useMemo<DateRange | null>(
+        () => getDateRange({ fy: selectedFY, frequency, period }),
+        [selectedFY, frequency, period]
+    );
+
     const buildQuery = useCallback((extra: Record<string, any> = {}) => {
         if (!selectedYearsDateRange) return {};
 
@@ -824,7 +819,7 @@ export default function Summary() {
                 startDate: selectedYearsDateRange.startDate,
                 endDate: selectedYearsDateRange.endDate,
             };
-            const data: FilterInputsResponse = await fetchIssueDetailsFilterInputsData(query);
+                       const data: FilterInputsResponse = await fetchIssueDetailsFilterInputsData(query);
             setFilterOptions(data);
         } catch (err) {
             console.error('Error fetching filter inputs:', err);
@@ -872,6 +867,7 @@ export default function Summary() {
                 setListTableData([]);
                 setTopSectorsData([]);
                 setMarketShareData([]);
+                setTotalsData(null);
             } finally {
                 setIsTableLoading(false);
                 setIsSectorsLoading(false);
@@ -928,7 +924,10 @@ export default function Summary() {
                                         {(['H1', 'H2'] as HalfYearlyPeriod[]).map((h) => (
                                             <button
                                                 key={h}
-                                                onClick={() => setPeriod(h)}
+                                                onClick={() => {
+                                                    ensureActive();
+                                                    updatePageField(TRUSTEES_PAGE, 'period', h);
+                                                }}
                                                 className={`px-3 py-1 rounded-full text-xs ${period === h
                                                     ? 'bg-indigo-600 text-white'
                                                     : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
@@ -945,7 +944,10 @@ export default function Summary() {
                                         {(['Q1', 'Q2', 'Q3', 'Q4'] as QuarterlyPeriod[]).map((q) => (
                                             <button
                                                 key={q}
-                                                onClick={() => setPeriod(q)}
+                                                onClick={() => {
+                                                    ensureActive();
+                                                    updatePageField(TRUSTEES_PAGE, 'period', q);
+                                                }}
                                                 className={`px-3 py-1 rounded-full text-xs ${period === q
                                                     ? 'bg-indigo-600 text-white'
                                                     : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
@@ -963,7 +965,10 @@ export default function Summary() {
                                             label="Months"
                                             options={monthOptions}
                                             value={period as number}
-                                            onChange={(val) => setPeriod(Number(val[0]) || 3)}
+                                            onChange={(val) => {
+                                                ensureActive();
+                                                updatePageField(TRUSTEES_PAGE, 'period', Number(val[0]) || 3);
+                                            }}
                                             multiSelect={false}
                                         />
                                     </div>
@@ -1019,7 +1024,6 @@ export default function Summary() {
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                {/* Active Filter Chips (visible when collapsed) */}
                                 {!isFiltersExpanded && activeFilterChips.length > 0 && (
                                     <div className="hidden md:flex items-center gap-1.5 flex-wrap max-w-md">
                                         {activeFilterChips.slice(0, 3).map((chip) => (
@@ -1044,8 +1048,6 @@ export default function Summary() {
                                 />
                             </div>
                         </button>
-
-                        {/* Expanded Filter Content */}
 
                         <AnimatePresence>
                             {isFiltersExpanded && (
@@ -1171,7 +1173,6 @@ export default function Summary() {
                                                     </FilterGroup>
                                                 </div>
 
-                                                {/* Active Filter Chips in expanded view */}
                                                 {activeFilterChips.length > 0 && (
                                                     <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                                                         <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -1188,7 +1189,7 @@ export default function Summary() {
                                                             />
                                                         ))}
                                                         <button
-                                                            onClick={() => clearPageFilters(TRUSTEES_PAGE, DEFAULT_TRUSTEE_FILTERS)}
+                                                            onClick={() => clearPageState(TRUSTEES_PAGE, defaultPageState)}
                                                             className="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium ml-1 transition-colors"
                                                         >
                                                             Clear all
@@ -1196,7 +1197,6 @@ export default function Summary() {
                                                     </div>
                                                 )}
 
-                                                {/* Action Buttons */}
                                                 <div className="flex flex-wrap items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
                                                     <button
                                                         onClick={handleSearch}
@@ -1219,7 +1219,6 @@ export default function Summary() {
                                     </div>
                                 </motion.div>
                             )}
-
                         </AnimatePresence>
                     </SectionCard>
 
@@ -1245,7 +1244,10 @@ export default function Summary() {
                                         label="Value Convention"
                                         options={valueConventionOptions}
                                         value={valueConvention}
-                                        onChange={(val) => setValueConvention(val[0] as ValueConvention || 'Crores')}
+                                        onChange={(val) => {
+                                            ensureActive();
+                                            updatePageField(TRUSTEES_PAGE, 'valueConvention', val[0] as ValueConvention || 'Crores');
+                                        }}
                                         multiSelect={false}
                                     />
                                 </div>
@@ -1255,7 +1257,10 @@ export default function Summary() {
                         <div className="flex flex-row justify-center items-center">
                             <div className="flex flex-row justify-center mb-4 rounded-full border border-gray-300 dark:border-gray-600 p-2 bg-gray-100 dark:bg-gray-800 p-0.5 w-fit">
                                 <button
-                                    onClick={() => setIssueType('size')}
+                                    onClick={() => {
+                                        ensureActive();
+                                        updatePageField(TRUSTEES_PAGE, 'issueType', 'size');
+                                    }}
                                     className={`px-5 py-1.5 text-xs font-medium rounded-full transition-all ${issueType === 'size'
                                         ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white shadow'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
@@ -1264,7 +1269,10 @@ export default function Summary() {
                                     ISSUE SIZE
                                 </button>
                                 <button
-                                    onClick={() => setIssueType('count')}
+                                    onClick={() => {
+                                        ensureActive();
+                                        updatePageField(TRUSTEES_PAGE, 'issueType', 'count');
+                                    }}
                                     className={`px-5 py-1.5 text-xs font-medium rounded-full transition-all ${issueType === 'count'
                                         ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white shadow'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
@@ -1390,7 +1398,6 @@ export default function Summary() {
                             </div>
                         </div>
                         <div className="h-[250px]">
-
                             <ScrollableTable
                                 data={listTableData}
                                 selectedFY={selectedFY}
