@@ -433,7 +433,6 @@ const VerticalBarChartWithColors: React.FC<VerticalBarChartProps> = ({ data, val
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" />
           <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => v.toFixed(0)} />
-          <Tooltip formatter={(v: number) => `${v.toFixed(1)}${valueSuffix}`} />
 
           <Bar dataKey="value">
             {chartData.map((entry, index) => (
@@ -1154,7 +1153,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         },
       };
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       await html2pdf().set(opt).from(pagesContainerRef.current).save();
     } catch (error) {
@@ -1196,7 +1195,6 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
           position: 'absolute',
           left: '-9999px',
           top: 0,
-          visibility: 'hidden',
           width: PAGE_MAX_WIDTH,
         }}
       >

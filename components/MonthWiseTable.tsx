@@ -2,12 +2,17 @@ import { useRouter } from "next/navigation";
 import Skeleton from "react-loading-skeleton";
 
 interface ChartData {
-    monthNumber: number;
-    monthName: string;
-    primaryIssueCount: number;
-    compareIssueCount: number;
-    primaryIssueSize: number;
-    compareIssueSize: number;
+  issueMonthNo?: number;
+  issueMonth?: string;
+  noOfIssue?: number;
+  issueSize?: number;
+  actualIssueSize?: number;
+  monthNumber?: number;
+  monthName?: string;
+  primaryIssueCount?: number;
+  compareIssueCount?: number;
+  primaryIssueSize?: number;
+  compareIssueSize?: number;
 }
 
 export interface SummaryFilterState {

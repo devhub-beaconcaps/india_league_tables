@@ -127,6 +127,7 @@ export interface TooltipPayloadEntry {
     color: string;
     name: string;
     value: number | string;
+    dataKey?: string;
 }
 
 export interface CustomTooltipProps {

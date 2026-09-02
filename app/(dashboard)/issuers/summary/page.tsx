@@ -258,13 +258,14 @@ const formatYAxisTick = (value: number, convention: ValueConvention): string => 
 };
 
 const CustomTooltip = ({ active, payload, label, valueConvention = 'Crores' }: CustomTooltipProps & { valueConvention?: ValueConvention }) => {
+
     if (active && payload && payload.length) {
         return (
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 text-xs">
                 <p className="font-semibold text-gray-700 dark:text-gray-200 mb-1">{label}</p>
                 {payload.map((p: TooltipPayloadEntry, i: number) => (
                     <p key={i} style={{ color: p.color }} className="text-xs">
-                        {p.name}: {typeof p.value === 'number' ? formatValueByConvention(p.value, valueConvention) : p.value}
+                        {p.name}: {p.dataKey === 'noOfIssues' ? p.value : formatValueByConvention(Number(p.value), valueConvention)}
                     </p>
                 ))}
             </div>
@@ -272,6 +273,8 @@ const CustomTooltip = ({ active, payload, label, valueConvention = 'Crores' }: C
     }
     return null;
 };
+
+
 
 const renderLabel = ({
     cx = 0,

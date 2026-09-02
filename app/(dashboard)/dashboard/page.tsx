@@ -28,12 +28,27 @@ import {
   DateRange,
   StatCardProps,
   SectionCardProps,
-  TabType
+  TabType,
+  TabItem
 } from './types';
 
-const tabs: TabType[] = ['issuers', 'arrangers', 'trustees', 'registrars', 'rating agency'];
+const tabs: TabItem[] = [
+  { label: 'Issuers', value: 'issuers' },
+  { label: 'Arrangers', value: 'arrangers' },
+  { label: 'Trustees', value: 'trustees' },
+  { label: 'Registrars', value: 'registrars' },
+  { label: 'Rating Agency', value: 'rating agency' }
+];
 
 // ─── Helper Functions ────────────────────────────────────────────────────────
+
+// Format numbers with Indian comma separators
+const formatNumber = (num: number | string | undefined | null): string => {
+  if (num === undefined || num === null) return '0';
+  const n = typeof num === 'string' ? parseFloat(num) : num;
+  if (isNaN(n)) return '0';
+  return n.toLocaleString('en-IN');
+};
 
 const getFinancialYears = (): FinancialYear[] => {
   const now = new Date();
@@ -650,9 +665,26 @@ export default function Dashboard() {
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="years" angle={-30} tick={{ fontSize: 9 }} tickMargin={12} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                  <YAxis
+                    yAxisId="left"
+                    orientation="left"
+                    tick={{ fontSize: 9 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={formatNumber}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 9 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={formatNumber}
+                  />
+                  <Tooltip
+                    contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                    formatter={(value) => formatNumber(value)}
+                  />
                   <Area yAxisId="left" type="monotone" dataKey="total_issue_size_cr" stroke="#06B6D4" fill="url(#gradSize)" strokeWidth={2} />
                   <Area yAxisId="right" type="monotone" dataKey="total_no_of_issues" stroke="#EC4899" fill="url(#gradIssue)" strokeWidth={2} />
                 </AreaChart>
@@ -718,16 +750,16 @@ export default function Dashboard() {
 
               {/* Tabs */}
               <div className="flex gap-2 mb-4 flex-wrap">
-                {tabs.map(tab => (
+                {tabs?.map(tab => (
                   <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`text-[9px] font-medium px-4 py-1.5 rounded-full border transition-all ${activeTab === tab
+                    key={tab?.label}
+                    onClick={() => setActiveTab(tab?.value)}
+                    className={`text-[9px] font-medium px-4 py-1.5 rounded-full border transition-all ${activeTab === tab?.value
                       ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white border-[#7C3AED]'
                       : 'bg-white dark:bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-[#7C3AED] fake:text-[#7C3AED]'
                       }`}
                   >
-                    {tab}
+                    {tab?.label}
                   </button>
                 ))}
               </div>
@@ -762,14 +794,14 @@ export default function Dashboard() {
                             {row?.name}
                           </td>
                           <td className={`py-2.5 text-right  ${row.active ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
-                            {row?.noIssuer}
+                            {formatNumber(row?.noIssuer)}
                           </td>
                           <td className={`py-2.5 text-right pr-2 rounded-r-lg ${row.active ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
                             {valueConvention === 'Lakhs'
-                              ? `₹${(parseFloat(String(row?.issueSize || 0)) * 100).toLocaleString()}`
+                              ? `₹${formatNumber(parseFloat(String(row?.issueSize || 0)) * 100)}`
                               : valueConvention === 'Billions'
-                                ? `₹${(parseFloat(String(row?.issueSize || 0)) / 100).toLocaleString()}`
-                                : `₹${parseFloat(String(row?.issueSize || 0)).toLocaleString()}`}
+                                ? `₹${formatNumber(parseFloat(String(row?.issueSize || 0)) / 100)}`
+                                : `₹${formatNumber(row?.issueSize)}`}
                           </td>
                         </tr>
                       ))
@@ -828,15 +860,17 @@ export default function Dashboard() {
                       tick={{ fontSize: 9 }}
                       axisLine={false}
                       tickLine={false}
-                      tickFormatter={(value: number) =>
-                        barView === 'ISSUE SIZE' ? `₹${value}` : String(value)
-                      }
+                      tickFormatter={(value: number) => {
+                        const formatted = formatNumber(value);
+                        return barView === 'ISSUE SIZE' ? `₹${formatted}` : formatted;
+                      }}
                     />
                     <Tooltip
                       contentStyle={{ fontSize: 11, borderRadius: 8 }}
-                      formatter={(value: number) =>
-                        barView === 'ISSUE SIZE' ? `₹${value}` : value
-                      }
+                      formatter={(value: number) => {
+                        const formatted = formatNumber(value);
+                        return barView === 'ISSUE SIZE' ? `₹${formatted}` : formatted;
+                      }}
                     />
                     <Bar
                       dataKey={
@@ -907,9 +941,7 @@ export default function Dashboard() {
                       </Pie>
                       <Tooltip
                         contentStyle={{ fontSize: 11, borderRadius: 8 }}
-                        formatter={(value: number) =>
-                          barView === 'ISSUE SIZE' ? `₹${value}` : value
-                        }
+                        formatter={(value: number) => formatNumber(value)}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -953,7 +985,7 @@ export default function Dashboard() {
                       <Tooltip
                         contentStyle={{ fontSize: 11, borderRadius: 8 }}
                         formatter={(value, name, props) => [
-                          value,
+                          formatNumber(value),
                           props.payload.label
                         ]}
                       />

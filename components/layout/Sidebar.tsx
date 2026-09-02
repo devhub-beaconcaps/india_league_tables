@@ -114,7 +114,8 @@ const navigation: NavItem[] = [
         children: [
             { name: 'Reissuance', href: '/admin/re-issuance' },
             { name: 'Arranger', href: '/admin/arrangers' },
-            { name: 'Trustee', href: '/admin/trustees' }
+            { name: 'Trustee', href: '/admin/trustees' },
+            { name: 'Monthly Report', href: '/admin/monthly-report' },
         ],
     },
 ];

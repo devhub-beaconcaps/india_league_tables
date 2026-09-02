@@ -93,3 +93,8 @@ export interface SectionCardProps {
 }
 
 export type TabType = 'issuers' | 'arrangers' | 'trustees' | 'registrars' | 'rating agency';
+
+export interface TabItem {
+  label: string;
+  value: TabType;
+}

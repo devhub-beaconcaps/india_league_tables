@@ -114,3 +114,17 @@ export const getAdminSimilarTrusteesData = async (trusteeId: unknown) => {
         console.error("Error fetching similar trustee data:", err.message);
     }
 }
+
+export const getMonthlyReportData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/market_snapshot`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching monthly data:", err.message);
+    }
+}
