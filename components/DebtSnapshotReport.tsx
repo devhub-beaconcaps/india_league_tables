@@ -52,16 +52,24 @@ interface IssuerListResult {
 }
 interface RatingsListResult {
   rating_label: string;
-  issuer_count: string;
-  total_issue_size: string;
-  shares: string;
+  issuer_count_current_month: string | number;
+  total_issue_size_current_month: string | number;
+  shares_current_month: string | number;
+  issuer_count_previous_month: string | number;
+  total_issue_size_previous_month: string | number;
+  shares_previous_month: string | number;
 }
+
 interface SectorListResult {
   sector_name: string;
-  isin_count: string;
-  issuer_count: string;
-  total_issue_size: string;
-  shares: string;
+  isin_count_current_month: string | number;
+  issuer_count_current_month: string | number;
+  total_issue_size_current_month: string | number;
+  shares_current_month: string | number;
+  isin_count_previous_month: string | number;
+  issuer_count_previous_month: string | number;
+  total_issue_size_previous_month: string | number;
+  shares_previous_month: string | number;
 }
 interface SectorAndRatingListResult {
   sector_name: string;
@@ -102,12 +110,20 @@ interface TopRatingWithIssuersResult {
   avg_coupon_rate: string;
 }
 
+// ... existing code ...
+
+// ----- Types -----
+interface TopSectorNameResult {
+  sector_name: string;
+}
+
 interface ReportData {
   totalIssuersResult: TotalIssuersResult[];
   totalIssueCountResult: TotalIssueCountResult[];
   totalIssueSizeResult: TotalIssueSizeResult[];
   AvgIssueSizeResult: AvgIssueSizeResult[];
   totalUniqueIssuersResult: TotalUniqueIssuersResult[];
+  topSectorNameQueryResult: TopSectorNameResult[]; // Add this line
   topIssuerByIssueSizeResult: TopIssuerByIssueSizeResult[];
   topIssuerByIssuerNumberResult: TopIssuerByIssuerNumberResult[];
   topRatingResult: TopRatingResult[];
@@ -120,6 +136,8 @@ interface ReportData {
   topRatingWithIssuersResult: TopRatingWithIssuersResult[];
 }
 
+// ... rest of the code ...
+
 // ----- Default Data (fully updated from the provided JSON) -----
 const defaultData: ReportData = {
   totalIssuersResult: [{ total_issuers: '152' }],
@@ -127,6 +145,7 @@ const defaultData: ReportData = {
   totalIssueSizeResult: [{ total_issue_size: '84588' }],
   AvgIssueSizeResult: [{ avg_issue_size: '556' }],
   totalUniqueIssuersResult: [{ total_issuers: '114' }],
+  topSectorNameQueryResult: [{ sector_name: 'Non-Banking Financial Company (NBFC)' }], // Add this line
   topIssuerByIssueSizeResult: [
     {
       issuer_name: 'EQYIZEN INVESTMENT PRIVATE LIMITED',
@@ -211,85 +230,38 @@ const defaultData: ReportData = {
   ],
   ratingsListResult: [
     {
-      rating_label: 'AAA',
-      issuer_count: '22',
-      total_issue_size: '23393',
-      shares: '39.29',
+      rating_label: "AAA",
+      issuer_count_current_month: 22,
+      total_issue_size_current_month: 23393,
+      shares_current_month: 39.29,
+      issuer_count_previous_month: 40,
+      total_issue_size_previous_month: 8435,
+      shares_previous_month: 35.71
     },
     {
-      rating_label: 'PP-MLD  A+ (CE)',
-      issuer_count: '1',
-      total_issue_size: '4510',
-      shares: '1.79',
+      rating_label: "AA+",
+      issuer_count_current_month: 4,
+      total_issue_size_current_month: 1248,
+      shares_current_month: 7.14,
+      issuer_count_previous_month: 13,
+      total_issue_size_previous_month: 1608,
+      shares_previous_month: 11.61
     },
-    {
-      rating_label: 'BB',
-      issuer_count: '4',
-      total_issue_size: '3466',
-      shares: '7.14',
-    },
-    {
-      rating_label: 'BB+',
-      issuer_count: '3',
-      total_issue_size: '2365',
-      shares: '5.36',
-    },
-    {
-      rating_label: 'AA+',
-      issuer_count: '4',
-      total_issue_size: '1248',
-      shares: '7.14',
-    },
-    {
-      rating_label: 'C & rest',
-      issuer_count: '22',
-      total_issue_size: '3211',
-      shares: '39.29',
-    },
+    // ... add all the other rating entries from your JSON
   ],
   sectorListResult: [
     {
-      sector_name: 'Non-Banking Financial Company (NBFC)',
-      isin_count: '66',
-      issuer_count: '66',
-      total_issue_size: '22965',
-      shares: '50.77',
+      sector_name: "Non-Banking Financial Company (NBFC)",
+      isin_count_current_month: 66,
+      issuer_count_current_month: 66,
+      total_issue_size_current_month: 22965,
+      shares_current_month: 72.53,
+      isin_count_previous_month: 181,
+      issuer_count_previous_month: 181,
+      total_issue_size_previous_month: 60139,
+      shares_previous_month: 67.79
     },
-    {
-      sector_name: 'Financial Institution',
-      isin_count: '8',
-      issuer_count: '8',
-      total_issue_size: '16121',
-      shares: '6.15',
-    },
-    {
-      sector_name: 'Housing Finance Company',
-      isin_count: '8',
-      issuer_count: '8',
-      total_issue_size: '9610',
-      shares: '6.15',
-    },
-    {
-      sector_name: 'Investment Company',
-      isin_count: '6',
-      issuer_count: '6',
-      total_issue_size: '5138',
-      shares: '4.62',
-    },
-    {
-      sector_name: 'Diversified',
-      isin_count: '1',
-      issuer_count: '1',
-      total_issue_size: '2500',
-      shares: '0.77',
-    },
-    {
-      sector_name: 'Electric Utilities',
-      isin_count: '2',
-      issuer_count: '2',
-      total_issue_size: '1565',
-      shares: '1.54',
-    },
+    // ... add all sector entries from your JSON
   ],
   sectorAndRatingListResult: [
     {
@@ -482,78 +454,6 @@ const formatCouponRange = (min: string | undefined, max: string | undefined): st
   return `${fMin}-${fMax}`;
 };
 
-// ----- Chart Components (unchanged) -----
-interface VerticalBarChartProps {
-  data: Array<{ label: string; value: number }>;
-  valueSuffix?: string;
-}
-
-const VerticalBarChartWithColors: React.FC<VerticalBarChartProps> = ({ data, valueSuffix = '' }) => {
-  const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444'];
-  const chartData = data.map((item) => ({ name: item.label, value: item.value }));
-
-  return (
-    <div style={{ width: '50%', height: 180 }}>
-      <ResponsiveContainer>
-        <BarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" />
-          <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => v.toFixed(0)} />
-          <Bar dataKey="value">
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-            ))}
-            <LabelList
-              dataKey="value"
-              position="top"
-              formatter={(v: number) => `${v.toFixed(1)}${valueSuffix}`}
-              style={{ fontSize: 9, fill: '#6b7280' }}
-            />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
-
-interface HorizontalBarChartProps {
-  data: Array<{ label: string; value: number }>;
-  valueSuffix?: string;
-}
-
-const HorizontalBarChart: React.FC<HorizontalBarChartProps> = ({ data, valueSuffix = '' }) => {
-  const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444'];
-  const chartData = data.map((item) => ({ name: item.label, value: item.value }));
-
-  return (
-    <div style={{ width: '60%', height: 180 }}>
-      <ResponsiveContainer>
-        <BarChart
-          data={chartData}
-          layout="vertical"
-          margin={{ top: 5, right: 40, left: 20, bottom: 5 }}
-          barCategoryGap="20%"
-        >
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-          <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => v.toFixed(0)} />
-          <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={180} interval={0} />
-          <Tooltip formatter={(v: number) => `${v.toFixed(1)}${valueSuffix}`} />
-          <Bar dataKey="value" barSize={16}>
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-            ))}
-            <LabelList
-              dataKey="value"
-              position="right"
-              formatter={(v: number) => `${v.toFixed(1)}${valueSuffix}`}
-              style={{ fontSize: 9, fill: '#6b7280' }}
-            />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
 
 interface GroupedBarChartProps {
   data: Array<{
@@ -633,8 +533,8 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         total_issuers: d.totalIssuersResult?.[0]?.total_issuers || '0',
         total_isins: d.totalIssueCountResult?.[0]?.total_isins || '0',
         total_issue_size: d.totalIssueSizeResult?.[0]?.total_issue_size || '0',
-        avg_issue_size: d.AvgIssueSizeResult?.[0]?.avg_issue_size || '0',
-        unique_issuers: d.totalUniqueIssuersResult?.[0]?.total_issuers || '0',
+        avg_issue_size: d.AvgIssueSizeResult || '0',
+        top_sector: d.topSectorNameQueryResult?.[0]?.sector_name || '—', 
         top_issuer_size: d.topIssuerByIssueSizeResult?.[0]?.issuer_name || '—',
         top_issuer_count: d.topIssuerByIssuerNumberResult?.[0]?.issuer_name || '—',
         top_rating: d.topRatingResult?.[0]?.rating || '—',
@@ -833,7 +733,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
           total_isins,
           total_issue_size,
           avg_issue_size,
-          unique_issuers,
+          top_sector,
           top_issuer_size,
           top_issuer_count,
           top_rating,
@@ -843,7 +743,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
           { label: 'Total ISINs', value: total_isins },
           { label: 'Total Issue Size (Cr)', value: formatCrores(total_issue_size) },
           { label: 'Avg Issue Size (Cr)', value: formatCrores(avg_issue_size) },
-          { label: 'Unique Issuers', value: unique_issuers },
+          { label: 'Top Sector', value: top_sector },
           { label: 'Top Issuer (Size)', value: top_issuer_size },
           { label: 'Top Issuer (Count)', value: top_issuer_count },
           { label: 'Top Rating', value: top_rating },
@@ -921,9 +821,11 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
 
       case 'ratingDistribution': {
         const ratingData = section.data as RatingsListResult[];
+        // Prepare data for grouped bar chart (total issue size)
         const chartData = ratingData.map((item) => ({
           label: item.rating_label,
-          value: parseFloat(item.total_issue_size) || 0,
+          value1: parseFloat(item.total_issue_size_previous_month as string) || 0,
+          value2: parseFloat(item.total_issue_size_current_month as string) || 0,
         }));
         return (
           <div key={key} id={id} className="section-item" style={sectionStyle}>
@@ -942,29 +844,45 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                 <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
                   <tr>
                     <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>Rating</th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>Issuer Count</th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
-                      Total Issue Size (Cr)
-                    </th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>Shares (%)</th>
+                    <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>Issuer Count</th>
+                    <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>Total Issue Size (Cr)</th>
+                    <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>Shares (%)</th>
+                  </tr>
+                  <tr>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}></th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jun 2026</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jul 2026</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jun 2026</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jul 2026</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jun 2026</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jul 2026</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ratingData.map((item, idx) => (
                     <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>{item.rating_label}</td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>{item.issuer_count}</td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>{item.issuer_count_previous_month}</td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>{item.issuer_count_current_month}</td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        {formatCrores(item.total_issue_size)}
+                        {formatCrores(item.total_issue_size_previous_month)}
                       </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>{formatPercent(item.shares)}</td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        {formatCrores(item.total_issue_size_current_month)}
+                      </td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        {formatPercent(item.shares_previous_month)}
+                      </td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        {formatPercent(item.shares_current_month)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <VerticalBarChartWithColors data={chartData} valueSuffix=" Cr" />
+              <GroupedBarChart data={chartData} />
             </div>
           </div>
         );
@@ -972,9 +890,11 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
 
       case 'sectorDistribution': {
         const sectorData = section.data as SectorListResult[];
+        // Prepare data for grouped bar chart (total issue size)
         const chartData = sectorData.map((item) => ({
           label: item.sector_name,
-          value: parseFloat(item.total_issue_size) || 0,
+          value1: parseFloat(item.total_issue_size_previous_month as string) || 0,
+          value2: parseFloat(item.total_issue_size_current_month as string) || 0,
         }));
         return (
           <div key={key} id={id} className="section-item" style={sectionStyle}>
@@ -993,31 +913,51 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                 <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
                   <tr>
                     <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>Sector</th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>ISIN Count</th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>Issuer Count</th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
-                      Total Issue Size (Cr)
-                    </th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>Shares (%)</th>
+                    <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>ISIN Count</th>
+                    <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>Issuer Count</th>
+                    <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>Total Issue Size (Cr)</th>
+                    <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>Shares (%)</th>
+                  </tr>
+                  <tr>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}></th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jun 2026</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jul 2026</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jun 2026</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jul 2026</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jun 2026</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jul 2026</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jun 2026</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>Jul 2026</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sectorData.map((item, idx) => (
                     <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>{item.sector_name}</td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>{item.isin_count}</td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>{item.issuer_count}</td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>{item.isin_count_previous_month}</td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>{item.isin_count_current_month}</td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>{item.issuer_count_previous_month}</td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>{item.issuer_count_current_month}</td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        {formatCrores(item.total_issue_size)}
+                        {formatCrores(item.total_issue_size_previous_month)}
                       </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>{formatPercent(item.shares)}</td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        {formatCrores(item.total_issue_size_current_month)}
+                      </td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        {formatPercent(item.shares_previous_month)}
+                      </td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        {formatPercent(item.shares_current_month)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <HorizontalBarChart data={chartData} valueSuffix=" Cr" />
+              {/* Reuse GroupedBarChart for comparison */}
+              <GroupedBarChart data={chartData} />
             </div>
           </div>
         );
