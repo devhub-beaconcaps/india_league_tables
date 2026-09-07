@@ -14,6 +14,136 @@ import {
   LabelList,
 } from 'recharts';
 
+import upTrend from '@/public/img/ILTMonthlyReportFirstPage.png'
+import Image, { StaticImageData } from 'next/image';
+import fifthLast from '@/public/img/fifthLast.png';
+import fourthLast from '@/public/img/fourthLast.png';
+import thirdLast from '@/public/img/thirdLast.png';
+import secondLastOne from '@/public/img/secondLastOne.png';
+import type { CSSProperties } from 'react';
+import lastOne from '@/public/img/lastOne.png';
+import substack from '@/public/img/substack.png';
+import whatsapp from '@/public/img/whatsapp.png';
+import linkedIn from '@/public/img/linkedIn.png';
+import telegram from '@/public/img/telegram.png';
+import twitter from '@/public/img/twitter.png';
+import instagram from '@/public/img/instagram.png';
+import { Link } from 'lucide-react';
+
+const extraImagePages: Array<{
+  src: StaticImageData;
+  alt: string;
+  overlay: {
+    containerStyle: React.CSSProperties;
+    imageStyle: React.CSSProperties;
+    images: StaticImageData[];
+    links?: string[];
+  } | null;
+
+}> = [
+    // Page 0: fifthLast – no overlay
+    { src: fifthLast, alt: 'Fifth Last', overlay: null },
+
+    // Page 1: fourthLast – overlay
+    {
+      src: fourthLast,
+      alt: 'Fourth Last',
+      overlay: {
+        containerStyle: {
+          position: 'absolute',
+          top: '90%',
+          left: '29%',
+          display: 'flex',
+          flexDirection: 'row' as const,
+          gap: '8px',
+          // adjust as needed
+        } as React.CSSProperties,
+        imageStyle: {
+          width: 60,
+          height: 60,
+          objectFit: 'contain',
+        } as React.CSSProperties,
+        images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
+        links: [
+          'https://example.com/1',
+          'https://example.com/2',
+          'https://example.com/3',
+          'https://example.com/4',
+          'https://example.com/5',
+          'https://example.com/6'
+        ]
+      },
+    },
+
+    // Page 2: thirdLast – no overlay
+    { src: thirdLast, alt: 'Third Last', overlay: null },
+
+    // Page 3: secondLastOne – overlay
+    {
+      src: secondLastOne,
+      alt: 'Second Last',
+      overlay: {
+        containerStyle: {
+          position: 'absolute',
+          bottom: '36%',
+          right: '27%',
+          display: 'flex',
+          flexDirection: 'row' as const,
+          gap: '12px',
+          // adjust as needed
+        } as React.CSSProperties,
+        imageStyle: {
+          width: 60,
+          height: 60,
+          objectFit: 'contain',
+        } as React.CSSProperties,
+        images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
+        links: [
+          'https://example.com/1',
+          'https://example.com/2',
+          'https://example.com/3',
+          'https://example.com/4',
+          'https://example.com/5',
+          'https://example.com/6'
+        ]
+      },
+    },
+
+    // Page 4: lastOne – overlay
+    {
+      src: lastOne,
+      alt: 'Last One',
+      overlay: {
+        containerStyle: {
+          position: 'absolute',
+          top: '86%',
+          left: '33%',
+          transform: 'translate(-50%, -50%)',
+          display: 'flex',
+          flexDirection: 'row' as const,
+          gap: '1px',
+          // adjust as needed
+        } as React.CSSProperties,
+        imageStyle: {
+          width: 50,
+          height: 50,
+          objectFit: 'contain',
+        } as React.CSSProperties,
+        images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
+        links: [
+          'https://example.com/1',
+          'https://example.com/2',
+          'https://example.com/3',
+          'https://example.com/4',
+          'https://example.com/5',
+          'https://example.com/6'
+        ]
+      },
+    },
+  ];
+
+
+
 // ----- Types -----
 interface TotalIssuersResult {
   total_issuers: string;
@@ -145,12 +275,14 @@ const sectorShortNameMap: Record<string, string> = {
 };
 
 const getSectorShortName = (fullName: string): string => {
-  // If we have a predefined mapping, use it
+  // If the full name is short enough, no abbreviation needed
+  if (fullName.length <= 15) return fullName;
+  // Predefined mapping
   if (sectorShortNameMap[fullName]) return sectorShortNameMap[fullName];
-  // If the name contains parentheses, extract that as short name
+  // Extract from parentheses if present
   const match = fullName.match(/\(([^)]+)\)/);
   if (match) return match[1];
-  // Fallback: first letters of each word (simple but may be ambiguous)
+  // Fallback: initials
   return fullName
     .split(' ')
     .map((w) => w[0])
@@ -159,7 +291,22 @@ const getSectorShortName = (fullName: string): string => {
 };
 
 const getSectorDisplayName = (fullName: string): string => {
+  // Check if the name already contains parentheses
+  const match = fullName.match(/^([^(]+)\(([^)]+)\)$/);
+  if (match) {
+    const main = match[1].trim();
+    const inside = match[2].trim();
+    // If the inside is the same as the main part, avoid duplication
+    if (main === inside) {
+      return main;
+    }
+    // Otherwise keep the original (e.g., "Non-Banking Financial Company (NBFC)")
+    return fullName;
+  }
+  // No parentheses – append a short name
   const short = getSectorShortName(fullName);
+  // Fallback: if short name equals the full name, return the full name only
+  if (short === fullName) return fullName;
   return `${fullName} (${short})`;
 };
 
@@ -375,7 +522,7 @@ const formatPercent = (value: string | number): string => {
 };
 
 const formatCoupon = (value: string | number): string => {
-  if (value === 'Market-Linked Coupon') return 'Market-Linked';
+  if (value === 'Market-Linked' || value === 'Market-Linked Coupon') return 'Market-Linked';
   const num = typeof value === 'string' ? parseFloat(value) : value;
   if (isNaN(num)) return '—';
   return num.toFixed(2) + '%';
@@ -484,6 +631,8 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
   const [pages, setPages] = useState<any[][]>([]);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const measurementTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  console.log('DebtSnapshotReport data:', data);
 
   // ----- Build sections from data -----
   const getSections = useCallback(() => {
@@ -708,9 +857,9 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
           { label: 'Total ISINs', value: total_isins },
           { label: 'Total Issue Size (Cr)', value: formatCrores(total_issue_size) },
           { label: 'Avg Issue Size (Cr)', value: formatCrores(avg_issue_size) },
+          { label: 'Top Issuer (By Issue Size)', value: top_issuer_size },
+          { label: 'Top Issuer (By No. of Issues)', value: top_issuer_count },
           { label: 'Top Sector', value: top_sector },
-          { label: 'Top Issuer (Size)', value: top_issuer_size },
-          { label: 'Top Issuer (Count)', value: top_issuer_count },
           { label: 'Top Rating', value: top_rating },
         ];
         return (
@@ -771,7 +920,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                       <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
                         {row.map((cell: any, cellIdx: number) => (
                           <td key={cellIdx} style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                            <div className='translate-y-[-6px]'></div>{cell}
+                            <div className='translate-y-[-6px]'>{cell}</div>
                           </td>
                         ))}
                       </tr>
@@ -856,7 +1005,9 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         const sectorData = section.data as SectorListResult[];
         // Chart uses short names
         const chartData = sectorData.map((item) => ({
-          label: getSectorShortName(item.sector_name),
+          label: item.sector_name.length > 15
+            ? getSectorShortName(item.sector_name)
+            : item.sector_name,
           value1: parseFloat(item.total_issue_size_previous_month as string) || 0,
           value2: parseFloat(item.total_issue_size_current_month as string) || 0,
         }));
@@ -948,7 +1099,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                     <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>AA</div></th>
                     <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>AA-</div></th>
                     <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>A+</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>A (others)</div></th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>A &amp; Below</div></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1010,9 +1161,15 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
               >
                 <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
                   <tr>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Metric</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Value 2025</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Value 2026</div></th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                      <div className='translate-y-[-6px]'>Metric</div>
+                    </th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                      <div className='translate-y-[-6px]'>July 2025</div>
+                    </th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                      <div className='translate-y-[-6px]'>July 2026</div>
+                    </th>
                     <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
                       <div className='translate-y-[-6px]'>YoY Change (%)</div>
                     </th>
@@ -1023,6 +1180,12 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                     <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
                         <div className='translate-y-[-6px]'>{item.metric_name}</div>
+                      </td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className='translate-y-[-6px]'>{item.value_2025}</div>
+                      </td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className='translate-y-[-6px]'>{item.value_2026}</div>
                       </td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
                         <div className='translate-y-[-6px]'>{formatPercent(item.yoy_change_pct)}</div>
@@ -1062,31 +1225,55 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
               >
                 <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
                   <tr>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Issuer Name</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Total Issue Size (Cr)</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Tenure (yrs)</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Coupon (%)</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Avg Coupon (%)</div></th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                      <div className='translate-y-[-6px]'>Issuer Name</div>
+                    </th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                      <div className='translate-y-[-6px]'>Total Issue Size (Cr)</div>
+                    </th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                      <div className='translate-y-[-6px]'>Tenure (yrs)</div>
+                    </th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                      <div className='translate-y-[-6px]'>Coupon (%)</div>
+                    </th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                      <div className='translate-y-[-6px]'>Avg Coupon (%)</div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.map((item: TopSectorsWithIssuersResult, idx: number) => (
-                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>{item.issuer_name}</div></td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.total_issue_size)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatTenureRange(item.tenure_min, item.tenure_max)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCouponRange(item.coupon_min, item.coupon_max)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{item.avg_coupon_rate ? formatCoupon(item.avg_coupon_rate) : '—'}</div>
-                      </td>
-                    </tr>
-                  ))}
+                  {data.map((item: TopSectorsWithIssuersResult, idx: number) => {
+                    // Determine coupon display
+                    const isMarketLinked =
+                      item.coupon_min === 'Market-Linked' ||
+                      item.coupon_max === 'Market-Linked' ||
+                      item.coupon_min === 'Market-Linked Coupon' ||
+                      item.coupon_max === 'Market-Linked Coupon';
+
+                    const couponDisplay = isMarketLinked ? 'Market-Linked' : formatCouponRange(item.coupon_min, item.coupon_max);
+                    const avgCouponDisplay = isMarketLinked ? '—' : (item.avg_coupon_rate ? formatCoupon(item.avg_coupon_rate) : '—');
+
+                    return (
+                      <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className='translate-y-[-6px]'>{item.issuer_name}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className='translate-y-[-6px]'>{formatCrores(item.total_issue_size)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className='translate-y-[-6px]'>{formatTenureRange(item.tenure_min, item.tenure_max)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className='translate-y-[-6px]'>{couponDisplay}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className='translate-y-[-6px]'>{avgCouponDisplay}</div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1230,12 +1417,12 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                   flexShrink: 0,
                   backgroundColor: '#1e3a8a',
                   color: 'white',
-                  padding: '10px 24px',
+                  padding: '0px 24px 10px 24px',
                   borderRadius: '16px 16px 0 0',
                   textAlign: 'center',
                 }}
               >
-                <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>
+                <div className='translate-y-[-15px]' style={{ fontSize: '1.2rem', fontWeight: 700 }}>
                   Monthly Issuance Pulse- July 2026
                 </div>
               </div>
@@ -1263,6 +1450,67 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
 
       {/* Visible pages */}
       <div ref={pagesContainerRef} style={{ margin: 0, padding: 0, background: 'white' }}>
+        {/* ---- COVER PAGE ---- */}
+        <div
+          className="page cover-page"
+          style={{
+            width: '100%',
+            maxWidth: PAGE_MAX_WIDTH,
+            height: `${PAGE_HEIGHT}px`,
+            margin: '0 auto',
+            pageBreakAfter: 'always',
+            breakAfter: 'page',
+            overflow: 'hidden',
+            backgroundColor: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div style={{ width: '100%', height: '100%', padding: '24px', backgroundColor: '#1e3a8a' }}>
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: '100%',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                backgroundColor: '#ffffff',
+              }}
+            >
+              <Image
+                src={upTrend}
+                alt="Cover"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+              {/* Overlay text */}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '59%',
+                  left: '22%',
+                  transform: 'translateX(-50%)',
+                  color: '#ffffff',
+                  fontSize: '3.5rem',
+                  fontWeight: 700,
+                  textShadow: '0 4px 20px rgba(0,0,0,0.8)',
+                  letterSpacing: '4px',
+                  textAlign: 'center',
+                  width: '100%',
+                  padding: '0 20px',
+                  fontFamily: 'sans-serif',
+                }}
+              >
+                August 2026
+              </div>
+            </div>
+          </div>
+        </div>
         {pages.map((pageSections, pageIndex) => (
           <div
             key={`page-${pageIndex}`}
@@ -1293,12 +1541,12 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                     flexShrink: 0,
                     backgroundColor: '#1e3a8a',
                     color: 'white',
-                    padding: '10px 24px',
+                    padding: '0px 24px 10px 24px',
                     borderRadius: '16px 16px 0 0',
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>
+                  <div className='translate-y-[-15px]' style={{ fontSize: '1.2rem', fontWeight: 700 }}>
                     Monthly Issuance Pulse- July 2026
                   </div>
                 </div>
@@ -1319,6 +1567,69 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                 >
                   Page {pageIndex + 1}
                 </div>
+              </div>
+            </div>
+          </div>
+        ))}
+        {/* Extra image pages */}
+        {extraImagePages.map((img, idx) => (
+          <div
+            key={`extra-page-${idx}`}
+            className="page"
+            style={{
+              width: '100%',
+              maxWidth: PAGE_MAX_WIDTH,
+              height: `${PAGE_HEIGHT}px`,
+              margin: '0 auto',
+              pageBreakAfter: 'always',
+              breakAfter: 'page',
+              overflow: 'hidden',
+              backgroundColor: '#ffffff',
+            }}
+          >
+            <div style={{ width: '100%', height: '100%', padding: '24px', backgroundColor: '#1e3a8a' }}>
+              <div
+                style={{
+                  position: 'relative', // needed for absolute positioning of overlay
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  backgroundColor: '#ffffff',
+                }}
+              >
+                <Image
+                  src={img.src}
+                  alt={img.alt}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+
+                {/* Overlay if defined */}
+                {img.overlay && (
+                  <div style={img.overlay.containerStyle}>
+                    {img.overlay.images.map((imageSrc, i) => (
+                      <a
+                        key={i}
+                        href={img.overlay.links?.[i] || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-block',
+                          color: 'inherit',          // force inherit from parent (no oklch)
+                          textDecoration: 'none',    // optional
+                        }}
+                        data-link="true"
+                      >
+                        <Image src={imageSrc} alt={`icon-${i}`} style={img.overlay.imageStyle} />
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
