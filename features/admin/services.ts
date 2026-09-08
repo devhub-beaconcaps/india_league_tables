@@ -117,7 +117,7 @@ export const getAdminSimilarTrusteesData = async (trusteeId: unknown) => {
 
 export const getMonthlyReportData = async (query: unknown) => {
     try {
-        const response = await fetch(`${backendURL}/market_snapshot`, {
+        const response = await fetch(`${backendURL}/market-snapshot-data`, {
             method: "POST",
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(query)

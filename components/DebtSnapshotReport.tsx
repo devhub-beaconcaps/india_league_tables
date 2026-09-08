@@ -35,9 +35,14 @@ const extraImagePages: Array<{
   alt: string;
   overlay: {
     containerStyle: React.CSSProperties;
+    TextcontainerStyle?: React.CSSProperties;
     imageStyle: React.CSSProperties;
     images: StaticImageData[];
     links?: string[];
+    textLink?: {
+      text: string;
+      href: string;
+    };
   } | null;
 
 }> = [
@@ -52,10 +57,10 @@ const extraImagePages: Array<{
         containerStyle: {
           position: 'absolute',
           top: '90%',
-          left: '29%',
+          left: '30%',
           display: 'flex',
           flexDirection: 'row' as const,
-          gap: '8px',
+          gap: '13px',
           // adjust as needed
         } as React.CSSProperties,
         imageStyle: {
@@ -65,13 +70,14 @@ const extraImagePages: Array<{
         } as React.CSSProperties,
         images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
         links: [
-          'https://example.com/1',
-          'https://example.com/2',
-          'https://example.com/3',
-          'https://example.com/4',
-          'https://example.com/5',
-          'https://example.com/6'
+          'https://substack.com/@debtcircle',
+          'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
+          'https://www.linkedin.com/company/debt-circle',
+          'https://t.me/debtcircle',
+          'https://x.com/DebtCircle',
+          'https://www.instagram.com/debtcircle'
         ]
+
       },
     },
 
@@ -86,10 +92,10 @@ const extraImagePages: Array<{
         containerStyle: {
           position: 'absolute',
           bottom: '36%',
-          right: '27%',
+          right: '31%',
           display: 'flex',
           flexDirection: 'row' as const,
-          gap: '12px',
+          gap: '13px',
           // adjust as needed
         } as React.CSSProperties,
         imageStyle: {
@@ -99,13 +105,22 @@ const extraImagePages: Array<{
         } as React.CSSProperties,
         images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
         links: [
-          'https://example.com/1',
-          'https://example.com/2',
-          'https://example.com/3',
-          'https://example.com/4',
-          'https://example.com/5',
-          'https://example.com/6'
-        ]
+          'https://substack.com/@debtcircle',
+          'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
+          'https://www.linkedin.com/company/debt-circle',
+          'https://t.me/debtcircle',
+          'https://x.com/DebtCircle',
+          'https://www.instagram.com/debtcircle'
+        ],
+        TextcontainerStyle: {
+          position: 'absolute',
+          bottom: '29%',
+          right: '39%',
+        },
+        textLink: {
+          text: 'https://debtcircle.in',
+          href: 'https://debtcircle.in'
+        }
       },
     },
 
@@ -117,11 +132,11 @@ const extraImagePages: Array<{
         containerStyle: {
           position: 'absolute',
           top: '86%',
-          left: '33%',
+          left: '32%',
           transform: 'translate(-50%, -50%)',
           display: 'flex',
           flexDirection: 'row' as const,
-          gap: '1px',
+          gap: '13px',
           // adjust as needed
         } as React.CSSProperties,
         imageStyle: {
@@ -131,12 +146,12 @@ const extraImagePages: Array<{
         } as React.CSSProperties,
         images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
         links: [
-          'https://example.com/1',
-          'https://example.com/2',
-          'https://example.com/3',
-          'https://example.com/4',
-          'https://example.com/5',
-          'https://example.com/6'
+          'https://substack.com/@debtcircle',
+          'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
+          'https://www.linkedin.com/company/debt-circle',
+          'https://t.me/debtcircle',
+          'https://x.com/DebtCircle',
+          'https://www.instagram.com/debtcircle'
         ]
       },
     },
@@ -202,13 +217,16 @@ interface SectorListResult {
 }
 interface SectorAndRatingListResult {
   sector_name: string;
-  total_issue_size_crores: string;
-  AAA: string;
-  AA_plus: string;
-  AA: string;
-  AA_minus: string;
-  A_plus: string;
-  A_others: string;
+  isin_count: string;                // new
+  total_issuers: string;             // new
+  total_issue_size_cr: string;       // renamed (was total_issue_size_crores)
+  AAA_cr: string;                    // renamed
+  "AA+_cr": string;                  // renamed (note: key with +)
+  "AA_cr": string;                   // renamed
+  "AA-_cr": string;                  // renamed
+  "A+_cr": string;                   // renamed
+  "A & below_cr": string;            // renamed (with space)
+  shares: string;                    // new
 }
 interface MonthlyCompareListResult {
   metric_name: string;
@@ -336,69 +354,6 @@ const defaultData: ReportData = {
       latest_rating: null,
       sector: null,
     },
-    {
-      issuer_name: 'SMALL INDUSTRIES DEVELOPMENT BANK OF INDIA',
-      isin_count: '1',
-      total_issue_size: '8000',
-      latest_rating: 'AAA',
-      sector: 'Financial Institution',
-    },
-    {
-      issuer_name: 'NATIONAL BANK FOR AGRICULTURE AND RURAL DEVELOPMENT',
-      isin_count: '1',
-      total_issue_size: '8000',
-      latest_rating: 'AAA',
-      sector: 'Financial Institution',
-    },
-    {
-      issuer_name: 'TATA CAPITAL LIMITED',
-      isin_count: '2',
-      total_issue_size: '4780',
-      latest_rating: 'AAA',
-      sector: 'Investment Company',
-    },
-    {
-      issuer_name: 'SAMMAAN CAPITAL LIMITED',
-      isin_count: '2',
-      total_issue_size: '4510',
-      latest_rating: 'AAA',
-      sector: 'Housing Finance Company',
-    },
-    {
-      issuer_name: 'BAJAJ FINANCE LIMITED',
-      isin_count: '1',
-      total_issue_size: '4000',
-      latest_rating: 'AAA',
-      sector: 'Non-Banking Financial Company (NBFC)',
-    },
-    {
-      issuer_name: 'MUTHOOT FINCORP LIMITED',
-      isin_count: '13',
-      total_issue_size: '2888',
-      latest_rating: 'AA+',
-      sector: 'Non-Banking Financial Company (NBFC)',
-    },
-    {
-      issuer_name: 'NTPC GREEN ENERGY LIMITED',
-      isin_count: '1',
-      total_issue_size: '2500',
-      latest_rating: 'AAA',
-      sector: 'Diversified',
-    },
-    {
-      issuer_name: 'BAJAJ HOUSING FINANCE LIMITED',
-      isin_count: '1',
-      total_issue_size: '2500',
-      latest_rating: 'AAA',
-      sector: 'Housing Finance Company',
-    },
-    {
-      issuer_name: 'HDB FINANCIAL SERVICES LIMITED',
-      isin_count: '3',
-      total_issue_size: '2350',
-      latest_rating: 'AAA',
-      sector: 'Non-Banking Financial Company (NBFC)',
-    },
   ],
   ratingsListResult: [
     {
@@ -438,25 +393,18 @@ const defaultData: ReportData = {
   sectorAndRatingListResult: [
     {
       sector_name: 'Non-Banking Financial Company (NBFC)',
-      total_issue_size_crores: '8349.54',
-      AAA: '944.01',
-      AA_plus: '30',
-      AA: '0',
-      AA_minus: '0',
-      A_plus: '0',
-      A_others: '7375.53',
+      isin_count: '63',
+      total_issuers: '40',
+      total_issue_size_cr: '21290',
+      AAA_cr: '944',
+      "AA+_cr": '30',
+      "AA_cr": '0',
+      "AA-_cr": '0',
+      "A+_cr": '0',
+      "A & below_cr": '20316',
+      shares: '44.94',
     },
-    {
-      sector_name: 'Housing Finance Company',
-      total_issue_size_crores: '5010',
-      AAA: '0',
-      AA_plus: '0',
-      AA: '0',
-      AA_minus: '0',
-      A_plus: '0',
-      A_others: '5010',
-    },
-    // ... (other cross-table entries)
+    // ...
   ],
   monthlyCompareListResult: [
     {
@@ -584,13 +532,14 @@ const GroupedBarChart: React.FC<GroupedBarChartProps> = ({ data }) => {
 
   return (
     <div style={{ width: '50%', height: 210 }}>
+
+
       <ResponsiveContainer>
-        <BarChart data={chartData} margin={{ top: 25, right: 10, left: 0, bottom: 20 }}>
+        <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" />
           <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => v.toFixed(0)} />
-          <Tooltip />
-          <Legend />
+          {/* Remove the built-in <Legend /> */}
           <Bar dataKey="value2025" fill="#3b82f6" name="2025">
             <LabelList
               dataKey="value2025"
@@ -609,6 +558,17 @@ const GroupedBarChart: React.FC<GroupedBarChartProps> = ({ data }) => {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      {/* Custom Legend */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', paddingBottom: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div className='translate-y-[-6px]' style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#3b82f6' }}></div>
+          <div className='translate-y-[-12px]' style={{ fontSize: '0.75rem', color: '#374151' }}>2025</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div className='translate-y-[-6px]' style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#f97316' }}></div>
+          <div className='translate-y-[-12px]' style={{ fontSize: '0.75rem', color: '#374151' }}>2026</div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -633,6 +593,14 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
   const measurementTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   console.log('DebtSnapshotReport data:', data);
+
+  const formatRatingLabel = (rating: string): string => {
+    // If it contains '&' but not with spaces, add spaces around it
+    if (rating.includes('&') && !rating.includes(' & ')) {
+      return rating.replace(/&/g, ' & ').replace(/\s+/g, ' ').trim();
+    }
+    return rating;
+  };
 
   // ----- Build sections from data -----
   const getSections = useCallback(() => {
@@ -744,7 +712,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         const section: any = {
           id: `rating-${rating.replace(/\s/g, '-')}`,
           type: 'sectorIssuerTable',
-          title: `Rating: ${rating}`,
+          title: `Rating: ${formatRatingLabel(rating)}`,
           data: issuers,
         };
         if (index === 0) {
@@ -1013,7 +981,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         }));
         return (
           <div key={key} id={id} className="section-item" style={sectionStyle}>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
+            <h2 className='translate-y-[-6px]' style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
               Issuances by Sector
             </h2>
             <div style={{ overflowX: 'auto', marginBottom: '6px' }}>
@@ -1078,7 +1046,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         const crossData = section.data as SectorAndRatingListResult[];
         return (
           <div key={key} id={id} className="section-item" style={sectionStyle}>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
+            <h2 className='translate-y-[-6px]' style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
               Sector × Credit Rating Distribution
             </h2>
             <div style={{ overflowX: 'auto' }}>
@@ -1109,25 +1077,25 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                         <div className='translate-y-[-6px]'>{getSectorDisplayName(item.sector_name)}</div>
                       </td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.total_issue_size_crores)}</div>
+                        <div className='translate-y-[-6px]'>{formatCrores(item.total_issue_size_cr)}</div>
                       </td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.AAA)}</div>
+                        <div className='translate-y-[-6px]'>{formatCrores(item.AAA_cr)}</div>
                       </td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.AA_plus)}</div>
+                        <div className='translate-y-[-6px]'>{formatCrores(item["AA+_cr"])}</div>
                       </td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.AA)}</div>
+                        <div className='translate-y-[-6px]'>{formatCrores(item["AA_cr"])}</div>
                       </td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.AA_minus)}</div>
+                        <div className='translate-y-[-6px]'>{formatCrores(item["AA-_cr"])}</div>
                       </td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.A_plus)}</div>
+                        <div className='translate-y-[-6px]'>{formatCrores(item["A+_cr"])}</div>
                       </td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.A_others)}</div>
+                        <div className='translate-y-[-6px]'>{formatCrores(item["A & below_cr"])}</div>
                       </td>
                     </tr>
                   ))}
@@ -1207,11 +1175,11 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         return (
           <div key={key} id={id} className="section-item" style={sectionStyle}>
             {groupHeading && (
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '2px' }}>
+              <h2 className='translate-y-[-6px]' style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '2px' }}>
                 {groupHeading}
               </h2>
             )}
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '4px', marginTop: groupHeading ? '2px' : '0' }}>
+            <h3 className='translate-y-[-6px]' style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '4px', marginTop: groupHeading ? '2px' : '0' }}>
               {title}
             </h3>
             <div style={{ overflowX: 'auto' }}>
@@ -1288,10 +1256,11 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
             <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
               Key Takeaways
             </h2>
-            <ul style={{ paddingLeft: '18px', fontSize: '0.75rem', lineHeight: 1.5, listStyle: 'disc' }}>
+            <ul style={{ paddingLeft: '0', fontSize: '0.75rem', lineHeight: 1.5, listStyle: 'none' }}>
               {points.map((point, idx) => (
-                <li key={idx} style={{ marginBottom: '2px' }}>
-                  {point}
+                <li key={idx} style={{ marginBottom: '2px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <div style={{ color: '#1e3a8a', fontWeight: 'bold' }}>•</div>
+                  <div>{point}</div>
                 </li>
               ))}
             </ul>
@@ -1611,24 +1580,44 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
 
                 {/* Overlay if defined */}
                 {img.overlay && (
-                  <div style={img.overlay.containerStyle}>
-                    {img.overlay.images.map((imageSrc, i) => (
-                      <a
-                        key={i}
-                        href={img.overlay.links?.[i] || '#'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: 'inline-block',
-                          color: 'inherit',          // force inherit from parent (no oklch)
-                          textDecoration: 'none',    // optional
-                        }}
-                        data-link="true"
-                      >
-                        <Image src={imageSrc} alt={`icon-${i}`} style={img.overlay.imageStyle} />
-                      </a>
-                    ))}
-                  </div>
+                  <>
+                    <div style={img.overlay.containerStyle}>
+                      {img.overlay.images.map((imageSrc, i) => (
+                        <a
+                          key={i}
+                          href={img.overlay.links?.[i] || '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ display: 'inline-block', color: 'inherit', textDecoration: 'none' }}
+                          data-link="true"
+                        >
+                          <Image src={imageSrc} alt={`icon-${i}`} style={img.overlay.imageStyle} />
+                        </a>
+                      ))}
+
+                    </div>
+                    <div style={img.overlay.TextcontainerStyle}>
+                      {/* 👇 Add the new text link */}
+                      {img.overlay.textLink && (
+                        <a
+                          href={img.overlay.textLink.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-block',
+                            color: '#0d1427ff',            // adjust to match your design
+                            fontSize: '1.9rem',
+                            fontWeight: 600,
+                            textDecoration: 'underline',
+                            marginLeft: '8px',           // spacing from icons
+                          }}
+                          data-link="true"
+                        >
+                          {img.overlay.textLink.text}
+                        </a>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             </div>
