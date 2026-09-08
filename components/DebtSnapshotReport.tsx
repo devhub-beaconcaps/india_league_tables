@@ -217,17 +217,19 @@ interface SectorListResult {
 }
 interface SectorAndRatingListResult {
   sector_name: string;
-  isin_count: string;                // new
-  total_issuers: string;             // new
-  total_issue_size_cr: string;       // renamed (was total_issue_size_crores)
-  AAA_cr: string;                    // renamed
-  "AA+_cr": string;                  // renamed (note: key with +)
-  "AA_cr": string;                   // renamed
-  "AA-_cr": string;                  // renamed
-  "A+_cr": string;                   // renamed
-  "A & below_cr": string;            // renamed (with space)
-  shares: string;                    // new
+  isin_count: string;                // unchanged
+  total_issuers: string;             // unchanged
+  total_issue_size_cr: string;       // unchanged
+  AAA_cr: string;                    // unchanged
+  "AA+_cr": string;                  // unchanged
+  "AA_cr": string;                   // unchanged
+  "AA-_cr": string;                  // unchanged
+  "A+_cr": string;                   // unchanged
+  "A & below (Rated)_cr": string;    // NEW
+  "A & below & (Unrated)_cr": string; // NEW
+  shares: string;                    // unchanged
 }
+
 interface MonthlyCompareListResult {
   metric_name: string;
   value_2025: string;
@@ -401,7 +403,8 @@ const defaultData: ReportData = {
       "AA_cr": '0',
       "AA-_cr": '0',
       "A+_cr": '0',
-      "A & below_cr": '20316',
+      "A & below (Rated)_cr": '20316',
+      "A & below & (Unrated)_cr": '0',
       shares: '44.94',
     },
     // ...
@@ -509,9 +512,9 @@ const formatCouponRange = (min: string | undefined, max: string | undefined): st
   const maxNum = parseFloat(max || '');
   if (!isNaN(minNum) && !isNaN(maxNum)) {
     if (minNum === maxNum) return fMin;
-    return `${fMin}-${fMax}`;
+    return `${fMin} - ${fMax}`;
   }
-  return `${fMin}-${fMax}`;
+  return `${fMin} - ${fMax}`;
 };
 
 // ----- Grouped Bar Chart (reusable) -----
@@ -1067,7 +1070,8 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                     <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>AA</div></th>
                     <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>AA-</div></th>
                     <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>A+</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>A &amp; Below</div></th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>A & Below</div></th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Unrated</div></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1095,7 +1099,10 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                         <div className='translate-y-[-6px]'>{formatCrores(item["A+_cr"])}</div>
                       </td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item["A & below_cr"])}</div>
+                        <div className='translate-y-[-6px]'>{formatCrores(item["A & below (Rated)_cr"])}</div>
+                      </td>
+                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className='translate-y-[-6px]'>{formatCrores(item["A & below & (Unrated)_cr"])}</div>
                       </td>
                     </tr>
                   ))}
@@ -1147,13 +1154,13 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                   {monthlyData.map((item, idx) => (
                     <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{item.metric_name}</div>
+                        <div className='translate-y-[-6px]'>{item.metric_name == 'Issue Size' ? 'Issue Size( Cr )' : item.metric_name}</div>
                       </td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{item.value_2025}</div>
+                        <div className='translate-y-[-6px]'>{formatCrores(item.value_2025)}</div>
                       </td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{item.value_2026}</div>
+                        <div className='translate-y-[-6px]'>{formatCrores(item.value_2026)}</div>
                       </td>
                       <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
                         <div className='translate-y-[-6px]'>{formatPercent(item.yoy_change_pct)}</div>
@@ -1392,7 +1399,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                 }}
               >
                 <div className='translate-y-[-15px]' style={{ fontSize: '1.2rem', fontWeight: 700 }}>
-                  Monthly Issuance Pulse- July 2026
+                  Bond Issuance Pulse- July 2026
                 </div>
               </div>
               <div className="content-area" style={{ flex: 1, overflow: 'hidden', padding: '4px 0' }}>
@@ -1516,7 +1523,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                   }}
                 >
                   <div className='translate-y-[-15px]' style={{ fontSize: '1.2rem', fontWeight: 700 }}>
-                    Monthly Issuance Pulse- July 2026
+                    Bond Issuance Pulse- July 2026
                   </div>
                 </div>
                 <div style={{ flex: 1, overflow: 'hidden', padding: '4px 0' }}>
