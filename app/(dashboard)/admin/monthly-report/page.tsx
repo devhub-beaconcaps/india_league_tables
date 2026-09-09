@@ -25,7 +25,7 @@ const MonthlyReportpage = () => {
     };
 
     const fetchData = useCallback(async () => {
-        const { startDate, endDate } = getMonthStartAndEnd(7, 2026);
+        const { startDate, endDate } = getMonthStartAndEnd(8, 2026);
         const payload = { startDate, endDate };
 
         try {

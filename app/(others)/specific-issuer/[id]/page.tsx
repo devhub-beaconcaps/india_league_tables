@@ -36,52 +36,51 @@ interface RawISINData {
 
 const fieldMap: FieldMapEntry[] = [
     // Issuer Profile
-    { key: "issuer_name", label: "Issuer Name", type: "issuer-profile" },
-    { key: "isin", label: "ISIN", type: "issuer-profile" },
-    { key: "cin", label: "CIN", type: "issuer-profile" },
-    { key: "issuer_former_name", label: "Issuer Former Name", type: "issuer-profile" },
+    { key: "Issuer Name", label: "Issuer Name", type: "issuer-profile" },
+    { key: "ISIN", label: "ISIN", type: "issuer-profile" },
+    { key: "Issuer Former Name", label: "Issuer Former Name", type: "issuer-profile" },
+    { key: "Issuer Ownership Type", label: "Issuer Ownership Type", type: "issuer-profile" },
+    { key: "Nature Type", label: "Nature Type", type: "issuer-profile" },
 
     // Instrument Specifications
-    { key: "security_name", label: "Security Name", type: "instrument-specifications" },
-    { key: "security_type", label: "Security Type", type: "instrument-specifications" },
-    { key: "secured_flag", label: "Security Status", type: "instrument-specifications" },
-    { key: "convertible_type_a", label: "Convertible Type", type: "instrument-specifications" },
-    { key: "face_value", label: "Face Value", type: "instrument-specifications" },
-    { key: "issue_price", label: "Issue Price", type: "instrument-specifications" },
-    { key: "issue_size", label: "Issue Size", type: "instrument-specifications" },
-    { key: "mode_of_issue", label: "Mode of Issue", type: "instrument-specifications" },
+    { key: "Security Name", label: "Security Name", type: "instrument-specifications" },
+    { key: "Security Class", label: "Security Type", type: "instrument-specifications" },
+    { key: "Secured Flag", label: "Secured Flag", type: "instrument-specifications" },
+    { key: "Convertible Type A", label: "Convertible Type", type: "instrument-specifications" },
+    { key: "Face Value", label: "Face Value", type: "instrument-specifications" },
+    { key: "Issue Price", label: "Issue Price", type: "instrument-specifications" },
+    { key: "Issue Size", label: "Issue Size", type: "instrument-specifications" },
+    { key: "Mode of Issue", label: "Mode of Issue", type: "instrument-specifications" },
 
     // Coupon Rate Summary
-    { key: "coupon_rate", label: "Coupon Rate (%)", type: "coupon-rate-summary" },
-    { key: "coupon_type", label: "Coupon Type", type: "coupon-rate-summary" },
-    { key: "interest_type", label: "Interest Type", type: "coupon-rate-summary" },
-    { key: "freq_dis", label: "Coupon Frequency", type: "coupon-rate-summary" },
-    { key: "day_count", label: "Day Count Convention", type: "coupon-rate-summary" },
+    { key: "Coupon Rate", label: "Coupon Rate (%)", type: "coupon-rate-summary" },
+    { key: "Coupon Type", label: "Coupon Type", type: "coupon-rate-summary" },
+    { key: "Interest Type", label: "Interest Type", type: "coupon-rate-summary" },
+    { key: "Frequency Dis", label: "Coupon Frequency", type: "coupon-rate-summary" },
+    { key: "Day Count", label: "Day Count Convention", type: "coupon-rate-summary" },
+    { key: "Coupon Pay Date", label: "Coupon Pay Date", type: "coupon-rate-summary" },
+    { key: "Interest Start Date", label: "Interest Start Date", type: "coupon-rate-summary" },
 
     // Redemption Schedule
-    { key: "allotment_date", label: "Allotment Date", type: "redemption-schedule" },
-    { key: "maturity_date", label: "Maturity Date", type: "redemption-schedule" },
-    { key: "redemptionDate", label: "Redemption Date", type: "redemption-schedule" },
-    { key: "type_redmptn", label: "Redemption Type", type: "redemption-schedule" },
-    { key: "tenure_no_years", label: "Tenure (Years)", type: "redemption-schedule" },
+    { key: "Allotment Date", label: "Allotment Date", type: "redemption-schedule" },
+    { key: "Maturity Date", label: "Maturity Date", type: "redemption-schedule" },
+    { key: "Type of Redemption", label: "Redemption Type", type: "redemption-schedule" },
+    { key: "Tenure : No of Years", label: "Tenure (Years)", type: "redemption-schedule" },
+    { key: "Redemption Details", label: "Redemption Details", type: "redemption-schedule" },
+    { key: "Next schedule Date", label: "Next Schedule Date", type: "redemption-schedule" },
+    { key: "Default in Redemption", label: "Default in Redemption", type: "redemption-schedule" },
+    { key: "Redemption Premimum Date", label: "Redemption Premium Date", type: "redemption-schedule" },
 
     // Rating Summary
-    { key: "rated_flag", label: "Rated Status", type: "rating-summary" },
-    { key: "credit_rating", label: "Credit Rating", type: "rating-summary" },
-    { key: "credit_rating_agency", label: "Credit Rating Agency", type: "rating-summary" },
+    { key: "Rated Flag", label: "Rated Status", type: "rating-summary" },
+    { key: "ISIN Description", label: "ISIN Description", type: "rating-summary" },
 
     // Security Listing Overview
-    { key: "listing_status", label: "Listing Status", type: "security-listing-overview" },
-    { key: "sector", label: "Sector", type: "security-listing-overview" },
-    { key: "industry", label: "Industry", type: "security-listing-overview" },
-
-    // Key Participants
-    { key: "debenture_trustee", label: "Debenture Trustee", type: "key-participants" },
-    { key: "Registrar", label: "Registrar", type: "key-participants" },
+    { key: "Security Status", label: "Listing Status", type: "security-listing-overview" },
+    { key: "Business Sector", label: "Sector", type: "security-listing-overview" },
 
     // Restructuring Information
-    { key: "security_status", label: "Security Status", type: "restructuring-information" },
-    { key: "stipulation_details", label: "Stipulation Details", type: "restructuring-information" },
+    { key: "Stipulation Details", label: "Stipulation Details", type: "restructuring-information" },
 ];
 
 function transformInstrumentData(data: RawISINData): IssuerDataItem[] {
@@ -103,8 +102,6 @@ export default function SpecificIssuerPage() {
     const [ISINData, setISINData] = useState<IssuerDataItem[] | null>(null);
     const [loading, setLoading] = useState(true);
 
-    console.log("id", id);
-
     useEffect(() => {
         const fetchData = async (): Promise<void> => {
             try {
@@ -112,11 +109,11 @@ export default function SpecificIssuerPage() {
 
                 const query = { masterIssuerId: id };
 
-                const resData: RawISINData =
-                    await fetchSpecificISINData(query);
+                const resData = await fetchSpecificISINData(query);
+                // Response is an array; extract the first object
+                const data = Array.isArray(resData) ? resData[0] : resData;
 
-                const formattedData = transformInstrumentData(resData);
-
+                const formattedData = transformInstrumentData(data || {});
                 setISINData(formattedData);
             } catch (error) {
                 console.error("error issuer profile fetching: ", error);

@@ -14,7 +14,7 @@ import {
   LabelList,
 } from 'recharts';
 
-import upTrend from '@/public/img/ILTMonthlyReportFirstPage.png'
+import upTrend from '@/public/img/ILTMonthlyReportFirstPage.png';
 import Image, { StaticImageData } from 'next/image';
 import fifthLast from '@/public/img/fifthLast.png';
 import fourthLast from '@/public/img/fourthLast.png';
@@ -28,7 +28,6 @@ import linkedIn from '@/public/img/linkedIn.png';
 import telegram from '@/public/img/telegram.png';
 import twitter from '@/public/img/twitter.png';
 import instagram from '@/public/img/instagram.png';
-import { Link } from 'lucide-react';
 
 const extraImagePages: Array<{
   src: StaticImageData;
@@ -44,120 +43,113 @@ const extraImagePages: Array<{
       href: string;
     };
   } | null;
-
 }> = [
-    // Page 0: fifthLast – no overlay
-    { src: fifthLast, alt: 'Fifth Last', overlay: null },
+  // Page 0: fifthLast – no overlay
+  { src: fifthLast, alt: 'Fifth Last', overlay: null },
 
-    // Page 1: fourthLast – overlay
-    {
-      src: fourthLast,
-      alt: 'Fourth Last',
-      overlay: {
-        containerStyle: {
-          position: 'absolute',
-          top: '90%',
-          left: '30%',
-          display: 'flex',
-          flexDirection: 'row' as const,
-          gap: '13px',
-          // adjust as needed
-        } as React.CSSProperties,
-        imageStyle: {
-          width: 60,
-          height: 60,
-          objectFit: 'contain',
-        } as React.CSSProperties,
-        images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
-        links: [
-          'https://substack.com/@debtcircle',
-          'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
-          'https://www.linkedin.com/company/debt-circle',
-          'https://t.me/debtcircle',
-          'https://x.com/DebtCircle',
-          'https://www.instagram.com/debtcircle'
-        ]
+  // Page 1: fourthLast – overlay
+  {
+    src: fourthLast,
+    alt: 'Fourth Last',
+    overlay: {
+      containerStyle: {
+        position: 'absolute',
+        top: '90%',
+        left: '30%',
+        display: 'flex',
+        flexDirection: 'row' as const,
+        gap: '13px',
+      } as React.CSSProperties,
+      imageStyle: {
+        width: 60,
+        height: 60,
+        objectFit: 'contain',
+      } as React.CSSProperties,
+      images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
+      links: [
+        'https://substack.com/@debtcircle',
+        'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
+        'https://www.linkedin.com/company/debt-circle',
+        'https://t.me/debtcircle',
+        'https://x.com/DebtCircle',
+        'https://www.instagram.com/debtcircle',
+      ],
+    },
+  },
 
+  // Page 2: thirdLast – no overlay
+  { src: thirdLast, alt: 'Third Last', overlay: null },
+
+  // Page 3: secondLastOne – overlay
+  {
+    src: secondLastOne,
+    alt: 'Second Last',
+    overlay: {
+      containerStyle: {
+        position: 'absolute',
+        bottom: '36%',
+        right: '31%',
+        display: 'flex',
+        flexDirection: 'row' as const,
+        gap: '13px',
+      } as React.CSSProperties,
+      imageStyle: {
+        width: 60,
+        height: 60,
+        objectFit: 'contain',
+      } as React.CSSProperties,
+      images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
+      links: [
+        'https://substack.com/@debtcircle',
+        'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
+        'https://www.linkedin.com/company/debt-circle',
+        'https://t.me/debtcircle',
+        'https://x.com/DebtCircle',
+        'https://www.instagram.com/debtcircle',
+      ],
+      TextcontainerStyle: {
+        position: 'absolute',
+        bottom: '29%',
+        right: '39%',
+      },
+      textLink: {
+        text: 'https://debtcircle.in',
+        href: 'https://debtcircle.in',
       },
     },
+  },
 
-    // Page 2: thirdLast – no overlay
-    { src: thirdLast, alt: 'Third Last', overlay: null },
-
-    // Page 3: secondLastOne – overlay
-    {
-      src: secondLastOne,
-      alt: 'Second Last',
-      overlay: {
-        containerStyle: {
-          position: 'absolute',
-          bottom: '36%',
-          right: '31%',
-          display: 'flex',
-          flexDirection: 'row' as const,
-          gap: '13px',
-          // adjust as needed
-        } as React.CSSProperties,
-        imageStyle: {
-          width: 60,
-          height: 60,
-          objectFit: 'contain',
-        } as React.CSSProperties,
-        images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
-        links: [
-          'https://substack.com/@debtcircle',
-          'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
-          'https://www.linkedin.com/company/debt-circle',
-          'https://t.me/debtcircle',
-          'https://x.com/DebtCircle',
-          'https://www.instagram.com/debtcircle'
-        ],
-        TextcontainerStyle: {
-          position: 'absolute',
-          bottom: '29%',
-          right: '39%',
-        },
-        textLink: {
-          text: 'https://debtcircle.in',
-          href: 'https://debtcircle.in'
-        }
-      },
+  // Page 4: lastOne – overlay
+  {
+    src: lastOne,
+    alt: 'Last One',
+    overlay: {
+      containerStyle: {
+        position: 'absolute',
+        top: '86%',
+        left: '32%',
+        transform: 'translate(-50%, -50%)',
+        display: 'flex',
+        flexDirection: 'row' as const,
+        gap: '13px',
+      } as React.CSSProperties,
+      imageStyle: {
+        width: 50,
+        height: 50,
+        objectFit: 'contain',
+      } as React.CSSProperties,
+      images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
+      links: [
+        'https://substack.com/@debtcircle',
+        'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
+        'https://www.linkedin.com/company/debt-circle',
+        'https://t.me/debtcircle',
+        'https://x.com/DebtCircle',
+        'https://www.instagram.com/debtcircle',
+      ],
     },
-
-    // Page 4: lastOne – overlay
-    {
-      src: lastOne,
-      alt: 'Last One',
-      overlay: {
-        containerStyle: {
-          position: 'absolute',
-          top: '86%',
-          left: '32%',
-          transform: 'translate(-50%, -50%)',
-          display: 'flex',
-          flexDirection: 'row' as const,
-          gap: '13px',
-          // adjust as needed
-        } as React.CSSProperties,
-        imageStyle: {
-          width: 50,
-          height: 50,
-          objectFit: 'contain',
-        } as React.CSSProperties,
-        images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
-        links: [
-          'https://substack.com/@debtcircle',
-          'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
-          'https://www.linkedin.com/company/debt-circle',
-          'https://t.me/debtcircle',
-          'https://x.com/DebtCircle',
-          'https://www.instagram.com/debtcircle'
-        ]
-      },
-    },
-  ];
-
-
+  },
+];
 
 // ----- Types -----
 interface TotalIssuersResult {
@@ -217,17 +209,17 @@ interface SectorListResult {
 }
 interface SectorAndRatingListResult {
   sector_name: string;
-  isin_count: string;                // unchanged
-  total_issuers: string;             // unchanged
-  total_issue_size_cr: string;       // unchanged
-  AAA_cr: string;                    // unchanged
-  "AA+_cr": string;                  // unchanged
-  "AA_cr": string;                   // unchanged
-  "AA-_cr": string;                  // unchanged
-  "A+_cr": string;                   // unchanged
-  "A & below (Rated)_cr": string;    // NEW
-  "A & below & (Unrated)_cr": string; // NEW
-  shares: string;                    // unchanged
+  isin_count: string;
+  total_issuers: string;
+  total_issue_size_cr: string;
+  AAA_cr: string;
+  'AA+_cr': string;
+  AA_cr: string;
+  'AA-_cr': string;
+  'A+_cr': string;
+  'A & below (Rated)_cr': string;
+  'A & below & (Unrated)_cr': string;
+  shares: string;
 }
 
 interface MonthlyCompareListResult {
@@ -291,18 +283,13 @@ const sectorShortNameMap: Record<string, string> = {
   'Iron & Steel': 'I&S',
   'Stockbroking & Allied': 'S&A',
   Diversified: 'D',
-  // Add any other sectors that may appear in your data
 };
 
 const getSectorShortName = (fullName: string): string => {
-  // If the full name is short enough, no abbreviation needed
   if (fullName.length <= 15) return fullName;
-  // Predefined mapping
   if (sectorShortNameMap[fullName]) return sectorShortNameMap[fullName];
-  // Extract from parentheses if present
   const match = fullName.match(/\(([^)]+)\)/);
   if (match) return match[1];
-  // Fallback: initials
   return fullName
     .split(' ')
     .map((w) => w[0])
@@ -311,26 +298,19 @@ const getSectorShortName = (fullName: string): string => {
 };
 
 const getSectorDisplayName = (fullName: string): string => {
-  // Check if the name already contains parentheses
   const match = fullName.match(/^([^(]+)\(([^)]+)\)$/);
   if (match) {
     const main = match[1].trim();
     const inside = match[2].trim();
-    // If the inside is the same as the main part, avoid duplication
-    if (main === inside) {
-      return main;
-    }
-    // Otherwise keep the original (e.g., "Non-Banking Financial Company (NBFC)")
+    if (main === inside) return main;
     return fullName;
   }
-  // No parentheses – append a short name
   const short = getSectorShortName(fullName);
-  // Fallback: if short name equals the full name, return the full name only
   if (short === fullName) return fullName;
   return `${fullName} (${short})`;
 };
 
-// ----- Default Data (fully updated from the provided JSON) -----
+// ----- Default Data (shortened for brevity) -----
 const defaultData: ReportData = {
   totalIssuersResult: [{ total_issuers: '152' }],
   totalIssueCountResult: [{ total_isins: '152' }],
@@ -339,14 +319,9 @@ const defaultData: ReportData = {
   totalUniqueIssuersResult: [{ total_issuers: '114' }],
   topSectorNameQueryResult: [{ sector_name: 'Non-Banking Financial Company (NBFC)' }],
   topIssuerByIssueSizeResult: [
-    {
-      issuer_name: 'EQYIZEN INVESTMENT PRIVATE LIMITED',
-      total_issue_size: '213500000000',
-    },
+    { issuer_name: 'EQYIZEN INVESTMENT PRIVATE LIMITED', total_issue_size: '213500000000' },
   ],
-  topIssuerByIssuerNumberResult: [
-    { issuer_name: 'MUTHOOT FINCORP LIMITED', isin_count: '13' },
-  ],
+  topIssuerByIssuerNumberResult: [{ issuer_name: 'MUTHOOT FINCORP LIMITED', isin_count: '13' }],
   topRatingResult: [{ rating: 'AAA', count_entries: '55' }],
   issuerListResult: [
     {
@@ -376,7 +351,6 @@ const defaultData: ReportData = {
       total_issue_size_previous_month: 1608,
       shares_previous_month: 11.61,
     },
-    // ... (other rating entries omitted for brevity; include full array)
   ],
   sectorListResult: [
     {
@@ -390,7 +364,6 @@ const defaultData: ReportData = {
       total_issue_size_previous_month: 60139,
       shares_previous_month: 67.79,
     },
-    // ... (other sector entries)
   ],
   sectorAndRatingListResult: [
     {
@@ -399,15 +372,14 @@ const defaultData: ReportData = {
       total_issuers: '40',
       total_issue_size_cr: '21290',
       AAA_cr: '944',
-      "AA+_cr": '30',
-      "AA_cr": '0',
-      "AA-_cr": '0',
-      "A+_cr": '0',
-      "A & below (Rated)_cr": '20316',
-      "A & below & (Unrated)_cr": '0',
+      'AA+_cr': '30',
+      AA_cr: '0',
+      'AA-_cr': '0',
+      'A+_cr': '0',
+      'A & below (Rated)_cr': '20316',
+      'A & below & (Unrated)_cr': '0',
       shares: '44.94',
     },
-    // ...
   ],
   monthlyCompareListResult: [
     {
@@ -441,7 +413,6 @@ const defaultData: ReportData = {
       coupon_max: '7.7000',
       avg_coupon_rate: '7.7',
     },
-    // ... (more entries)
   ],
   topRatingWithIssuersResult: [
     {
@@ -455,7 +426,6 @@ const defaultData: ReportData = {
       coupon_max: '7.1600',
       avg_coupon_rate: '7.16',
     },
-    // ... (more entries)
   ],
 };
 
@@ -535,14 +505,11 @@ const GroupedBarChart: React.FC<GroupedBarChartProps> = ({ data }) => {
 
   return (
     <div style={{ width: '50%', height: 210 }}>
-
-
       <ResponsiveContainer>
         <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" />
           <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => v.toFixed(0)} />
-          {/* Remove the built-in <Legend /> */}
           <Bar dataKey="value2025" fill="#3b82f6" name="2025">
             <LabelList
               dataKey="value2025"
@@ -561,15 +528,14 @@ const GroupedBarChart: React.FC<GroupedBarChartProps> = ({ data }) => {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-      {/* Custom Legend */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', paddingBottom: '6px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div className='translate-y-[-6px]' style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#3b82f6' }}></div>
-          <div className='translate-y-[-12px]' style={{ fontSize: '0.75rem', color: '#374151' }}>2025</div>
+          <div className="translate-y-[-6px]" style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#3b82f6' }}></div>
+          <div className="translate-y-[-12px]" style={{ fontSize: '0.75rem', color: '#374151' }}>2025</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div className='translate-y-[-6px]' style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#f97316' }}></div>
-          <div className='translate-y-[-12px]' style={{ fontSize: '0.75rem', color: '#374151' }}>2026</div>
+          <div className="translate-y-[-6px]" style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#f97316' }}></div>
+          <div className="translate-y-[-12px]" style={{ fontSize: '0.75rem', color: '#374151' }}>2026</div>
         </div>
       </div>
     </div>
@@ -584,21 +550,21 @@ interface DebtSnapshotReportProps {
 const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultData }) => {
   const PAGE_HEIGHT = 1622;
   const PAGE_MAX_WIDTH = '1152px';
-  const HEADER_HEIGHT = 60;
-  const FOOTER_HEIGHT = 40;
-  const CONTENT_PADDING = 24;
-  const AVAILABLE_HEIGHT = PAGE_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT - CONTENT_PADDING * 2 - 16;
+
+  const previousDateFullName = 'July';
+  const currentDateFullName = 'August';
+  const firstPageDisplayDate = 'August 2026';
+
 
   const measurementRef = useRef<HTMLDivElement>(null);
   const pagesContainerRef = useRef<HTMLDivElement>(null);
-  const [pages, setPages] = useState<any[][]>([]);
+  const [pageItems, setPageItems] = useState<any[][]>([]);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const measurementTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   console.log('DebtSnapshotReport data:', data);
 
   const formatRatingLabel = (rating: string): string => {
-    // If it contains '&' but not with spaces, add spaces around it
     if (rating.includes('&') && !rating.includes(' & ')) {
       return rating.replace(/&/g, ' & ').replace(/\s+/g, ' ').trim();
     }
@@ -610,7 +576,6 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
     const sections: any[] = [];
     const d = data;
 
-    // Market Snapshot (cards)
     sections.push({
       id: 'market-snapshot',
       type: 'cards',
@@ -626,7 +591,6 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
       },
     });
 
-    // Issuances by Issuer (table) – removed ISIN Count column
     if (d.issuerListResult?.length) {
       sections.push({
         id: 'issuances-by-issuer',
@@ -640,46 +604,56 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
           item.latest_rating || '—',
           item.sector ? getSectorDisplayName(item.sector) : '—',
         ],
+        isTable: true,
+        totalRows: d.issuerListResult.length,
+        hasChart: false,
       });
     }
 
-    // Credit Rating Distribution (table + chart)
     if (d.ratingsListResult?.length) {
       sections.push({
         id: 'credit-rating-distribution',
         type: 'ratingDistribution',
         data: d.ratingsListResult,
+        isTable: true,
+        totalRows: d.ratingsListResult.length,
+        hasChart: true,
       });
     }
 
-    // Issuances by Sector (table + chart) – removed ISIN Count columns
     if (d.sectorListResult?.length) {
       sections.push({
         id: 'issuances-by-sector',
         type: 'sectorDistribution',
         data: d.sectorListResult,
+        isTable: true,
+        totalRows: d.sectorListResult.length,
+        hasChart: true,
       });
     }
 
-    // Sector × Credit Rating Cross Table
     if (d.sectorAndRatingListResult?.length) {
       sections.push({
         id: 'sector-rating-cross',
         type: 'crossTable',
         data: d.sectorAndRatingListResult,
+        isTable: true,
+        totalRows: d.sectorAndRatingListResult.length,
+        hasChart: false,
       });
     }
 
-    // Monthly Compare (table + chart)
     if (d.monthlyCompareListResult?.length) {
       sections.push({
         id: 'monthly-compare',
         type: 'monthlyCompare',
         data: d.monthlyCompareListResult,
+        isTable: true,
+        totalRows: d.monthlyCompareListResult.length,
+        hasChart: true,
       });
     }
 
-    // Sector-wise issuer tables – removed ISIN Count column
     if (d.topSectorsWithIssuersResult?.length) {
       const grouped = d.topSectorsWithIssuersResult.reduce((acc, item) => {
         if (!acc[item.sector_name]) acc[item.sector_name] = [];
@@ -687,22 +661,21 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         return acc;
       }, {} as Record<string, TopSectorsWithIssuersResult[]>);
 
-      const sectorEntries = Object.entries(grouped);
-      sectorEntries.forEach(([sector, issuers], index) => {
+      Object.entries(grouped).forEach(([sector, issuers], index) => {
         const section: any = {
           id: `sector-${sector.replace(/\s/g, '-')}`,
           type: 'sectorIssuerTable',
-          title: getSectorDisplayName(sector), // show full + short in heading
+          title: getSectorDisplayName(sector),
           data: issuers,
+          isTable: true,
+          totalRows: issuers.length,
+          hasChart: false,
         };
-        if (index === 0) {
-          section.groupHeading = 'Issuances by Sector';
-        }
+        if (index === 0) section.groupHeading = 'Issuances by Sector';
         sections.push(section);
       });
     }
 
-    // Rating-wise issuer tables – removed ISIN Count column
     if (d.topRatingWithIssuersResult?.length) {
       const groupedByRating = d.topRatingWithIssuersResult.reduce((acc, item) => {
         if (!acc[item.rating_bucket]) acc[item.rating_bucket] = [];
@@ -710,32 +683,31 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         return acc;
       }, {} as Record<string, TopRatingWithIssuersResult[]>);
 
-      const ratingEntries = Object.entries(groupedByRating);
-      ratingEntries.forEach(([rating, issuers], index) => {
+      Object.entries(groupedByRating).forEach(([rating, issuers], index) => {
         const section: any = {
           id: `rating-${rating.replace(/\s/g, '-')}`,
           type: 'sectorIssuerTable',
           title: `Rating: ${formatRatingLabel(rating)}`,
           data: issuers,
+          isTable: true,
+          totalRows: issuers.length,
+          hasChart: false,
         };
-        if (index === 0) {
-          section.groupHeading = 'Issuances by Ratings';
-        }
+        if (index === 0) section.groupHeading = 'Issuances by Ratings';
         sections.push(section);
       });
     }
 
-    // Key Takeaways (bullet points)
     sections.push({
       id: 'key-takeaways',
       type: 'bulletPoints',
       data: [
-        'July 2026 recorded healthy debt-market activity with 112 issuances worth Rs 1,84,650 Cr across 48 issuers, reflecting sustained primary-market momentum.',
+        'August 2026 recorded healthy debt-market activity with 112 issuances worth Rs 1,84,650 Cr across 48 issuers, reflecting sustained primary-market momentum.',
         'Issuance activity was led by large NBFCs and infrastructure financiers (REC, PFC, NaBFID, IRFC), consistent with continued reliance on long-tenor bond funding for infrastructure and lending growth.',
         'AAA remained the dominant rating category (~70% of value), underscoring investor preference for high-grade paper amid prevailing rate conditions.',
         'NBFC and Infrastructure were the leading sectors by value (40.2% and 18.8% respectively), together accounting for nearly 60% of total issuance.',
         'Credit quality is highly concentrated in top-rated sectors (Banks, NBFC) while Manufacturing and Others show more diversified — and comparatively lower-rated — funding profiles.',
-        'On a YoY basis, July 2026 issuance value grew 21.2% over July 2025, indicating an expanding primary debt market rather than a one-off surge.',
+        'On a YoY basis, August 2026 issuance value grew 21.2% over August 2025, indicating an expanding primary debt market rather than a one-off surge.',
         'Issuer participation widened modestly (41 → 48), suggesting broader market access rather than reliance on a few large repeat issuers.',
         'The gap between value growth (21.2%) and issuer growth (17.1%) implies incrementally larger ticket sizes per issuer year-on-year.',
       ],
@@ -744,11 +716,631 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
     return sections;
   }, [data]);
 
-  // ----- Pagination via measurement (unchanged) -----
+  // ----- Render content item (supports measurement, row ranges, chart-only) -----
+  const renderContentItem = useCallback(
+    (item: any, isMeasurement = false) => {
+      const section = item.section || item;
+      const id = isMeasurement ? `measure-${section.id}` : section.id;
+      const key = isMeasurement ? `measure-${section.id}` : `render-${section.id}`;
+
+      const rowRange = item.rowRange || null;
+      const isChartOnly = item.isChart || false;
+
+      const sectionStyle: React.CSSProperties = {
+        padding: '6px 12px',
+        marginBottom: '4px',
+        backgroundColor: '#ffffff',
+        borderRadius: '6px',
+      };
+
+      // Chart-only rendering for measurement and visible
+      if (isChartOnly) {
+        const renderChart = () => {
+          switch (section.type) {
+            case 'ratingDistribution': {
+              const ratingData = section.data as RatingsListResult[];
+              const chartData = ratingData.map((item) => ({
+                label: item.rating_label,
+                value1: parseFloat(item.total_issue_size_previous_month as string) || 0,
+                value2: parseFloat(item.total_issue_size_current_month as string) || 0,
+              }));
+              return (
+                <div key={key} id={id} className="section-item" style={sectionStyle}>
+                  <div className="chart-wrapper" style={{ display: 'flex', justifyContent: 'center' }}>
+                    <GroupedBarChart data={chartData} />
+                  </div>
+                </div>
+              );
+            }
+            case 'sectorDistribution': {
+              const sectorData = section.data as SectorListResult[];
+              const chartData = sectorData.map((item) => ({
+                label: item.sector_name.length > 15 ? getSectorShortName(item.sector_name) : item.sector_name,
+                value1: parseFloat(item.total_issue_size_previous_month as string) || 0,
+                value2: parseFloat(item.total_issue_size_current_month as string) || 0,
+              }));
+              return (
+                <div key={key} id={id} className="section-item" style={sectionStyle}>
+                  <div className="chart-wrapper" style={{ display: 'flex', justifyContent: 'center' }}>
+                    <GroupedBarChart data={chartData} />
+                  </div>
+                </div>
+              );
+            }
+            case 'monthlyCompare': {
+              const monthlyData = section.data as MonthlyCompareListResult[];
+              const chartData = monthlyData.map((item) => ({
+                label: item.metric_name,
+                value1: parseFloat(item.value_2025) || 0,
+                value2: parseFloat(item.value_2026) || 0,
+              }));
+              return (
+                <div key={key} id={id} className="section-item" style={sectionStyle}>
+                  <div className="chart-wrapper" style={{ display: 'flex', justifyContent: 'center' }}>
+                    <GroupedBarChart data={chartData} />
+                  </div>
+                </div>
+              );
+            }
+            default:
+              return null;
+          }
+        };
+        return renderChart();
+      }
+
+      // Full section rendering (with optional rowRange for tables)
+      switch (section.type) {
+        case 'cards': {
+          const {
+            total_issuers,
+            total_isins,
+            total_issue_size,
+            avg_issue_size,
+            top_sector,
+            top_issuer_size,
+            top_issuer_count,
+            top_rating,
+          } = section.data;
+          const cards = [
+            { label: 'Total Issuers', value: total_issuers },
+            { label: 'Total ISINs', value: total_isins },
+            { label: 'Total Issue Size (Cr)', value: formatCrores(total_issue_size) },
+            { label: 'Avg Issue Size (Cr)', value: formatCrores(avg_issue_size) },
+            { label: 'Top Issuer (By Issue Size)', value: top_issuer_size },
+            { label: 'Top Issuer (By No. of Issues)', value: top_issuer_count },
+            { label: 'Top Sector', value: top_sector },
+            { label: 'Top Rating', value: top_rating },
+          ];
+          return (
+            <div key={key} id={id} className="section-item" style={sectionStyle}>
+              <h2 className="translate-y-[-6px]" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
+                Market Snapshot
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                {cards.map((card, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '6px',
+                      padding: '6px',
+                      textAlign: 'center',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    }}
+                  >
+                    <div className="translate-y-[-6px]" style={{ fontSize: '0.65rem', color: '#6b7280' }}>
+                      {card.label}
+                    </div>
+                    <div className="translate-y-[-6px]" style={{ fontSize: '1rem', fontWeight: 600, marginTop: '2px' }}>
+                      {card.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        case 'table': {
+          const { title, columns, data, rowRenderer } = section;
+          let rows = data;
+          if (rowRange) {
+            rows = data.slice(rowRange.start, rowRange.end);
+          }
+          return (
+            <div key={key} id={id} className="section-item" style={sectionStyle}>
+              <h2 className="translate-y-[-6px]" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
+                {title}
+              </h2>
+              <div className="table-wrapper" style={{ overflowX: 'auto' }}>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: '0.7rem',
+                    border: '1px solid #d1d5db',
+                  }}
+                >
+                  <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
+                    <tr>
+                      {columns.map((col: string, idx: number) => (
+                        <th key={idx} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                          <div className="translate-y-[-6px]">{col}</div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((item: any, idx: number) => {
+                      const row = rowRenderer(item);
+                      return (
+                        <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
+                          {row.map((cell: any, cellIdx: number) => (
+                            <td key={cellIdx} style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                              <div className="translate-y-[-6px]">{cell}</div>
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        }
+
+        case 'ratingDistribution': {
+          const ratingData = section.data as RatingsListResult[];
+          let tableRows = ratingData;
+          if (rowRange) {
+            tableRows = ratingData.slice(rowRange.start, rowRange.end);
+          }
+          return (
+            <div key={key} id={id} className="section-item" style={sectionStyle}>
+              <h2 className="translate-y-[-6px]" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
+                Credit Rating Distribution
+              </h2>
+              <div className="table-wrapper" style={{ overflowX: 'auto', marginBottom: '6px' }}>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: '0.7rem',
+                    border: '1px solid #d1d5db',
+                  }}
+                >
+                  <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
+                    <tr>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">Rating</div>
+                      </th>
+                      <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>
+                        <div className="translate-y-[-6px]">Issuer Count</div>
+                      </th>
+                      <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>
+                        <div className="translate-y-[-6px]">Total Issue Size (Cr)</div>
+                      </th>
+                      <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>
+                        <div className="translate-y-[-6px]">Shares (%)</div>
+                      </th>
+                    </tr>
+                    <tr>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}></th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className="translate-y-[-6px]">{previousDateFullName} 2026</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className="translate-y-[-6px]">{currentDateFullName} 2026</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className="translate-y-[-6px]">{previousDateFullName} 2026</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className="translate-y-[-6px]">{currentDateFullName} 2026</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className="translate-y-[-6px]">{previousDateFullName} 2026</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className="translate-y-[-6px]">{currentDateFullName} 2026</div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableRows.map((item, idx) => (
+                      <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{item.rating_label}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{item.issuer_count_previous_month}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{item.issuer_count_current_month}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item.total_issue_size_previous_month)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item.total_issue_size_current_month)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatPercent(item.shares_previous_month)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatPercent(item.shares_current_month)}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        }
+
+        case 'sectorDistribution': {
+          const sectorData = section.data as SectorListResult[];
+          let tableRows = sectorData;
+          if (rowRange) {
+            tableRows = sectorData.slice(rowRange.start, rowRange.end);
+          }
+          return (
+            <div key={key} id={id} className="section-item" style={sectionStyle}>
+              <h2 className="translate-y-[-6px]" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
+                Issuances by Sector
+              </h2>
+              <div className="table-wrapper" style={{ overflowX: 'auto', marginBottom: '6px' }}>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: '0.7rem',
+                    border: '1px solid #d1d5db',
+                  }}
+                >
+                  <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
+                    <tr>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">Sector</div>
+                      </th>
+                      <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>
+                        <div className="translate-y-[-6px]">Issuer Count</div>
+                      </th>
+                      <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>
+                        <div className="translate-y-[-6px]">Total Issue Size (Cr)</div>
+                      </th>
+                      <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>
+                        <div className="translate-y-[-6px]">Shares (%)</div>
+                      </th>
+                    </tr>
+                    <tr>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}></th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className="translate-y-[-6px]">{previousDateFullName} 2026</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className="translate-y-[-6px]">{currentDateFullName} 2026</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className="translate-y-[-6px]">{previousDateFullName} 2026</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className="translate-y-[-6px]">{currentDateFullName} 2026</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className="translate-y-[-6px]">{previousDateFullName} 2026</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                        <div className="translate-y-[-6px]">{currentDateFullName} 2026</div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableRows.map((item, idx) => (
+                      <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{getSectorDisplayName(item.sector_name)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{item.issuer_count_previous_month}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{item.issuer_count_current_month}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item.total_issue_size_previous_month)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item.total_issue_size_current_month)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatPercent(item.shares_previous_month)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatPercent(item.shares_current_month)}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        }
+
+        case 'crossTable': {
+          const crossData = section.data as SectorAndRatingListResult[];
+          let tableRows = crossData;
+          if (rowRange) {
+            tableRows = crossData.slice(rowRange.start, rowRange.end);
+          }
+          return (
+            <div key={key} id={id} className="section-item" style={sectionStyle}>
+              <h2 className="translate-y-[-6px]" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
+                Sector × Credit Rating Distribution
+              </h2>
+              <div className="table-wrapper" style={{ overflowX: 'auto' }}>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: '0.65rem',
+                    border: '1px solid #d1d5db',
+                  }}
+                >
+                  <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
+                    <tr>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">Sector</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">Total (Cr)</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">AAA</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">AA+</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">AA</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">AA-</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">A+</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">A & Below</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">Unrated</div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableRows.map((item, idx) => (
+                      <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{getSectorDisplayName(item.sector_name)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item.total_issue_size_cr)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item.AAA_cr)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item['AA+_cr'])}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item.AA_cr)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item['AA-_cr'])}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item['A+_cr'])}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item['A & below (Rated)_cr'])}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item['A & below & (Unrated)_cr'])}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        }
+
+        case 'monthlyCompare': {
+          const monthlyData = section.data as MonthlyCompareListResult[];
+          let tableRows = monthlyData;
+          if (rowRange) {
+            tableRows = monthlyData.slice(rowRange.start, rowRange.end);
+          }
+          return (
+            <div key={key} id={id} className="section-item" style={sectionStyle}>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
+                {currentDateFullName} 2026 vs {currentDateFullName} 2025
+              </h2>
+              <div className="table-wrapper" style={{ overflowX: 'auto', marginBottom: '6px' }}>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: '0.7rem',
+                    border: '1px solid #d1d5db',
+                  }}
+                >
+                  <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
+                    <tr>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">Metric</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">{currentDateFullName} 2025</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">{currentDateFullName} 2026</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">YoY Change (%)</div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableRows.map((item, idx) => (
+                      <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{item.metric_name == 'Issue Size' ? 'Issue Size( Cr )' : item.metric_name}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item.value_2025)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatCrores(item.value_2026)}</div>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                          <div className="translate-y-[-6px]">{formatPercent(item.yoy_change_pct)}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        }
+
+        case 'sectorIssuerTable': {
+          const { title, data, groupHeading } = section;
+          let rows = data;
+          if (rowRange) {
+            rows = data.slice(rowRange.start, rowRange.end);
+          }
+          return (
+            <div key={key} id={id} className="section-item" style={sectionStyle}>
+              {groupHeading && (
+                <h2 className="translate-y-[-6px]" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '2px' }}>
+                  {groupHeading}
+                </h2>
+              )}
+              <h3
+                className="translate-y-[-6px]"
+                style={{
+                  fontSize: '1.1rem',
+                  fontWeight: 700,
+                  color: '#1e3a8a',
+                  marginBottom: '4px',
+                  marginTop: groupHeading ? '2px' : '0',
+                }}
+              >
+                {title}
+              </h3>
+              <div className="table-wrapper" style={{ overflowX: 'auto' }}>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: '0.65rem',
+                    border: '1px solid #d1d5db',
+                  }}
+                >
+                  <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
+                    <tr>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">Issuer Name</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">Total Issue Size (Cr)</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">Tenure (yrs)</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">Coupon (%)</div>
+                      </th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
+                        <div className="translate-y-[-6px]">Avg Coupon (%)</div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((item: TopSectorsWithIssuersResult | TopRatingWithIssuersResult, idx: number) => {
+                      const isMarketLinked =
+                        item.coupon_min === 'Market-Linked' ||
+                        item.coupon_max === 'Market-Linked' ||
+                        item.coupon_min === 'Market-Linked Coupon' ||
+                        item.coupon_max === 'Market-Linked Coupon';
+
+                      const couponDisplay = isMarketLinked ? 'Market-Linked' : formatCouponRange(item.coupon_min, item.coupon_max);
+                      const avgCouponDisplay = isMarketLinked ? '—' : item.avg_coupon_rate ? formatCoupon(item.avg_coupon_rate) : '—';
+
+                      return (
+                        <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
+                          <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                            <div className="translate-y-[-6px]">{item.issuer_name}</div>
+                          </td>
+                          <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                            <div className="translate-y-[-6px]">{formatCrores(item.total_issue_size)}</div>
+                          </td>
+                          <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                            <div className="translate-y-[-6px]">{formatTenureRange(item.tenure_min, item.tenure_max)}</div>
+                          </td>
+                          <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                            <div className="translate-y-[-6px]">{couponDisplay}</div>
+                          </td>
+                          <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
+                            <div className="translate-y-[-6px]">{avgCouponDisplay}</div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        }
+
+        case 'bulletPoints': {
+          const points = section.data as string[];
+          return (
+            <div key={key} id={id} className="section-item" style={sectionStyle}>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>Key Takeaways</h2>
+              <ul style={{ paddingLeft: '0', fontSize: '0.75rem', lineHeight: 1.5, listStyle: 'none' }}>
+                {points.map((point, idx) => (
+                  <li key={idx} style={{ marginBottom: '2px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <div style={{ color: '#1e3a8a', fontWeight: 'bold' }}>•</div>
+                    <div>{point}</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        }
+
+        default:
+          return null;
+      }
+    },
+    []
+  );
+
+  // ----- Pagination with dynamic content height and table splitting -----
   useEffect(() => {
     const sections = getSections();
     if (sections.length === 0) {
-      setPages([]);
+      setPageItems([]);
       return;
     }
 
@@ -759,541 +1351,209 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
       const measurementPage = measurementRef.current.querySelector('.measurement-page') as HTMLElement;
       if (!measurementPage) return;
 
+      // Force layout
       void measurementPage.offsetHeight;
 
       const contentArea = measurementPage.querySelector('.content-area') as HTMLElement;
       if (!contentArea) return;
+      const contentHeight = contentArea.clientHeight;
 
+      // Gather measurement data for each section
       const sectionElements = measurementPage.querySelectorAll('.section-item');
-      const sectionHeights: number[] = [];
-      sectionElements.forEach((el) => {
-        const rect = (el as HTMLElement).getBoundingClientRect();
-        sectionHeights.push(rect.height);
+      const sectionData: {
+        section: any;
+        otherOverhead: number; // title, section padding, margins (excluding table wrapper and chart)
+        tableOverhead: number; // padding/margins inside table wrapper
+        headerHeight: number;
+        rowHeight: number;
+        totalRows: number;
+        chartHeight: number;
+        hasChart: boolean;
+      }[] = [];
+
+      sectionElements.forEach((el, idx) => {
+        const section = sections[idx];
+        const isTable = section.isTable || false;
+
+        let otherOverhead = 0;
+        let tableOverhead = 0;
+        let headerHeight = 0;
+        let rowHeight = 0;
+        let totalRows = section.totalRows || 0;
+        let chartHeight = 0;
+        let hasChart = section.hasChart || false;
+
+        const sectionEl = el as HTMLElement;
+        const sectionTotalHeight = sectionEl.getBoundingClientRect().height;
+
+        if (isTable) {
+          const tableWrapper = el.querySelector('.table-wrapper') as HTMLElement;
+          const chartWrapper = el.querySelector('.chart-wrapper') as HTMLElement;
+
+          if (tableWrapper) {
+            const tableWrapperHeight = tableWrapper.getBoundingClientRect().height;
+            const thead = tableWrapper.querySelector('thead');
+            const tbody = tableWrapper.querySelector('tbody');
+            const firstRow = tbody?.querySelector('tr');
+
+            headerHeight = thead ? thead.getBoundingClientRect().height : 0;
+            rowHeight = firstRow ? firstRow.getBoundingClientRect().height : 25;
+
+            // Compute table overhead: tableWrapperHeight - headerHeight - totalRows * rowHeight
+            const tableRowsTotalHeight = totalRows * rowHeight;
+            tableOverhead = tableWrapperHeight - headerHeight - tableRowsTotalHeight;
+            if (tableOverhead < 0) tableOverhead = 0; // safety
+
+            // Compute other overhead: sectionTotalHeight - tableWrapperHeight - chartHeight
+            if (chartWrapper) {
+              chartHeight = chartWrapper.getBoundingClientRect().height;
+            }
+            otherOverhead = sectionTotalHeight - tableWrapperHeight - chartHeight;
+            if (otherOverhead < 0) otherOverhead = 0;
+          } else {
+            // fallback: estimate overhead
+            otherOverhead = sectionTotalHeight - totalRows * 25;
+            if (otherOverhead < 0) otherOverhead = 0;
+            rowHeight = 25;
+          }
+        } else {
+          // Non-table: otherOverhead = total height, no table-specific metrics
+          otherOverhead = sectionTotalHeight;
+          totalRows = 0;
+          rowHeight = 0;
+          headerHeight = 0;
+          tableOverhead = 0;
+          chartHeight = 0;
+          hasChart = false;
+        }
+
+        sectionData.push({
+          section,
+          otherOverhead,
+          tableOverhead,
+          headerHeight,
+          rowHeight,
+          totalRows,
+          chartHeight,
+          hasChart,
+        });
       });
 
+      // Build pages
       const pagesResult: any[][] = [];
       let currentPage: any[] = [];
-      let currentHeight = 0;
+      let currentPageHeight = 0;
+      const BUFFER = 5; // pixels to avoid overflow
 
-      sections.forEach((section, index) => {
-        const height = sectionHeights[index] || 0;
-        const sectionHeightWithMargin = height + 4;
-        if (currentHeight + sectionHeightWithMargin > AVAILABLE_HEIGHT && currentPage.length > 0) {
+      const addItem = (item: any, height: number) => {
+        if (currentPageHeight + height > contentHeight - BUFFER && currentPage.length > 0) {
           pagesResult.push(currentPage);
           currentPage = [];
-          currentHeight = 0;
+          currentPageHeight = 0;
         }
-        currentPage.push(section);
-        currentHeight += sectionHeightWithMargin;
-      });
+        currentPage.push(item);
+        currentPageHeight += height;
+      };
+
+      for (let i = 0; i < sectionData.length; i++) {
+        const { section, otherOverhead, tableOverhead, headerHeight, rowHeight, totalRows, chartHeight, hasChart } =
+          sectionData[i];
+
+        if (!section.isTable) {
+          // Non-table: add as a whole
+          addItem({ section }, otherOverhead);
+          continue;
+        }
+
+        if (totalRows === 0) {
+          // Table with no rows (unlikely) – add as is
+          addItem({ section }, otherOverhead + tableOverhead + headerHeight);
+          continue;
+        }
+
+        // Splitting logic for tables
+        const getRowsThatFit = (space: number): number => {
+          const availableForRows = space - otherOverhead - tableOverhead - headerHeight;
+          if (availableForRows <= 0) return 0;
+          return Math.floor(availableForRows / rowHeight);
+        };
+
+        let rowStart = 0;
+        let rowsLeft = totalRows;
+
+        // Try to fit on current page
+        let remainingSpace = contentHeight - currentPageHeight;
+        let rowsFit = getRowsThatFit(remainingSpace);
+
+        if (rowsFit <= 0 && currentPage.length > 0) {
+          // start new page
+          pagesResult.push(currentPage);
+          currentPage = [];
+          currentPageHeight = 0;
+          remainingSpace = contentHeight;
+          rowsFit = getRowsThatFit(remainingSpace);
+        }
+
+        while (rowsLeft > 0) {
+          let takeRows = rowsFit;
+          if (takeRows <= 0) takeRows = 1;
+          if (takeRows > rowsLeft) takeRows = rowsLeft;
+
+          const chunkHeight = otherOverhead + tableOverhead + headerHeight + takeRows * rowHeight;
+
+          // If chunk doesn't fit on a fresh page, reduce rows
+          if (chunkHeight > contentHeight - BUFFER) {
+            takeRows = Math.floor((contentHeight - BUFFER - otherOverhead - tableOverhead - headerHeight) / rowHeight);
+            if (takeRows <= 0) takeRows = 1;
+            // Recalculate chunk height
+            const adjustedChunkHeight = otherOverhead + tableOverhead + headerHeight + takeRows * rowHeight;
+            addItem({ section, rowRange: { start: rowStart, end: rowStart + takeRows } }, adjustedChunkHeight);
+            rowStart += takeRows;
+            rowsLeft -= takeRows;
+            if (rowsLeft > 0) {
+              pagesResult.push(currentPage);
+              currentPage = [];
+              currentPageHeight = 0;
+              remainingSpace = contentHeight;
+              rowsFit = getRowsThatFit(remainingSpace);
+            }
+            continue;
+          }
+
+          addItem({ section, rowRange: { start: rowStart, end: rowStart + takeRows } }, chunkHeight);
+          rowStart += takeRows;
+          rowsLeft -= takeRows;
+
+          if (rowsLeft > 0) {
+            pagesResult.push(currentPage);
+            currentPage = [];
+            currentPageHeight = 0;
+            remainingSpace = contentHeight;
+            rowsFit = getRowsThatFit(remainingSpace);
+          }
+        }
+
+        // Add chart if exists and has height
+        if (hasChart && chartHeight > 0) {
+          addItem({ section, isChart: true }, chartHeight);
+        }
+      }
 
       if (currentPage.length > 0) {
         pagesResult.push(currentPage);
       }
 
-      setPages(pagesResult);
+      setPageItems(pagesResult);
     }, 250);
 
     return () => {
       if (measurementTimeoutRef.current) clearTimeout(measurementTimeoutRef.current);
     };
-  }, [getSections, AVAILABLE_HEIGHT]);
+  }, [getSections]);
 
-  // ----- Render section helpers -----
-  const renderSection = useCallback((section: any, isMeasurement = false) => {
-    const id = isMeasurement ? `measure-${section.id}` : section.id;
-    const key = isMeasurement ? `measure-${section.id}` : `render-${section.id}`;
-
-    const sectionStyle: React.CSSProperties = {
-      padding: '6px 12px',
-      marginBottom: '4px',
-      backgroundColor: '#ffffff',
-      borderRadius: '6px',
-    };
-
-    switch (section.type) {
-      case 'cards': {
-        const {
-          total_issuers,
-          total_isins,
-          total_issue_size,
-          avg_issue_size,
-          top_sector,
-          top_issuer_size,
-          top_issuer_count,
-          top_rating,
-        } = section.data;
-        const cards = [
-          { label: 'Total Issuers', value: total_issuers },
-          { label: 'Total ISINs', value: total_isins },
-          { label: 'Total Issue Size (Cr)', value: formatCrores(total_issue_size) },
-          { label: 'Avg Issue Size (Cr)', value: formatCrores(avg_issue_size) },
-          { label: 'Top Issuer (By Issue Size)', value: top_issuer_size },
-          { label: 'Top Issuer (By No. of Issues)', value: top_issuer_count },
-          { label: 'Top Sector', value: top_sector },
-          { label: 'Top Rating', value: top_rating },
-        ];
-        return (
-          <div key={key} id={id} className="section-item" style={sectionStyle}>
-            <h2 className='translate-y-[-6px]' style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
-              Market Snapshot
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-              {cards.map((card, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    backgroundColor: '#f9fafb',
-                    borderRadius: '6px',
-                    padding: '6px',
-                    textAlign: 'center',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                  }}
-                >
-                  <div className='translate-y-[-6px]' style={{ fontSize: '0.65rem', color: '#6b7280' }}>{card.label}</div>
-                  <div className='translate-y-[-6px]' style={{ fontSize: '1rem', fontWeight: 600, marginTop: '2px' }}>{card.value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      }
-
-      case 'table': {
-        const { title, columns, data, rowRenderer } = section;
-        return (
-          <div key={key} id={id} className="section-item" style={sectionStyle}>
-            <h2 className='translate-y-[-6px]' style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
-              {title}
-            </h2>
-            <div style={{ overflowX: 'auto' }}>
-              <table
-                style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '0.7rem',
-                  border: '1px solid #d1d5db',
-                }}
-              >
-                <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
-                  <tr>
-                    {columns.map((col: string, idx: number) => (
-                      <th key={idx} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
-                        <div className='translate-y-[-6px]'>{col}</div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map((item: any, idx: number) => {
-                    const row = rowRenderer(item);
-                    return (
-                      <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
-                        {row.map((cell: any, cellIdx: number) => (
-                          <td key={cellIdx} style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                            <div className='translate-y-[-6px]'>{cell}</div>
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-      }
-
-      case 'ratingDistribution': {
-        const ratingData = section.data as RatingsListResult[];
-        const chartData = ratingData.map((item) => ({
-          label: item.rating_label,
-          value1: parseFloat(item.total_issue_size_previous_month as string) || 0,
-          value2: parseFloat(item.total_issue_size_current_month as string) || 0,
-        }));
-        return (
-          <div key={key} id={id} className="section-item" style={sectionStyle}>
-            <h2 className='translate-y-[-6px]' style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
-              Credit Rating Distribution
-            </h2>
-            <div style={{ overflowX: 'auto', marginBottom: '6px' }}>
-              <table
-                style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '0.7rem',
-                  border: '1px solid #d1d5db',
-                }}
-              >
-                <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
-                  <tr>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Rating</div></th>
-                    <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}><div className='translate-y-[-6px]'>Issuer Count</div></th>
-                    <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}><div className='translate-y-[-6px]'>Total Issue Size (Cr)</div></th>
-                    <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}><div className='translate-y-[-6px]'>Shares (%)</div></th>
-                  </tr>
-                  <tr>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>Jun 2026</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>Jul 2026</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>Jun 2026</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>Jul 2026</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>Jun 2026</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>Jul 2026</div></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ratingData.map((item, idx) => (
-                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>{item.rating_label}</div></td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>{item.issuer_count_previous_month}</div></td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>{item.issuer_count_current_month}</div></td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.total_issue_size_previous_month)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.total_issue_size_current_month)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatPercent(item.shares_previous_month)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatPercent(item.shares_current_month)}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <GroupedBarChart data={chartData} />
-            </div>
-          </div>
-        );
-      }
-
-      case 'sectorDistribution': {
-        const sectorData = section.data as SectorListResult[];
-        // Chart uses short names
-        const chartData = sectorData.map((item) => ({
-          label: item.sector_name.length > 15
-            ? getSectorShortName(item.sector_name)
-            : item.sector_name,
-          value1: parseFloat(item.total_issue_size_previous_month as string) || 0,
-          value2: parseFloat(item.total_issue_size_current_month as string) || 0,
-        }));
-        return (
-          <div key={key} id={id} className="section-item" style={sectionStyle}>
-            <h2 className='translate-y-[-6px]' style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
-              Issuances by Sector
-            </h2>
-            <div style={{ overflowX: 'auto', marginBottom: '6px' }}>
-              <table
-                style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '0.7rem',
-                  border: '1px solid #d1d5db',
-                }}
-              >
-                <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
-                  <tr>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Sector</div></th>
-                    <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}><div className='translate-y-[-6px]'>Issuer Count</div></th>
-                    <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}><div className='translate-y-[-6px]'>Total Issue Size (Cr)</div></th>
-                    <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}><div className='translate-y-[-6px]'>Shares (%)</div></th>
-                  </tr>
-                  <tr>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>Jun 2026</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>Jul 2026</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>Jun 2026</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>Jul 2026</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>Jun 2026</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>Jul 2026</div></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sectorData.map((item, idx) => (
-                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{getSectorDisplayName(item.sector_name)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>{item.issuer_count_previous_month}</div></td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}><div className='translate-y-[-6px]'>{item.issuer_count_current_month}</div></td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.total_issue_size_previous_month)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.total_issue_size_current_month)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatPercent(item.shares_previous_month)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatPercent(item.shares_current_month)}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <GroupedBarChart data={chartData} />
-            </div>
-          </div>
-        );
-      }
-
-      case 'crossTable': {
-        const crossData = section.data as SectorAndRatingListResult[];
-        return (
-          <div key={key} id={id} className="section-item" style={sectionStyle}>
-            <h2 className='translate-y-[-6px]' style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
-              Sector × Credit Rating Distribution
-            </h2>
-            <div style={{ overflowX: 'auto' }}>
-              <table
-                style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '0.65rem',
-                  border: '1px solid #d1d5db',
-                }}
-              >
-                <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
-                  <tr>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Sector</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Total (Cr)</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>AAA</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>AA+</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>AA</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>AA-</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>A+</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>A & Below</div></th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}><div className='translate-y-[-6px]'>Unrated</div></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {crossData.map((item, idx) => (
-                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{getSectorDisplayName(item.sector_name)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.total_issue_size_cr)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.AAA_cr)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item["AA+_cr"])}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item["AA_cr"])}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item["AA-_cr"])}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item["A+_cr"])}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item["A & below (Rated)_cr"])}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item["A & below & (Unrated)_cr"])}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-      }
-
-      case 'monthlyCompare': {
-        const monthlyData = section.data as MonthlyCompareListResult[];
-        const chartData = monthlyData.map((item) => ({
-          label: item.metric_name,
-          value1: parseFloat(item.value_2025) || 0,
-          value2: parseFloat(item.value_2026) || 0,
-        }));
-        return (
-          <div key={key} id={id} className="section-item" style={sectionStyle}>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
-              July 2026 vs July 2025
-            </h2>
-            <div style={{ overflowX: 'auto', marginBottom: '6px' }}>
-              <table
-                style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '0.7rem',
-                  border: '1px solid #d1d5db',
-                }}
-              >
-                <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
-                  <tr>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
-                      <div className='translate-y-[-6px]'>Metric</div>
-                    </th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
-                      <div className='translate-y-[-6px]'>July 2025</div>
-                    </th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
-                      <div className='translate-y-[-6px]'>July 2026</div>
-                    </th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
-                      <div className='translate-y-[-6px]'>YoY Change (%)</div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {monthlyData.map((item, idx) => (
-                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{item.metric_name == 'Issue Size' ? 'Issue Size( Cr )' : item.metric_name}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.value_2025)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatCrores(item.value_2026)}</div>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                        <div className='translate-y-[-6px]'>{formatPercent(item.yoy_change_pct)}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <GroupedBarChart data={chartData} />
-            </div>
-          </div>
-        );
-      }
-
-      case 'sectorIssuerTable': {
-        const { title, data, groupHeading } = section;
-        return (
-          <div key={key} id={id} className="section-item" style={sectionStyle}>
-            {groupHeading && (
-              <h2 className='translate-y-[-6px]' style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '2px' }}>
-                {groupHeading}
-              </h2>
-            )}
-            <h3 className='translate-y-[-6px]' style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '4px', marginTop: groupHeading ? '2px' : '0' }}>
-              {title}
-            </h3>
-            <div style={{ overflowX: 'auto' }}>
-              <table
-                style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '0.65rem',
-                  border: '1px solid #d1d5db',
-                }}
-              >
-                <thead style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
-                  <tr>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
-                      <div className='translate-y-[-6px]'>Issuer Name</div>
-                    </th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
-                      <div className='translate-y-[-6px]'>Total Issue Size (Cr)</div>
-                    </th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
-                      <div className='translate-y-[-6px]'>Tenure (yrs)</div>
-                    </th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
-                      <div className='translate-y-[-6px]'>Coupon (%)</div>
-                    </th>
-                    <th style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'left' }}>
-                      <div className='translate-y-[-6px]'>Avg Coupon (%)</div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map((item: TopSectorsWithIssuersResult, idx: number) => {
-                    // Determine coupon display
-                    const isMarketLinked =
-                      item.coupon_min === 'Market-Linked' ||
-                      item.coupon_max === 'Market-Linked' ||
-                      item.coupon_min === 'Market-Linked Coupon' ||
-                      item.coupon_max === 'Market-Linked Coupon';
-
-                    const couponDisplay = isMarketLinked ? 'Market-Linked' : formatCouponRange(item.coupon_min, item.coupon_max);
-                    const avgCouponDisplay = isMarketLinked ? '—' : (item.avg_coupon_rate ? formatCoupon(item.avg_coupon_rate) : '—');
-
-                    return (
-                      <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
-                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                          <div className='translate-y-[-6px]'>{item.issuer_name}</div>
-                        </td>
-                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                          <div className='translate-y-[-6px]'>{formatCrores(item.total_issue_size)}</div>
-                        </td>
-                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                          <div className='translate-y-[-6px]'>{formatTenureRange(item.tenure_min, item.tenure_max)}</div>
-                        </td>
-                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                          <div className='translate-y-[-6px]'>{couponDisplay}</div>
-                        </td>
-                        <td style={{ border: '1px solid #d1d5db', padding: '3px 6px' }}>
-                          <div className='translate-y-[-6px]'>{avgCouponDisplay}</div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-      }
-
-      case 'bulletPoints': {
-        const points = section.data as string[];
-        return (
-          <div key={key} id={id} className="section-item" style={sectionStyle}>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
-              Key Takeaways
-            </h2>
-            <ul style={{ paddingLeft: '0', fontSize: '0.75rem', lineHeight: 1.5, listStyle: 'none' }}>
-              {points.map((point, idx) => (
-                <li key={idx} style={{ marginBottom: '2px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <div style={{ color: '#1e3a8a', fontWeight: 'bold' }}>•</div>
-                  <div>{point}</div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      }
-
-      case 'heading': {
-        const { title } = section.data;
-        return (
-          <div key={key} id={id} className="section-item" style={sectionStyle}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '4px' }}>
-              {title}
-            </h2>
-          </div>
-        );
-      }
-
-      default:
-        return null;
-    }
-  }, []);
-
-  // ----- PDF Download (unchanged) -----
+  // ----- PDF Download -----
   const handleDownloadPDF = useCallback(async () => {
-    if (!pagesContainerRef.current || pages.length === 0) {
+    if (!pagesContainerRef.current || pageItems.length === 0) {
       alert('No content available to download');
       return;
     }
@@ -1340,7 +1600,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
     } finally {
       setIsGeneratingPDF(false);
     }
-  }, [pages]);
+  }, [pageItems]);
 
   // ----- Render -----
   const allSections = getSections();
@@ -1349,7 +1609,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0' }}>
       <button
         onClick={handleDownloadPDF}
-        disabled={isGeneratingPDF || pages.length === 0}
+        disabled={isGeneratingPDF || pageItems.length === 0}
         style={{
           marginBottom: '24px',
           backgroundColor: '#2563eb',
@@ -1359,8 +1619,8 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
           borderRadius: '8px',
           border: 'none',
           boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-          cursor: isGeneratingPDF || pages.length === 0 ? 'not-allowed' : 'pointer',
-          opacity: isGeneratingPDF || pages.length === 0 ? 0.5 : 1,
+          cursor: isGeneratingPDF || pageItems.length === 0 ? 'not-allowed' : 'pointer',
+          opacity: isGeneratingPDF || pageItems.length === 0 ? 0.5 : 1,
         }}
       >
         {isGeneratingPDF ? 'Generating PDF...' : 'Download PDF'}
@@ -1398,12 +1658,12 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                   textAlign: 'center',
                 }}
               >
-                <div className='translate-y-[-15px]' style={{ fontSize: '1.2rem', fontWeight: 700 }}>
-                  Bond Issuance Pulse- July 2026
+                <div className="translate-y-[-15px]" style={{ fontSize: '1.2rem', fontWeight: 700 }}>
+                  Bond Issuance Pulse- {currentDateFullName} 2026
                 </div>
               </div>
               <div className="content-area" style={{ flex: 1, overflow: 'hidden', padding: '4px 0' }}>
-                {allSections.map((section) => renderSection(section, true))}
+                {allSections.map((section) => renderContentItem({ section }, true))}
               </div>
               <div
                 style={{
@@ -1426,7 +1686,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
 
       {/* Visible pages */}
       <div ref={pagesContainerRef} style={{ margin: 0, padding: 0, background: 'white' }}>
-        {/* ---- COVER PAGE ---- */}
+        {/* Cover Page */}
         <div
           className="page cover-page"
           style={{
@@ -1464,7 +1724,6 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                   display: 'block',
                 }}
               />
-              {/* Overlay text */}
               <div
                 style={{
                   position: 'absolute',
@@ -1482,12 +1741,13 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                   fontFamily: 'sans-serif',
                 }}
               >
-                August 2026
+                {firstPageDisplayDate}
               </div>
             </div>
           </div>
         </div>
-        {pages.map((pageSections, pageIndex) => (
+
+        {pageItems.map((page, pageIndex) => (
           <div
             key={`page-${pageIndex}`}
             className="page"
@@ -1522,17 +1782,17 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                     textAlign: 'center',
                   }}
                 >
-                  <div className='translate-y-[-15px]' style={{ fontSize: '1.2rem', fontWeight: 700 }}>
-                    Bond Issuance Pulse- July 2026
+                  <div className="translate-y-[-15px]" style={{ fontSize: '1.2rem', fontWeight: 700 }}>
+                    Bond Issuance Pulse- {currentDateFullName} 2026
                   </div>
                 </div>
                 <div style={{ flex: 1, overflow: 'hidden', padding: '4px 0' }}>
-                  {pageSections.map((section) => renderSection(section, false))}
+                  {page.map((item) => renderContentItem(item, false))}
                 </div>
                 <div
                   style={{
                     flexShrink: 0,
-                    height: '36px',
+                    height: '16px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'flex-end',
@@ -1547,6 +1807,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
             </div>
           </div>
         ))}
+
         {/* Extra image pages */}
         {extraImagePages.map((img, idx) => (
           <div
@@ -1566,7 +1827,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
             <div style={{ width: '100%', height: '100%', padding: '24px', backgroundColor: '#1e3a8a' }}>
               <div
                 style={{
-                  position: 'relative', // needed for absolute positioning of overlay
+                  position: 'relative',
                   width: '100%',
                   height: '100%',
                   borderRadius: '16px',
@@ -1585,7 +1846,6 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                   }}
                 />
 
-                {/* Overlay if defined */}
                 {img.overlay && (
                   <>
                     <div style={img.overlay.containerStyle}>
@@ -1601,10 +1861,8 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                           <Image src={imageSrc} alt={`icon-${i}`} style={img.overlay.imageStyle} />
                         </a>
                       ))}
-
                     </div>
                     <div style={img.overlay.TextcontainerStyle}>
-                      {/* 👇 Add the new text link */}
                       {img.overlay.textLink && (
                         <a
                           href={img.overlay.textLink.href}
@@ -1612,11 +1870,11 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                           rel="noopener noreferrer"
                           style={{
                             display: 'inline-block',
-                            color: '#0d1427ff',            // adjust to match your design
+                            color: '#0d1427ff',
                             fontSize: '1.9rem',
                             fontWeight: 600,
                             textDecoration: 'underline',
-                            marginLeft: '8px',           // spacing from icons
+                            marginLeft: '8px',
                           }}
                           data-link="true"
                         >
