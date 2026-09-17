@@ -44,112 +44,112 @@ const extraImagePages: Array<{
     };
   } | null;
 }> = [
-  // Page 0: fifthLast – no overlay
-  { src: fifthLast, alt: 'Fifth Last', overlay: null },
+    // Page 0: fifthLast – no overlay
+    { src: fifthLast, alt: 'Fifth Last', overlay: null },
 
-  // Page 1: fourthLast – overlay
-  {
-    src: fourthLast,
-    alt: 'Fourth Last',
-    overlay: {
-      containerStyle: {
-        position: 'absolute',
-        top: '90%',
-        left: '30%',
-        display: 'flex',
-        flexDirection: 'row' as const,
-        gap: '13px',
-      } as React.CSSProperties,
-      imageStyle: {
-        width: 60,
-        height: 60,
-        objectFit: 'contain',
-      } as React.CSSProperties,
-      images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
-      links: [
-        'https://substack.com/@debtcircle',
-        'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
-        'https://www.linkedin.com/company/debt-circle',
-        'https://t.me/debtcircle',
-        'https://x.com/DebtCircle',
-        'https://www.instagram.com/debtcircle',
-      ],
-    },
-  },
-
-  // Page 2: thirdLast – no overlay
-  { src: thirdLast, alt: 'Third Last', overlay: null },
-
-  // Page 3: secondLastOne – overlay
-  {
-    src: secondLastOne,
-    alt: 'Second Last',
-    overlay: {
-      containerStyle: {
-        position: 'absolute',
-        bottom: '36%',
-        right: '31%',
-        display: 'flex',
-        flexDirection: 'row' as const,
-        gap: '13px',
-      } as React.CSSProperties,
-      imageStyle: {
-        width: 60,
-        height: 60,
-        objectFit: 'contain',
-      } as React.CSSProperties,
-      images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
-      links: [
-        'https://substack.com/@debtcircle',
-        'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
-        'https://www.linkedin.com/company/debt-circle',
-        'https://t.me/debtcircle',
-        'https://x.com/DebtCircle',
-        'https://www.instagram.com/debtcircle',
-      ],
-      TextcontainerStyle: {
-        position: 'absolute',
-        bottom: '29%',
-        right: '39%',
-      },
-      textLink: {
-        text: 'https://debtcircle.in',
-        href: 'https://debtcircle.in',
+    // Page 1: fourthLast – overlay
+    {
+      src: fourthLast,
+      alt: 'Fourth Last',
+      overlay: {
+        containerStyle: {
+          position: 'absolute',
+          top: '90%',
+          left: '30%',
+          display: 'flex',
+          flexDirection: 'row' as const,
+          gap: '13px',
+        } as React.CSSProperties,
+        imageStyle: {
+          width: 60,
+          height: 60,
+          objectFit: 'contain',
+        } as React.CSSProperties,
+        images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
+        links: [
+          'https://substack.com/@debtcircle',
+          'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
+          'https://www.linkedin.com/company/debt-circle',
+          'https://t.me/debtcircle',
+          'https://x.com/DebtCircle',
+          'https://www.instagram.com/debtcircle',
+        ],
       },
     },
-  },
 
-  // Page 4: lastOne – overlay
-  {
-    src: lastOne,
-    alt: 'Last One',
-    overlay: {
-      containerStyle: {
-        position: 'absolute',
-        top: '86%',
-        left: '32%',
-        transform: 'translate(-50%, -50%)',
-        display: 'flex',
-        flexDirection: 'row' as const,
-        gap: '13px',
-      } as React.CSSProperties,
-      imageStyle: {
-        width: 50,
-        height: 50,
-        objectFit: 'contain',
-      } as React.CSSProperties,
-      images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
-      links: [
-        'https://substack.com/@debtcircle',
-        'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
-        'https://www.linkedin.com/company/debt-circle',
-        'https://t.me/debtcircle',
-        'https://x.com/DebtCircle',
-        'https://www.instagram.com/debtcircle',
-      ],
+    // Page 2: thirdLast – no overlay
+    { src: thirdLast, alt: 'Third Last', overlay: null },
+
+    // Page 3: secondLastOne – overlay
+    {
+      src: secondLastOne,
+      alt: 'Second Last',
+      overlay: {
+        containerStyle: {
+          position: 'absolute',
+          bottom: '36%',
+          right: '31%',
+          display: 'flex',
+          flexDirection: 'row' as const,
+          gap: '13px',
+        } as React.CSSProperties,
+        imageStyle: {
+          width: 60,
+          height: 60,
+          objectFit: 'contain',
+        } as React.CSSProperties,
+        images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
+        links: [
+          'https://substack.com/@debtcircle',
+          'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
+          'https://www.linkedin.com/company/debt-circle',
+          'https://t.me/debtcircle',
+          'https://x.com/DebtCircle',
+          'https://www.instagram.com/debtcircle',
+        ],
+        TextcontainerStyle: {
+          position: 'absolute',
+          bottom: '29%',
+          right: '39%',
+        },
+        textLink: {
+          text: 'https://debtcircle.in',
+          href: 'https://debtcircle.in',
+        },
+      },
     },
-  },
-];
+
+    // Page 4: lastOne – overlay
+    {
+      src: lastOne,
+      alt: 'Last One',
+      overlay: {
+        containerStyle: {
+          position: 'absolute',
+          top: '86%',
+          left: '32%',
+          transform: 'translate(-50%, -50%)',
+          display: 'flex',
+          flexDirection: 'row' as const,
+          gap: '13px',
+        } as React.CSSProperties,
+        imageStyle: {
+          width: 50,
+          height: 50,
+          objectFit: 'contain',
+        } as React.CSSProperties,
+        images: [substack, whatsapp, linkedIn, telegram, twitter, instagram],
+        links: [
+          'https://substack.com/@debtcircle',
+          'https://www.whatsapp.com/channel/0029ValOH5VLdQeW3LMm8V2G',
+          'https://www.linkedin.com/company/debt-circle',
+          'https://t.me/debtcircle',
+          'https://x.com/DebtCircle',
+          'https://www.instagram.com/debtcircle',
+        ],
+      },
+    },
+  ];
 
 // ----- Types -----
 interface TotalIssuersResult {
@@ -571,6 +571,13 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
     return rating;
   };
 
+  // Inside DebtSnapshotReport, before getSections or useCallback
+  const renderNote = (text: string) => (
+    <div style={{ fontSize: '10px', color: '#6b7280', fontStyle: 'italic', marginTop: '2px', marginBottom: '6px' }}>
+      Note: {text}
+    </div>
+  );
+
   // ----- Build sections from data -----
   const getSections = useCallback(() => {
     const sections: any[] = [];
@@ -674,6 +681,12 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         if (index === 0) section.groupHeading = 'Issuances by Sector';
         sections.push(section);
       });
+      // --- ADD THIS ---
+      sections.push({
+        id: 'sector-note',
+        type: 'note',
+        data: 'The total issue size across tranches, along with the coupon range and tenure range, has been considered for each sector.',
+      });
     }
 
     if (d.topRatingWithIssuersResult?.length) {
@@ -696,20 +709,26 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         if (index === 0) section.groupHeading = 'Issuances by Ratings';
         sections.push(section);
       });
+      // 👇 ADD THIS NOTE
+      sections.push({
+        id: 'rating-note',
+        type: 'note',
+        data: 'The total issue size across tranches, along with the coupon range and tenure range, has been considered for each Rating Scale.',
+      });
     }
 
     sections.push({
       id: 'key-takeaways',
       type: 'bulletPoints',
       data: [
-        'August 2026 recorded healthy debt-market activity with 112 issuances worth Rs 1,84,650 Cr across 48 issuers, reflecting sustained primary-market momentum.',
-        'Issuance activity was led by large NBFCs and infrastructure financiers (REC, PFC, NaBFID, IRFC), consistent with continued reliance on long-tenor bond funding for infrastructure and lending growth.',
-        'AAA remained the dominant rating category (~70% of value), underscoring investor preference for high-grade paper amid prevailing rate conditions.',
-        'NBFC and Infrastructure were the leading sectors by value (40.2% and 18.8% respectively), together accounting for nearly 60% of total issuance.',
-        'Credit quality is highly concentrated in top-rated sectors (Banks, NBFC) while Manufacturing and Others show more diversified — and comparatively lower-rated — funding profiles.',
-        'On a YoY basis, August 2026 issuance value grew 21.2% over August 2025, indicating an expanding primary debt market rather than a one-off surge.',
-        'Issuer participation widened modestly (41 → 48), suggesting broader market access rather than reliance on a few large repeat issuers.',
-        'The gap between value growth (21.2%) and issuer growth (17.1%) implies incrementally larger ticket sizes per issuer year-on-year.',
+        'Debt-market activity contracted sharply, with 29 issuances worth ₹12,094 crore across 29 issuers, down 79.31% YoY in value and 88.02% in issuer participation, indicating a significantly narrower primary market.',
+        'Issuance remained concentrated among large repeat borrowers, particularly NBFCs and infrastructure financiers such as Bajaj Finance, REC, PFC and HDB Financial. NBFCs and HFCs recorded the highest issuance activity by sector, highlighting the dominance of financial-sector borrowers.',
+        'Higher market yields, led by the short end, emerged as the key constraint rather than liquidity. Investors remained willing to deploy funds, but demanded higher returns that issuers found unattractive, prompting several borrowers to withdraw, reprice or defer shorter-duration offerings.',
+        'Alternative funding sources further reduced bond-market supply, with issuers having access to bank lines or internal accruals choosing to defer borrowing rather than lock in elevated funding costs. This contributed to the sharp decline in issuer participation, even as average ticket sizes increased.',
+        'Investor preference remained firmly tilted towards high-grade paper, with AAA and AA+ emerging as the dominant rating categories. Credit quality was particularly concentrated in NBFC and HFC issuance, while Others and real-estate-related sectors showed greater rating dispersion and coupons of up to 22.00%.',
+        'The RBI’s unchanged 5.25% repo rate and neutral stance did not translate into easier market conditions. The August policy minutes carried a more hawkish tone, with members open to a rate hike if inflation risks broadened, reinforcing expectations that the easing cycle was effectively over.',
+        'Elevated sovereign yields and macro risks kept borrowing costs high. Heavy government borrowing and auction supply raised the base for corporate pricing, while elevated crude prices, West Asia tensions and Strait of Hormuz disruptions added to imported-inflation risks and term premia.',
+        'Higher FY27 inflation expectations and continued rate uncertainty kept investors cautious on duration, with bankers expecting the debt market to remain selective and issuance volumes to stay subdued in the near term.'
       ],
     });
 
@@ -845,9 +864,8 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         case 'table': {
           const { title, columns, data, rowRenderer } = section;
           let rows = data;
-          if (rowRange) {
-            rows = data.slice(rowRange.start, rowRange.end);
-          }
+          const isLastChunk = !rowRange || rowRange.end === data.length;
+          if (rowRange) rows = data.slice(rowRange.start, rowRange.end);
           return (
             <div key={key} id={id} className="section-item" style={sectionStyle}>
               <h2 className="translate-y-[-6px]" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
@@ -887,6 +905,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                   </tbody>
                 </table>
               </div>
+              {title === 'Top 10 Issuers' && isLastChunk && renderNote('Only the top 10 issuers have been considered.')}
             </div>
           );
         }
@@ -894,9 +913,8 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         case 'ratingDistribution': {
           const ratingData = section.data as RatingsListResult[];
           let tableRows = ratingData;
-          if (rowRange) {
-            tableRows = ratingData.slice(rowRange.start, rowRange.end);
-          }
+          const isLastChunk = !rowRange || rowRange.end === ratingData.length;
+          if (rowRange) tableRows = ratingData.slice(rowRange.start, rowRange.end);
           return (
             <div key={key} id={id} className="section-item" style={sectionStyle}>
               <h2 className="translate-y-[-6px]" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
@@ -923,7 +941,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                         <div className="translate-y-[-6px]">Total Issue Size (Cr)</div>
                       </th>
                       <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>
-                        <div className="translate-y-[-6px]">Shares (%)</div>
+                        <div className="translate-y-[-6px]">% Share of Issue Size </div>
                       </th>
                     </tr>
                     <tr>
@@ -977,6 +995,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                   </tbody>
                 </table>
               </div>
+              {isLastChunk && renderNote('Only rated securities have been included. The A & Below category comprises securities rated A and below, as per the applicable credit rating scale.')}
             </div>
           );
         }
@@ -984,9 +1003,8 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         case 'sectorDistribution': {
           const sectorData = section.data as SectorListResult[];
           let tableRows = sectorData;
-          if (rowRange) {
-            tableRows = sectorData.slice(rowRange.start, rowRange.end);
-          }
+          const isLastChunk = !rowRange || rowRange.end === sectorData.length;
+          if (rowRange) tableRows = sectorData.slice(rowRange.start, rowRange.end);
           return (
             <div key={key} id={id} className="section-item" style={sectionStyle}>
               <h2 className="translate-y-[-6px]" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
@@ -1013,7 +1031,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                         <div className="translate-y-[-6px]">Total Issue Size (Cr)</div>
                       </th>
                       <th colSpan={2} style={{ border: '1px solid #d1d5db', padding: '3px 6px', textAlign: 'center' }}>
-                        <div className="translate-y-[-6px]">Shares (%)</div>
+                        <div className="translate-y-[-6px]">% Share of Issue Size </div>
                       </th>
                     </tr>
                     <tr>
@@ -1067,6 +1085,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                   </tbody>
                 </table>
               </div>
+              {isLastChunk && renderNote('The Others category includes all sectors other than the top five sectors represented individually, including sectors classified as Others.')}
             </div>
           );
         }
@@ -1074,9 +1093,8 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
         case 'crossTable': {
           const crossData = section.data as SectorAndRatingListResult[];
           let tableRows = crossData;
-          if (rowRange) {
-            tableRows = crossData.slice(rowRange.start, rowRange.end);
-          }
+          const isLastChunk = !rowRange || rowRange.end === crossData.length;
+          if (rowRange) tableRows = crossData.slice(rowRange.start, rowRange.end);
           return (
             <div key={key} id={id} className="section-item" style={sectionStyle}>
               <h2 className="translate-y-[-6px]" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '6px' }}>
@@ -1157,6 +1175,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                   </tbody>
                 </table>
               </div>
+              {isLastChunk && renderNote('The Others category includes all sectors other than the top five sectors represented individually, including those classified as Others.')}
             </div>
           );
         }
@@ -1328,6 +1347,13 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
             </div>
           );
         }
+
+        case 'note':
+          return (
+            <div key={key} id={id} className="section-item" style={{ padding: '6px 12px', marginBottom: '4px', backgroundColor: '#ffffff', borderRadius: '6px' }}>
+              {renderNote(section.data)}
+            </div>
+          );
 
         default:
           return null;
@@ -1666,6 +1692,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                 {allSections.map((section) => renderContentItem({ section }, true))}
               </div>
               <div
+              className='translate-y-[-12px]'
                 style={{
                   flexShrink: 0,
                   height: '36px',
@@ -1790,6 +1817,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                   {page.map((item) => renderContentItem(item, false))}
                 </div>
                 <div
+                className='translate-y-[-12px]'
                   style={{
                     flexShrink: 0,
                     height: '16px',

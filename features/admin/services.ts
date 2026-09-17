@@ -1,6 +1,6 @@
-const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+// const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
-// const backendURL = 'http://localhost:4000';
+const backendURL = 'http://localhost:4000';
 
 // console.log("ENV VALUE:", process.env.NEXT_PUBLIC_BACKEND_URL);
 
@@ -128,3 +128,25 @@ export const getMonthlyReportData = async (query: unknown) => {
         console.error("Error fetching monthly data:", err.message);
     }
 }
+
+export const postIssuersData = async (query: unknown) => {
+  try {
+    const response = await fetch(`${backendURL}/bulk-issuers-upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(query),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Upload failed (${response.status}): ${errorText || response.statusText}`
+      );
+    }
+
+    return response.json();
+  } catch (err: any) {
+    console.error('Error uploading issuers data:', err.message);
+    throw err; // <-- important: rethrow so caller can catch
+  }
+};

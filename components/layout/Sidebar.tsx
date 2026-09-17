@@ -116,6 +116,7 @@ const navigation: NavItem[] = [
             { name: 'Arranger', href: '/admin/arrangers' },
             { name: 'Trustee', href: '/admin/trustees' },
             { name: 'Monthly Report', href: '/admin/monthly-report' },
+            { name: 'Issuers', href: '/admin/upload-issuers' },
         ],
     },
 ];
