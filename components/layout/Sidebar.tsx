@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { SignOutButton, useClerk, UserButton } from "@clerk/nextjs";
+import { SignOutButton, useClerk, UserButton, useUser } from "@clerk/nextjs";
 import { cn } from '../../lib/utils';
 import {
     LayoutDashboard,
@@ -20,7 +20,7 @@ import {
     LogOut,
     ChevronDown,
     LucideIcon,
-    Heart 
+    Heart
 } from 'lucide-react';
 import { useThemeStore } from '../../lib/store';
 
@@ -129,6 +129,12 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }: SidebarPro
     const { signOut } = useClerk();
     const router = useRouter();
     const [expandedItem, setExpandedItem] = useState<string | null>(null);
+    const { user, isLoaded } = useUser();
+    const isAdmin = user?.publicMetadata?.role === "admin";
+
+    const visibleNav = navigation.filter(
+        (item) => !(item.href === "/admin" && !isAdmin)
+    );
 
     const toggleExpand = (name: string): void => {
         setExpandedItem(expandedItem === name ? null : name);
@@ -177,7 +183,7 @@ export function Sidebar({ isOpen, onClose, collapsed, setCollapsed }: SidebarPro
 
                 {/* Navigation */}
                 <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden bg-white dark:bg-[#1a1a2e]">
-                    {navigation.map((item) => {
+                    {visibleNav.map((item) => {
                         const isActive =
                             pathname === item.href ||
                             pathname.startsWith(`${item.href}/`) ||

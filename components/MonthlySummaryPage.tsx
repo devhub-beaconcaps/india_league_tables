@@ -134,12 +134,19 @@ interface MonthlySummaryPageProps {
 // FINANCIAL YEAR OPTIONS
 // ─────────────────────────────────────────────────────────────
 
+function getLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function generateFinancialYearOptions(count = 5) {
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
   const currentFYStart = currentMonth >= 3 ? currentYear : currentYear - 1;
-  const today = now.toISOString().split('T')[0];
+  const today = getLocalDateString(now);
 
   return Array.from({ length: count }, (_, i) => {
     const startYear = currentFYStart - i;
@@ -154,11 +161,6 @@ function generateFinancialYearOptions(count = 5) {
   });
 }
 
-const FINANCIAL_YEAR_OPTIONS = generateFinancialYearOptions(5);
-const FY_DROPDOWN_OPTIONS = FINANCIAL_YEAR_OPTIONS.map((item) => ({
-  value: item.label,
-  label: item.label,
-}));
 
 // ─────────────────────────────────────────────────────────────
 // HELPERS
@@ -182,17 +184,19 @@ function getMonthName(monthNo: number): string {
   return months[monthNo] || '';
 }
 
-function getFinancialYearLabel(startDate: string, endDate: string) {
+function getFinancialYearLabel(
+  startDate: string,
+  endDate: string,
+  options: { label: string; startDate: string; endDate: string }[]
+) {
   // 1. Try exact match (primary FY works here)
-  let found = FINANCIAL_YEAR_OPTIONS.find(
+  let found = options.find(
     (item) => item.startDate === startDate && item.endDate === endDate
   );
   if (found) return found.label;
 
   // 2. Fallback: match by startDate only (for compare FY)
-  found = FINANCIAL_YEAR_OPTIONS.find(
-    (item) => item.startDate === startDate
-  );
+  found = options.find((item) => item.startDate === startDate);
   return found?.label || 'Custom FY';
 }
 
@@ -429,16 +433,22 @@ export default function MonthlySummaryPage({
   const updateMonthlyPageField = useSummaryFilterStore((state) => state.updateMonthlyPageField);
   const clearMonthlyPageState = useSummaryFilterStore((state) => state.clearMonthlyPageState);
 
+  const financialYearOptions = useMemo(() => generateFinancialYearOptions(5), []);
+  const fyDropdownOptions = useMemo(
+    () => financialYearOptions.map((item) => ({ value: item.label, label: item.label })),
+    [financialYearOptions]
+  );
+
   // ───────────────────────────────────────────────────────────
   // DEFAULT STATE
   // ───────────────────────────────────────────────────────────
 
   const defaultMonthlyState = useMemo<MonthlyPageState>(
     () => ({
-      primaryStartDate: FINANCIAL_YEAR_OPTIONS[0].startDate,
-      primaryEndDate: FINANCIAL_YEAR_OPTIONS[0].endDate,
-      compareStartDate: FINANCIAL_YEAR_OPTIONS[1].startDate,
-      compareEndDate: FINANCIAL_YEAR_OPTIONS[1].endDate,
+      primaryStartDate: financialYearOptions[0].startDate,
+      primaryEndDate: financialYearOptions[0].endDate,
+      compareStartDate: financialYearOptions[1].startDate,
+      compareEndDate: financialYearOptions[1].endDate,
       primaryFilters: {
         ownershipType: [],
         nature: [],
@@ -482,8 +492,24 @@ export default function MonthlySummaryPage({
     const initializePage = () => {
       if (cancelled) return;
       const store = useSummaryFilterStore.getState();
-      if (!store.monthlyPageState[pageKey]) {
-        setMonthlyPageState(pageKey, defaultMonthlyState);
+      const existing = store.monthlyPageState[pageKey];
+      const freshDefault = {
+        ...defaultMonthlyState,
+        primaryStartDate: financialYearOptions[0].startDate,
+        primaryEndDate: financialYearOptions[0].endDate,
+        compareStartDate: financialYearOptions[1].startDate,
+        compareEndDate: financialYearOptions[1].endDate,
+      };
+
+      // If no stored state, or the stored primaryEndDate is in the past
+      // but the FY is the current one, refresh the date bounds.
+      const today = getLocalDateString(new Date());
+      const storedPrimaryEnd = existing?.primaryEndDate;
+      const isCurrentFy = existing?.primaryStartDate === financialYearOptions[0].startDate;
+      const isStale = storedPrimaryEnd && storedPrimaryEnd < today && isCurrentFy;
+
+      if (!existing || isStale) {
+        setMonthlyPageState(pageKey, freshDefault);
       }
       setIsInitialized(true);
     };
@@ -502,7 +528,13 @@ export default function MonthlySummaryPage({
         window.clearTimeout(timer);
       };
     }
-  }, [pageKey, defaultMonthlyState, setMonthlyPageState, isInitialized]);
+  }, [
+    pageKey,
+    defaultMonthlyState,
+    financialYearOptions,
+    setMonthlyPageState,
+    isInitialized,
+  ]);
 
   // Ensure the page is active
   const ensureActive = useCallback(() => {
@@ -794,7 +826,7 @@ export default function MonthlySummaryPage({
 
   const handleFinancialYearChange = useCallback(
     (value: string, type: FilterType) => {
-      const selectedYear = FINANCIAL_YEAR_OPTIONS.find((item) => item.label === value);
+      const selectedYear = financialYearOptions.find((item) => item.label === value);
       if (!selectedYear) return;
       ensureActive();
       if (type === 'primary') {
@@ -891,8 +923,8 @@ export default function MonthlySummaryPage({
   // YEAR LABELS
   // ───────────────────────────────────────────────────────────
 
-  const primaryYearLabel = getFinancialYearLabel(primaryStartDate, primaryEndDate);
-  const compareYearLabel = getFinancialYearLabel(compareStartDate, compareEndDate);
+  const primaryYearLabel = getFinancialYearLabel(primaryStartDate, primaryEndDate, financialYearOptions);
+  const compareYearLabel = getFinancialYearLabel(compareStartDate, compareEndDate, financialYearOptions);
 
   // ───────────────────────────────────────────────────────────
   // FILTER CHIPS
@@ -986,23 +1018,23 @@ export default function MonthlySummaryPage({
     if (!comparisonData.length) return;
     const headers = enableCompare
       ? [
-          'Month',
-          `${primaryYearLabel} Issue Count`,
-          `${compareYearLabel} Issue Count`,
-          `${primaryYearLabel} Issue Size (${sizeUnit})`,
-          `${compareYearLabel} Issue Size (${sizeUnit})`,
-        ]
+        'Month',
+        `${primaryYearLabel} Issue Count`,
+        `${compareYearLabel} Issue Count`,
+        `${primaryYearLabel} Issue Size (${sizeUnit})`,
+        `${compareYearLabel} Issue Size (${sizeUnit})`,
+      ]
       : ['Month', 'Issue Count', `Issue Size (${sizeUnit})`];
 
     const rows = comparisonData.map((row) =>
       enableCompare
         ? [
-            row.monthName,
-            String(row.primaryIssueCount),
-            String(row.compareIssueCount),
-            formatNumber(row.primaryIssueSize),
-            formatNumber(row.compareIssueSize),
-          ]
+          row.monthName,
+          String(row.primaryIssueCount),
+          String(row.compareIssueCount),
+          formatNumber(row.primaryIssueSize),
+          formatNumber(row.compareIssueSize),
+        ]
         : [row.monthName, String(row.primaryIssueCount), formatNumber(row.primaryIssueSize)]
     );
 
@@ -1017,23 +1049,23 @@ export default function MonthlySummaryPage({
     if (!quarterlyData.length) return;
     const headers = enableCompare
       ? [
-          'Quarter',
-          `${primaryYearLabel} Issue Count`,
-          `${compareYearLabel} Issue Count`,
-          `${primaryYearLabel} Issue Size (${sizeUnit})`,
-          `${compareYearLabel} Issue Size (${sizeUnit})`,
-        ]
+        'Quarter',
+        `${primaryYearLabel} Issue Count`,
+        `${compareYearLabel} Issue Count`,
+        `${primaryYearLabel} Issue Size (${sizeUnit})`,
+        `${compareYearLabel} Issue Size (${sizeUnit})`,
+      ]
       : ['Quarter', 'Issue Count', `Issue Size (${sizeUnit})`];
 
     const rows = quarterlyData.map((row) =>
       enableCompare
         ? [
-            row.quarter,
-            String(row.primaryIssueCount),
-            String(row.compareIssueCount),
-            formatNumber(row.primaryIssueSize),
-            formatNumber(row.compareIssueSize),
-          ]
+          row.quarter,
+          String(row.primaryIssueCount),
+          String(row.compareIssueCount),
+          formatNumber(row.primaryIssueSize),
+          formatNumber(row.compareIssueSize),
+        ]
         : [row.quarter, String(row.primaryIssueCount), formatNumber(row.primaryIssueSize)]
     );
 
@@ -1143,9 +1175,8 @@ export default function MonthlySummaryPage({
                 </div>
               )}
               <ChevronDown
-                className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${
-                  isFiltersExpanded ? 'rotate-180' : ''
-                }`}
+                className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isFiltersExpanded ? 'rotate-180' : ''
+                  }`}
               />
             </div>
           </button>
@@ -1192,11 +1223,10 @@ export default function MonthlySummaryPage({
                         <button
                           type="button"
                           onClick={handleToggleCompare}
-                          className={`cursor-pointer px-4 py-1.5 rounded-[12px] text-[9px] font-medium transition-all ${
-                            enableCompare
-                              ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
-                              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'
-                          }`}
+                          className={`cursor-pointer px-4 py-1.5 rounded-[12px] text-[9px] font-medium transition-all ${enableCompare
+                            ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'
+                            }`}
                         >
                           {enableCompare ? 'Disable Compare' : 'Enable Compare'}
                         </button>
@@ -1206,8 +1236,8 @@ export default function MonthlySummaryPage({
                     <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
                       <FilterGroup label="Financial Year">
                         <CustomDropdown
-                          options={FY_DROPDOWN_OPTIONS}
-                          value={getFinancialYearLabel(primaryStartDate, primaryEndDate)}
+                          options={fyDropdownOptions}
+                          value={getFinancialYearLabel(primaryStartDate, primaryEndDate, financialYearOptions)}
                           onChange={(value) =>
                             handleFinancialYearChange(String(value[0] || ''), 'primary')
                           }
@@ -1279,8 +1309,8 @@ export default function MonthlySummaryPage({
                       <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
                         <FilterGroup label="Compare Financial Year">
                           <CustomDropdown
-                            options={FY_DROPDOWN_OPTIONS}
-                            value={getFinancialYearLabel(compareStartDate, compareEndDate)}
+                            options={fyDropdownOptions}
+                            value={getFinancialYearLabel(compareStartDate, compareEndDate, financialYearOptions)}
                             onChange={(value) =>
                               handleFinancialYearChange(String(value[0] || ''), 'compare')
                             }

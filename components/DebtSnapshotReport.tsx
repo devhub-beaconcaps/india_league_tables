@@ -721,13 +721,19 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
       id: 'key-takeaways',
       type: 'bulletPoints',
       data: [
-        'Debt-market activity contracted sharply, with 29 issuances worth ₹12,094 crore across 29 issuers, down 79.31% YoY in value and 88.02% in issuer participation, indicating a significantly narrower primary market.',
-        'Issuance remained concentrated among large repeat borrowers, particularly NBFCs and infrastructure financiers such as Bajaj Finance, REC, PFC and HDB Financial. NBFCs and HFCs recorded the highest issuance activity by sector, highlighting the dominance of financial-sector borrowers.',
-        'Higher market yields, led by the short end, emerged as the key constraint rather than liquidity. Investors remained willing to deploy funds, but demanded higher returns that issuers found unattractive, prompting several borrowers to withdraw, reprice or defer shorter-duration offerings.',
-        'Alternative funding sources further reduced bond-market supply, with issuers having access to bank lines or internal accruals choosing to defer borrowing rather than lock in elevated funding costs. This contributed to the sharp decline in issuer participation, even as average ticket sizes increased.',
-        'Investor preference remained firmly tilted towards high-grade paper, with AAA and AA+ emerging as the dominant rating categories. Credit quality was particularly concentrated in NBFC and HFC issuance, while Others and real-estate-related sectors showed greater rating dispersion and coupons of up to 22.00%.',
-        'The RBI’s unchanged 5.25% repo rate and neutral stance did not translate into easier market conditions. The August policy minutes carried a more hawkish tone, with members open to a rate hike if inflation risks broadened, reinforcing expectations that the easing cycle was effectively over.',
-        'Elevated sovereign yields and macro risks kept borrowing costs high. Heavy government borrowing and auction supply raised the base for corporate pricing, while elevated crude prices, West Asia tensions and Strait of Hormuz disruptions added to imported-inflation risks and term premia.',
+        'Debt-market activity remained substantial, with 416 issuances worth ₹74,343 crore across 237 issuers, with issue value up 26.95% YoY while issuer participation declined 1.66%, indicating a relatively stable primary market.',
+        'Issuance remained concentrated among large repeat borrowers, particularly NBFCs and infrastructure financiers such as REC, Bajaj Finance, PFC.',
+        'NBFCs and HFCs recorded the highest issuance activity by sector, highlighting the dominance of financial-sector borrowers.',
+        'Higher market yields, led by the short end, emerged as the key constraint rather than liquidity.',
+        'Investors remained willing to deploy funds, but demanded higher returns that issuers found unattractive, prompting several borrowers to withdraw, reprice or defer shorter-duration offerings.',
+        'Alternative funding sources further reduced bond-market supply, with issuers having access to bank lines or internal accruals choosing to defer borrowing rather than lock in elevated funding costs.',
+        'This contributed to the marginal decline in issuer participation, even as average ticket sizes increased.',
+        'Investor preference remained firmly tilted towards high-grade paper, with AAA and AA+ emerging as the dominant rating categories.',
+        'Credit quality was particularly concentrated in NBFC and HFC issuance, while Others and real-estate-related sectors showed greater rating dispersion and coupons of up to 22.00%.',
+        "The RBI's unchanged 5.25% repo rate and neutral stance did not translate into easier market conditions.",
+        'The August policy minutes carried a more hawkish tone, with members open to a rate hike if inflation risks broadened, reinforcing expectations that the easing cycle was effectively over.',
+        'Elevated sovereign yields and macro risks kept borrowing costs high.',
+        'Heavy government borrowing and auction supply raised the base for corporate pricing, while elevated crude prices, West Asia tensions and Strait of Hormuz disruptions added to imported-inflation risks and term premia.',
         'Higher FY27 inflation expectations and continued rate uncertainty kept investors cautious on duration, with bankers expecting the debt market to remain selective and issuance volumes to stay subdued in the near term.'
       ],
     });
@@ -1692,7 +1698,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                 {allSections.map((section) => renderContentItem({ section }, true))}
               </div>
               <div
-              className='translate-y-[-12px]'
+                className='translate-y-[-12px]'
                 style={{
                   flexShrink: 0,
                   height: '36px',
@@ -1817,7 +1823,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                   {page.map((item) => renderContentItem(item, false))}
                 </div>
                 <div
-                className='translate-y-[-12px]'
+                  className='translate-y-[-12px]'
                   style={{
                     flexShrink: 0,
                     height: '16px',
