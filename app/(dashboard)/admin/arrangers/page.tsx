@@ -727,7 +727,7 @@ export default function ArrangersPage() {
                                 {activeView === 'list' ? 'Arrangers > List' : 'Arrangers > Upload'}
                             </p>
                         </div>
-                        <button
+                        {/* <button
                             onClick={() => setActiveView(activeView === 'list' ? 'upload' : 'list')}
                             className="flex items-center gap-2 cursor-pointer bg-gradient-to-r from-[#423CAB] to-[#653FD8] hover:from-[#3732a0] hover:to-[#5a35c7] text-white rounded-lg px-4 h-9 text-xs font-medium transition-all duration-150 shadow-sm hover:shadow-md"
                         >
@@ -742,7 +742,7 @@ export default function ArrangersPage() {
                                     Back to List
                                 </>
                             )}
-                        </button>
+                        </button> */}
                     </div>
                 </SectionCard>
 
