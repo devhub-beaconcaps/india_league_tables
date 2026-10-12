@@ -1761,7 +1761,7 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
                 style={{
                   position: 'absolute',
                   bottom: '59%',
-                  left: '22%',
+                  left: '28%',
                   transform: 'translateX(-50%)',
                   color: '#ffffff',
                   fontSize: '3.5rem',
