@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import CustomDropdown from '@/components/CustomDropdown';
-import { Search, Download, X, ChevronDown, ChevronUp, Calendar, SlidersHorizontal } from 'lucide-react';
+import { Search, Download, X, ChevronDown, ChevronUp, Calendar, SlidersHorizontal, Loader2 } from 'lucide-react';
 import { FilterOption, TableDataItem } from './types';
 import { fetchIssueDetailsData, fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -292,6 +292,33 @@ const formatDate = (dateString: string | number | null): string => {
     });
 };
 
+// ─── API → TableDataItem mapping (reused by fetch and export) ──────────────
+function mapApiDataToTableData(data: any[] | undefined): TableDataItem[] {
+    if (!data) return [];
+    return data.map((item: any) => ({
+        id: item.id,
+        isin: item.isin,
+        issuerName: item.issuerName || '-',
+        ownershipType: item.ownershipType || '-',
+        nature: item.nature || '-',
+        sector: item.sector || '-',
+        creditRatingAgency: item.creditRatingAgency || '-',
+        creditRating: item.creditRating || '-',
+        seniority: item.seniority || '-',
+        securedFlag: item.securedFlag || '-',
+        listingStatus: item.listingStatus || '-',
+        taxFree: item.taxFree || '-',
+        issueSize: item.issueSize || 0,
+        securityName: item.securityName || '-',
+        securityType: item.securityType || '-',
+        modeOfIssue: item.modeOfIssue || '-',
+        issueValue: item.issueSize || 0,
+        faceValue: item.faceValue || 0,
+        allotmentDate: item.allotmentDate || '-',
+        dateOfMaturity: item.maturityDate || '-',
+    }));
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────
 export default function DetailedAnalysis() {
     const router = useRouter();
@@ -347,6 +374,7 @@ export default function DetailedAnalysis() {
     const [hoveredCategory, setHoveredCategory] = useState<'financial' | 'calendar' | null>(null);
     const [tableData, setTableData] = useState<TableDataItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
     const [isFiltersLoading, setIsFiltersLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(25);
@@ -429,6 +457,28 @@ export default function DetailedAnalysis() {
         }
     };
 
+    // ── Build the base request body (reused by fetch + export) ──
+    const buildRequestBody = useCallback((limit: number, offset: number) => ({
+        startDate: fromAllotmentDate || DEFAULT_DATES.startDate,
+        endDate: toAllotmentDate || DEFAULT_DATES.endDate,
+        limit,
+        offset,
+        search: searchQuery,
+        rating: filters.creditRating,
+        registrar: '',
+        arranger: '',
+        seniority: filters.seniority,
+        securityType: filters.securityType,
+        securedFlag: filters.servicedFlag,
+        sector: filters.businessSector,
+        trustee: '',
+        nature: filters.issuerNatureType,
+        ownershipType: filters.issuerOwnershipType,
+        creditRatingAgency: filters.creditRatingAgency,
+        listingStatus: filters.listingStatus,
+        modeOfIssue: filters.modeOfIssue,
+    }), [filters, fromAllotmentDate, toAllotmentDate, searchQuery]);
+
     // ── API Calls ──
     const fetchFilterInputs = useCallback(async () => {
         setIsFiltersLoading(true);
@@ -453,54 +503,11 @@ export default function DetailedAnalysis() {
         setError(null);
         try {
             const offset = (currentPage - 1) * pageSize;
-
-            const requestBody = {
-                startDate: fromAllotmentDate || DEFAULT_DATES.startDate,
-                endDate: toAllotmentDate || DEFAULT_DATES.endDate,
-                limit: pageSize,
-                offset: offset,
-                search: searchQuery,
-                rating: filters.creditRating,
-                registrar: '',
-                arranger: '',
-                seniority: filters.seniority,
-                securityType: filters.securityType,
-                securedFlag: filters.servicedFlag,
-                sector: filters.businessSector,
-                trustee: '',
-                nature: filters.issuerNatureType,
-                ownershipType: filters.issuerOwnershipType,
-                creditRatingAgency: filters.creditRatingAgency,
-                listingStatus: filters.listingStatus,
-                modeOfIssue: filters.modeOfIssue
-            };
+            const requestBody = buildRequestBody(pageSize, offset);
 
             const result: PaginatedResponse = await fetchIssueDetailsData(requestBody);
 
-            const mappedData: TableDataItem[] = result.data?.map((item: any) => ({
-                id: item.id,
-                isin: item.isin,
-                issuerName: item.issuerName || '-',
-                ownershipType: item.ownershipType || '-',
-                nature: item.nature || '-',
-                sector: item.sector || '-',
-                creditRatingAgency: item.creditRatingAgency || '-',
-                creditRating: item.creditRating || '-',
-                seniority: item.seniority || '-',
-                securedFlag: item.securedFlag || '-',
-                listingStatus: item.listingStatus || '-',
-                taxFree: item.taxFree || '-',
-                issueSize: item.issueSize || 0,
-                securityName: item.securityName || '-',
-                securityType: item.securityType || '-',
-                modeOfIssue: item.modeOfIssue || '-',
-                issueValue: item.issueSize || 0,
-                faceValue: item.faceValue || 0,
-                allotmentDate: item.allotmentDate || '-',
-                dateOfMaturity: item.maturityDate || '-',
-            }));
-
-            setTableData(mappedData);
+            setTableData(mapApiDataToTableData(result.data));
             setTotalCount(result.pagination.total);
         } catch (err) {
             console.error('API Error:', err);
@@ -510,7 +517,7 @@ export default function DetailedAnalysis() {
         } finally {
             setIsLoading(false);
         }
-    }, [filters, fromAllotmentDate, toAllotmentDate, currentPage, pageSize, searchQuery]);
+    }, [buildRequestBody, currentPage, pageSize]);
 
     // ── Active Filters ──
     const activeFilterCount = useMemo(() => {
@@ -608,15 +615,41 @@ export default function DetailedAnalysis() {
         }
     };
 
-    const handleExport = () => {
-        if (!tableData || tableData.length === 0) {
-            alert('No data to export');
-            return;
-        }
+    const formatCurrency = (value: number): string => {
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(value);
+    };
+
+    // ── Export ALL data (re-fetch with limit = total) ──
+    const handleExport = async () => {
+        if (isExporting) return;
 
         try {
+            setIsExporting(true);
+            setError(null);
+
+            // Use the total count from current pagination as the export limit.
+            // Fallback to a large number if totalCount isn't available yet.
+            const exportLimit = totalCount > 0 ? totalCount : 10000;
+
+            // Re-fetch ALL rows using current filters but with offset 0 and
+            // limit = totalCount so we get the entire dataset, not just current page.
+            const requestBody = buildRequestBody(exportLimit, 0);
+            const result: PaginatedResponse = await fetchIssueDetailsData(requestBody);
+
+            const exportData = mapApiDataToTableData(result.data);
+
+            if (!exportData || exportData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
             const headers = filteredColumns.map(col => col.header);
-            const dataRows = tableData.map(row =>
+            const dataRows = exportData.map(row =>
                 filteredColumns.map(col => {
                     const value = (row as any)[col.accessor];
                     if (col.accessor === 'issueValue' || col.accessor === 'faceValue') {
@@ -641,16 +674,9 @@ export default function DetailedAnalysis() {
         } catch (error) {
             console.error('Export failed:', error);
             alert('Failed to export data');
+        } finally {
+            setIsExporting(false);
         }
-    };
-
-    const formatCurrency = (value: number): string => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(value);
     };
 
     const renderCell = (row: TableDataItem, accessor: string) => {
@@ -1035,10 +1061,20 @@ export default function DetailedAnalysis() {
 
                                                 <button
                                                     onClick={handleExport}
-                                                    className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
+                                                    disabled={isExporting || isLoading}
+                                                    className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
                                                 >
-                                                    <Download className="w-3.5 h-3.5" />
-                                                    Export
+                                                    {isExporting ? (
+                                                        <>
+                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                            Exporting...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Download className="w-3.5 h-3.5" />
+                                                            Export
+                                                        </>
+                                                    )}
                                                 </button>
 
                                                 <button

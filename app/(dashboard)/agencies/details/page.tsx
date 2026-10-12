@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import CustomDropdown from '@/components/CustomDropdown';
-import { Search, Download, X, ChevronDown, ChevronUp, Calendar, SlidersHorizontal } from 'lucide-react';
+import { Search, Download, X, ChevronDown, ChevronUp, Calendar, SlidersHorizontal, Loader2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 import { FilterOption, TableDataItem } from './types';
@@ -291,6 +291,35 @@ const formatDate = (dateString: string | number | null): string => {
     });
 };
 
+// ─── API → TableDataItem mapping (reused by fetch and export) ──────────────
+function mapApiDataToTableData(data: any[] | undefined): TableDataItem[] {
+    if (!data) return [];
+    return data.map((item: any) => ({
+        id: item.id,
+        isin: item.isin,
+        issuerName: item.issuerName || '-',
+        ownershipType: item.ownershipType || '-',
+        nature: item.nature || '-',
+        sector: item.sector || '-',
+        creditRatingAgency: item.creditRatingAgency || '-',
+        creditRating: item.creditRating || '-',
+        arranger: item.arranger || '-',
+        trustee: item.debentureTrustee || '-',
+        registrar: item.registrar || '-',
+        seniority: item.seniority || '-',
+        securedFlag: item.securedFlag || '-',
+        listingStatus: item.listingStatus || '-',
+        issueSize: item.issueSize || 0,
+        securityName: item.securityName || '-',
+        securityType: item.securityType || '-',
+        modeOfIssue: item.modeOfIssue || '-',
+        issueValue: item.issueSize || 0,
+        faceValue: item.faceValue || 0,
+        allotmentDate: item.allotmentDate || '-',
+        dateOfMaturity: item.maturityDate || '-',
+    }));
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────
 export default function DetailedAnalysis() {
     const router = useRouter();
@@ -346,6 +375,7 @@ export default function DetailedAnalysis() {
     const [hoveredCategory, setHoveredCategory] = useState<'financial' | 'calendar' | null>(null);
     const [tableData, setTableData] = useState<TableDataItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
     const [isFiltersLoading, setIsFiltersLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(25);
@@ -407,7 +437,6 @@ export default function DetailedAnalysis() {
     }, []);
 
     // ── Filter update helpers ──
-    // Map component filter keys to store filter keys
     const updateFilter = useCallback((key: keyof RatingAgencyDetailedFilters, value: string[]) => {
         ensureActive();
         updateDetailedPageFilter(RATING_AGENCIES_DETAILED_PAGE, key, value);
@@ -427,6 +456,26 @@ export default function DetailedAnalysis() {
             updateDetailedPageField(RATING_AGENCIES_DETAILED_PAGE, 'toAllotmentDate', option.endDate);
         }
     };
+
+    // ── Build the base request body (reused by fetch + export) ──
+    const buildRequestBody = useCallback((limit: number, offset: number) => ({
+        startDate: fromAllotmentDate || DEFAULT_DATES.startDate,
+        endDate: toAllotmentDate || DEFAULT_DATES.endDate,
+        limit,
+        offset,
+        search: searchQuery,
+        // Rating agency detailed API expects these fields
+        ownershipType: filters.ownershipType,
+        nature: filters.nature,
+        sector: filters.sector,
+        securityType: filters.securityType,
+        modeOfIssue: filters.modeOfIssue,
+        creditRatingAgency: filters.creditRatingAgency,
+        rating: filters.rating,   // store key is 'rating'
+        seniority: filters.seniority,
+        securedFlag: filters.securedFlag, // store key is 'securedFlag'
+        listingStatus: filters.listingStatus,
+    }), [filters, fromAllotmentDate, toAllotmentDate, searchQuery]);
 
     // ── API Calls ──
     const fetchFilterInputs = useCallback(async () => {
@@ -452,55 +501,11 @@ export default function DetailedAnalysis() {
         setError(null);
         try {
             const offset = (currentPage - 1) * pageSize;
-
-            // Map store filters to API expected payload
-            const requestBody = {
-                startDate: fromAllotmentDate || DEFAULT_DATES.startDate,
-                endDate: toAllotmentDate || DEFAULT_DATES.endDate,
-                limit: pageSize,
-                offset: offset,
-                search: searchQuery,
-                // Rating agency detailed API expects these fields
-                ownershipType: filters.ownershipType,
-                nature: filters.nature,
-                sector: filters.sector,
-                securityType: filters.securityType,
-                modeOfIssue: filters.modeOfIssue,
-                creditRatingAgency: filters.creditRatingAgency,
-                rating: filters.rating,   // store key is 'rating'
-                seniority: filters.seniority,
-                securedFlag: filters.securedFlag, // store key is 'securedFlag'
-                listingStatus: filters.listingStatus,
-            };
+            const requestBody = buildRequestBody(pageSize, offset);
 
             const result: PaginatedResponse = await fetchRatingAgencyDetailedData(requestBody);
 
-            const mappedData: TableDataItem[] = result.data?.map((item: any) => ({
-                id: item.id,
-                isin: item.isin,
-                issuerName: item.issuerName || '-',
-                ownershipType: item.ownershipType || '-',
-                nature: item.nature || '-',
-                sector: item.sector || '-',
-                creditRatingAgency: item.creditRatingAgency || '-',
-                creditRating: item.creditRating || '-',
-                arranger: item.arranger || '-',
-                trustee: item.debentureTrustee || '-',
-                registrar: item.registrar || '-',
-                seniority: item.seniority || '-',
-                securedFlag: item.securedFlag || '-',
-                listingStatus: item.listingStatus || '-',
-                issueSize: item.issueSize || 0,
-                securityName: item.securityName || '-',
-                securityType: item.securityType || '-',
-                modeOfIssue: item.modeOfIssue || '-',
-                issueValue: item.issueSize || 0,
-                faceValue: item.faceValue || 0,
-                allotmentDate: item.allotmentDate || '-',
-                dateOfMaturity: item.maturityDate || '-',
-            }));
-
-            setTableData(mappedData);
+            setTableData(mapApiDataToTableData(result.data));
             setTotalCount(result.pagination.total);
         } catch (err) {
             console.error('API Error:', err);
@@ -510,7 +515,7 @@ export default function DetailedAnalysis() {
         } finally {
             setIsLoading(false);
         }
-    }, [filters, fromAllotmentDate, toAllotmentDate, currentPage, pageSize, searchQuery]);
+    }, [buildRequestBody, currentPage, pageSize]);
 
     // ── Active Filters ──
     const activeFilterCount = useMemo(() => {
@@ -608,37 +613,6 @@ export default function DetailedAnalysis() {
         }
     };
 
-    const handleExport = useCallback(() => {
-        if (tableData.length === 0) {
-            console.warn('No data to export');
-            return;
-        }
-
-        const exportData = tableData.map((row) => {
-            const newRow: Record<string, any> = {};
-            filteredColumns.forEach(col => {
-                const value = (row as any)[col.accessor];
-                if (col.accessor === 'issueValue' || col.accessor === 'faceValue') {
-                    newRow[col.header] = typeof value === 'number' ? formatCurrency(value) : value;
-                } else {
-                    newRow[col.header] = value || '-';
-                }
-            });
-            return newRow;
-        });
-
-        const worksheet = XLSX.utils.json_to_sheet(exportData);
-        const colWidths = filteredColumns.map(() => ({ wch: 15 }));
-        worksheet['!cols'] = colWidths;
-
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Rating Agency Analysis');
-
-        const dateStr = new Date().toISOString().split('T')[0];
-        const filename = `rating-agency-detailed-analysis-${dateStr}.xlsx`;
-        XLSX.writeFile(workbook, filename);
-    }, [tableData, filteredColumns]);
-
     const formatCurrency = (value: number): string => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
@@ -647,6 +621,61 @@ export default function DetailedAnalysis() {
             maximumFractionDigits: 0,
         }).format(value);
     };
+
+    // ── Export ALL data (re-fetch with limit = total) ──
+    const handleExport = useCallback(async () => {
+        if (isExporting) return;
+
+        try {
+            setIsExporting(true);
+            setError(null);
+
+            // Use the total count from current pagination as the export limit.
+            // Fallback to a large number if totalCount isn't available yet.
+            const exportLimit = totalCount > 0 ? totalCount : 10000;
+
+            // Re-fetch ALL rows using current filters but with offset 0 and
+            // limit = totalCount so we get the entire dataset, not just current page.
+            const requestBody = buildRequestBody(exportLimit, 0);
+            const result: PaginatedResponse = await fetchRatingAgencyDetailedData(requestBody);
+
+            const exportData = mapApiDataToTableData(result.data);
+
+            if (!exportData || exportData.length === 0) {
+                console.warn('No data to export');
+                return;
+            }
+
+            const rows = exportData.map((row) => {
+                const newRow: Record<string, any> = {};
+                filteredColumns.forEach(col => {
+                    const value = (row as any)[col.accessor];
+                    if (col.accessor === 'issueValue' || col.accessor === 'faceValue') {
+                        newRow[col.header] = typeof value === 'number' ? formatCurrency(value) : value;
+                    } else {
+                        newRow[col.header] = value || '-';
+                    }
+                });
+                return newRow;
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(rows);
+            const colWidths = filteredColumns.map(() => ({ wch: 15 }));
+            worksheet['!cols'] = colWidths;
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Rating Agency Analysis');
+
+            const dateStr = new Date().toISOString().split('T')[0];
+            const filename = `rating-agency-detailed-analysis-${dateStr}.xlsx`;
+            XLSX.writeFile(workbook, filename);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Failed to export data');
+        } finally {
+            setIsExporting(false);
+        }
+    }, [isExporting, totalCount, buildRequestBody, filteredColumns]);
 
     const renderCell = (row: TableDataItem, accessor: string) => {
         const value = row[accessor as keyof TableDataItem];
@@ -1030,10 +1059,20 @@ export default function DetailedAnalysis() {
 
                                                 <button
                                                     onClick={handleExport}
-                                                    className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
+                                                    disabled={isExporting || isLoading}
+                                                    className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
                                                 >
-                                                    <Download className="w-3.5 h-3.5" />
-                                                    Export
+                                                    {isExporting ? (
+                                                        <>
+                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                            Exporting...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Download className="w-3.5 h-3.5" />
+                                                            Export
+                                                        </>
+                                                    )}
                                                 </button>
 
                                                 <button
