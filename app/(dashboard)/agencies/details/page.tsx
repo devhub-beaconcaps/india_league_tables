@@ -1295,6 +1295,6 @@ export default function DetailedAnalysis() {
                     </div>
                 </SectionCard>
             </div>
-        </SkeletonTheme>
+        </SkeletonTheme> 
     );
 }
