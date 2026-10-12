@@ -551,9 +551,9 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
   const PAGE_HEIGHT = 1622;
   const PAGE_MAX_WIDTH = '1152px';
 
-  const previousDateFullName = 'July';
-  const currentDateFullName = 'August';
-  const firstPageDisplayDate = 'August 2026';
+  const previousDateFullName = 'August';
+  const currentDateFullName = 'September';
+  const firstPageDisplayDate = 'September 2026';
 
 
   const measurementRef = useRef<HTMLDivElement>(null);
