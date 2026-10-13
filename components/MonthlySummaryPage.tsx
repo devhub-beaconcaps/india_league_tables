@@ -166,6 +166,39 @@ function generateFinancialYearOptions(count = 5) {
 // HELPERS
 // ─────────────────────────────────────────────────────────────
 
+// FY order: Apr → Mar
+// Apr(4)→0, May(5)→1, …, Dec(12)→8, Jan(1)→9, Feb(2)→10, Mar(3)→11
+function getFyMonthIndex(monthNo: number): number {
+  return (monthNo - 4 + 12) % 12;
+}
+
+// Remove any month whose 1st falls after today.
+// `fyStartDate` must be the FY's start (e.g. "2025-04-01").
+function filterFutureMonths(
+  data: MonthlyApiData[],
+  fyStartDate: string
+): MonthlyApiData[] {
+  const now = new Date();
+  const todayStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  ).getTime();
+
+  const startYear = Number(fyStartDate.split('-')[0]);
+
+  return data.filter((item) => {
+    const monthNo = Number(item.issueMonthNo);
+    if (!monthNo || monthNo < 1 || monthNo > 12) return true;
+
+    // Apr–Dec belong to the FY start year; Jan–Mar belong to the next year.
+    const year = monthNo >= 4 ? startYear : startYear + 1;
+    const monthStart = new Date(year, monthNo - 1, 1).getTime();
+
+    return monthStart <= todayStart;
+  });
+}
+
 function getMonthName(monthNo: number): string {
   const months: Record<number, string> = {
     1: 'Jan',
@@ -220,8 +253,14 @@ function formatSameMonthDayInYear(date: string, year: number) {
 }
 
 function getCompareEndDate(compareStartDate: string, primaryEndDate: string) {
-  const compareYear = new Date(compareStartDate).getFullYear();
-  return formatSameMonthDayInYear(primaryEndDate, compareYear);
+  // Parse manually to avoid `new Date()` UTC/timezone quirks
+  const [startYear, startMonth] = compareStartDate.split('-').map(Number);
+
+  // FY runs Apr → Mar: if start is Apr–Dec, end is next year.
+  // (Jan–Mar start would be same-year, but the FY options never produce that.)
+  const endYear = startMonth >= 4 ? startYear + 1 : startYear;
+
+  return formatSameMonthDayInYear(primaryEndDate, endYear);
 }
 
 function formatNumber(value: number): string {
@@ -265,7 +304,9 @@ function getComparisonData(
       ...primaryData.map((item) => item.issueMonthNo),
       ...compareData.map((item) => item.issueMonthNo),
     ])
-  ).sort((a, b) => a - b);
+  )
+    .filter((m): m is number => typeof m === 'number' && m >= 1 && m <= 12)
+    .sort((a, b) => getFyMonthIndex(a) - getFyMonthIndex(b));   // ← FY order
 
   return monthNumbers.map((monthNumber) => {
     const primaryMonth = primaryData.find(
@@ -672,7 +713,12 @@ export default function MonthlySummaryPage({
           state.primaryFilters
         );
         const response = await fetchMonthlyData(payload);
-        setPrimaryData(filterZeroData(response?.data || []));
+        setPrimaryData(
+          filterFutureMonths(
+            filterZeroData(response?.data || []),
+            state.primaryStartDate
+          )
+        );
       } catch (error) {
         console.error('Failed to fetch primary monthly data:', error);
         setPrimaryData([]);
@@ -698,7 +744,12 @@ export default function MonthlySummaryPage({
           state.compareFilters
         );
         const response = await fetchMonthlyData(payload);
-        setCompareData(filterZeroData(response?.data || []));
+        setCompareData(
+          filterFutureMonths(
+            filterZeroData(response?.data || []),
+            state.compareStartDate
+          )
+        );
       } catch (error) {
         console.error('Failed to fetch compare monthly data:', error);
         setCompareData([]);
