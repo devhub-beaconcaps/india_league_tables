@@ -474,7 +474,7 @@ export default function MonthlySummaryPage({
   const updateMonthlyPageField = useSummaryFilterStore((state) => state.updateMonthlyPageField);
   const clearMonthlyPageState = useSummaryFilterStore((state) => state.clearMonthlyPageState);
 
-  const financialYearOptions = useMemo(() => generateFinancialYearOptions(5), []);
+  const financialYearOptions = useMemo(() => generateFinancialYearOptions(7), []);
   const fyDropdownOptions = useMemo(
     () => financialYearOptions.map((item) => ({ value: item.label, label: item.label })),
     [financialYearOptions]

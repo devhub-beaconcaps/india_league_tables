@@ -128,7 +128,7 @@ export const getFinancialYears = (): FYOption[] => {
     // Financial year runs April-March, so if we're before April, current FY started last year
     const currentFYStart = currentMonth < 3 ? today.getFullYear() - 1 : today.getFullYear();
 
-    return Array.from({ length: 5 }, (_, i) => {
+    return Array.from({ length: 7 }, (_, i) => {
         const start = currentFYStart - i;
         const end = start + 1;
         return {
