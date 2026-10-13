@@ -721,20 +721,17 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
       id: 'key-takeaways',
       type: 'bulletPoints',
       data: [
-        'Debt-market activity remained substantial, with 416 issuances worth ₹74,343 crore across 237 issuers, with issue value up 26.95% YoY while issuer participation declined 1.66%, indicating a relatively stable primary market.',
-        'Issuance remained concentrated among large repeat borrowers, particularly NBFCs and infrastructure financiers such as REC, Bajaj Finance, PFC.',
-        'NBFCs and HFCs recorded the highest issuance activity by sector, highlighting the dominance of financial-sector borrowers.',
-        'Higher market yields, led by the short end, emerged as the key constraint rather than liquidity.',
-        'Investors remained willing to deploy funds, but demanded higher returns that issuers found unattractive, prompting several borrowers to withdraw, reprice or defer shorter-duration offerings.',
-        'Alternative funding sources further reduced bond-market supply, with issuers having access to bank lines or internal accruals choosing to defer borrowing rather than lock in elevated funding costs.',
-        'This contributed to the marginal decline in issuer participation, even as average ticket sizes increased.',
-        'Investor preference remained firmly tilted towards high-grade paper, with AAA and AA+ emerging as the dominant rating categories.',
-        'Credit quality was particularly concentrated in NBFC and HFC issuance, while Others and real-estate-related sectors showed greater rating dispersion and coupons of up to 22.00%.',
-        "The RBI's unchanged 5.25% repo rate and neutral stance did not translate into easier market conditions.",
-        'The August policy minutes carried a more hawkish tone, with members open to a rate hike if inflation risks broadened, reinforcing expectations that the easing cycle was effectively over.',
-        'Elevated sovereign yields and macro risks kept borrowing costs high.',
-        'Heavy government borrowing and auction supply raised the base for corporate pricing, while elevated crude prices, West Asia tensions and Strait of Hormuz disruptions added to imported-inflation risks and term premia.',
-        'Higher FY27 inflation expectations and continued rate uncertainty kept investors cautious on duration, with bankers expecting the debt market to remain selective and issuance volumes to stay subdued in the near term.'
+        'Debt-market activity remained substantial in September 2026, with 539 ISINs worth ₹1,40,355 crore across 284 issuers. Issue value increased 57.88% YoY, while issuer participation declined 9.27%, indicating higher issuance value despite fewer participating issuers.',
+        'Issuance remained concentrated among large borrowers, particularly REC Limited, Reliance Industries Limited.',
+        'NBFCs and the Others category recorded the highest issuance values at ₹53,054 crore and ₹48,633 crore, respectively, highlighting the significant contribution of financial-sector and other borrowers to the debt market.',
+        'NBFCs recorded 247 issuances, while the Others category recorded 258 issuances, indicating that issuance activity was concentrated across these two categories.',
+        'Reliance Industries Limited emerged as the largest issuer by issue size at ₹12,000 crore, followed by REC Limited at ₹8,100 crore and Bank of India at ₹5,889 crore.',
+        'Investor preference and credit quality varied across rating categories, with AAA accounting for 6.71% of total issue size and AA+ accounting for 10.57% in September 2026. The A & below category also represented a substantial share of issuance.',
+        'Issuance coupons varied across sectors and borrowers, reflecting differences in credit profiles, funding requirements and market conditions.',
+        'Despite a 57.88% YoY increase in issue value, the number of issuers declined by 9.27% and ISINs declined by 2.71%, indicating that overall issuance value increased despite lower issuer and instrument participation.',
+        "Elevated inflation risks, global commodity prices and uncertainty around the RBI's policy trajectory could keep borrowing costs high and limit demand for longer-duration debt securities.",
+        'Heavy government borrowing, elevated crude oil prices and geopolitical tensions in West Asia added to inflation risks and upward pressure on sovereign yields, affecting corporate bond pricing.',
+        'Inflation expectations, interest-rate movements, rupee volatility and government borrowing requirements were likely to influence investor appetite, borrowing costs and debt issuance activity.'
       ],
     });
 
