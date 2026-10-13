@@ -8,12 +8,13 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  type TooltipProps,
 } from "recharts";
 
 // ============================================================================
-// INTERFACES & TYPES
+// TYPES
 // ============================================================================
+
+export type ValueConvention = "Billions" | "Crores" | "Lakhs";
 
 interface ChartDataPoint {
   month: string;
@@ -25,63 +26,91 @@ interface ChartDataPoint {
 
 interface DualAxisChartProps {
   data?: ChartDataPoint[];
+  /** Rupee display unit — must match the parent page's valueConvention */
+  valueConvention?: ValueConvention;
 }
 
-// Recharts payload item type
-interface PayloadItem {
-  value: number | string;
-  name: string;
-  dataKey?: string;
-  payload?: ChartDataPoint;
-  color?: string;
-  fill?: string;
-  stroke?: string;
-  strokeWidth?: number;
-}
+// ============================================================================
+// FORMATTERS (base data is assumed to be in Crores)
+// ============================================================================
+
+/** Full value shown in tooltip — e.g. "1,234 Cr", "12.34B", "1,23,400 L" */
+const formatValueByConvention = (
+  value: number,
+  convention: ValueConvention
+): string => {
+  if (convention === "Billions") return `${(value / 100).toFixed(2)}B`;
+  if (convention === "Crores") return `${value.toLocaleString()} Cr`;
+  return `${(value * 100).toLocaleString()} L`;
+};
+
+/** Short tick label — e.g. "5k Cr", "2.5L Cr", "50L" */
+const formatYAxisTick = (value: number, convention: ValueConvention): string => {
+  if (convention === "Billions") {
+    return value >= 100
+      ? `${(value / 100).toFixed(0)}B`
+      : `${(value / 100).toFixed(1)}B`;
+  }
+
+  if (convention === "Crores") {
+    if (value >= 1_00_000) return `${(value / 1_00_000).toFixed(1)}L Cr`;
+    if (value >= 1000) return `${(value / 1000).toFixed(0)}k Cr`;
+    return `${value} Cr`;
+  }
+
+  // Lakhs
+  if (value >= 1_00_000) return `${(value / 1000).toFixed(0)}k L`;
+  if (value >= 100) return `${(value / 100).toFixed(0)}k L`;
+  return `${value} L`;
+};
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
 
 export default function DualAxisChart({
   data = [],
+  valueConvention = "Crores",
 }: DualAxisChartProps): JSX.Element {
+  const tickFormatter = (value: number | string) =>
+    formatYAxisTick(Number(value), valueConvention);
 
-  // Left axis tick formatter (Issue & Redemption)
-  const formatLeftAxisTick = (value: number | string): string => {
-    const numValue = Number(value);
-    if (numValue >= 1000) {
-      return `${(numValue / 1000).toFixed(0)}k`;
-    }
-    return String(value);
-  };
-
-  // Right axis tick formatter (Outstanding)
-  const formatRightAxisTick = (value: number | string): string => {
-    const numValue = Number(value);
-    // show in lakhs (1 L = 100,000)
-    return `${(numValue / 100000).toFixed(1)}L`;
-  };
-
-  // Custom tooltip for this component only. Uses dark:bg-[#14142b].
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || !payload.length) return null;
 
     return (
       <div className="bg-white dark:bg-[#14142b] border border-gray-200 dark:border-[#423CAB]/40 rounded-lg shadow-lg p-3 text-xs">
-        <p className="font-semibold text-gray-700 dark:text-gray-200 mb-1">{label}</p>
-        {payload.map((p: any, i: number) => {
-          const num = Number(p.value || 0);
-          let formatted: string;
-          if (p.name === 'Outstanding') formatted = `${(num / 100000).toFixed(2)}L`;
-          else if (num >= 1000) formatted = `${(num / 1000).toFixed(1)}k`;
-          else formatted = num.toLocaleString();
+        <p className="font-semibold text-gray-700 dark:text-gray-200 mb-1">
+          {label}
+          <span className="ml-1 font-normal text-gray-400 dark:text-gray-500">
+            (Rupees in {valueConvention})
+          </span>
+        </p>
 
-          const color = (p.color as string) || (p.stroke as string) || (p.fill as string) || '#000';
+        {payload.map((p: any, i: number) => {
+          const color =
+            (p.color as string) ||
+            (p.stroke as string) ||
+            (p.fill as string) ||
+            "#000";
 
           return (
-            <div key={i} className="flex items-center justify-between mb-1">
+            <div
+              key={i}
+              className="flex items-center justify-between gap-4 mb-1"
+            >
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: color }} />
-                <span className="text-xs text-gray-600 dark:text-gray-300">{p.name}</span>
+                <span
+                  className="w-2.5 h-2.5 rounded-full inline-block"
+                  style={{ backgroundColor: color }}
+                />
+                <span className="text-xs text-gray-600 dark:text-gray-300">
+                  {p.name}
+                </span>
               </div>
-              <div className="text-xs font-semibold text-gray-800 dark:text-gray-100">{formatted}</div>
+              <div className="text-xs font-semibold text-gray-800 dark:text-gray-100">
+                {formatValueByConvention(Number(p.value ?? 0), valueConvention)}
+              </div>
             </div>
           );
         })}
@@ -93,7 +122,7 @@ export default function DualAxisChart({
     <ResponsiveContainer width="100%" height={230}>
       <LineChart
         data={data}
-        margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+        margin={{ top: 5, right: 25, left: 10, bottom: 5 }}
       >
         <CartesianGrid
           strokeDasharray="3 3"
@@ -102,16 +131,14 @@ export default function DualAxisChart({
           vertical={false}
         />
 
-        <XAxis
-          dataKey="month"
-          tick={{ fontSize: 9, fill: "#9ca3af" }}
-        />
+        <XAxis dataKey="month" tick={{ fontSize: 9, fill: "#9ca3af" }} />
 
         {/* Left Axis → Issue & Redemption */}
         <YAxis
           yAxisId="left"
           tick={{ fontSize: 9, fill: "#9ca3af" }}
-          tickFormatter={formatLeftAxisTick}
+          tickFormatter={tickFormatter}
+          width={58}
         />
 
         {/* Right Axis → Outstanding */}
@@ -119,10 +146,10 @@ export default function DualAxisChart({
           yAxisId="right"
           orientation="right"
           tick={{ fontSize: 9, fill: "#9ca3af" }}
-          tickFormatter={formatRightAxisTick}
+          tickFormatter={tickFormatter}
+          width={58}
         />
 
-        {/* Component-local custom tooltip (dark:bg-[#14142b]) */}
         <Tooltip content={<CustomTooltip />} />
         <Legend wrapperStyle={{ fontSize: 9 }} />
 

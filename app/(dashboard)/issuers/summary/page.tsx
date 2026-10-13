@@ -1311,18 +1311,35 @@ export default function IssuerSummary() {
                     </div>
 
                     {/* ── Corporate Bond Trend ── */}
-                    <SectionCard className='my-3'>
+                    <SectionCard className="my-3">
                         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                                 Corporate Bond Outstanding Trends Analysis : {selectedFY}
+                                <span className="ml-1 font-normal text-gray-500 dark:text-gray-400">
+                                    (Rupees in {valueConvention})
+                                </span>
                             </h2>
-                            <DownloadPngButton onClick={() => downloadChartAsPng(outstandingChartRef.current, `outstanding_trends_${selectedFY}`)} />
+                            <DownloadPngButton
+                                onClick={() =>
+                                    downloadChartAsPng(
+                                        outstandingChartRef.current,
+                                        `outstanding_trends_${selectedFY}`
+                                    )
+                                }
+                            />
                         </div>
+
                         {isOutstandingLoading ? (
                             <ChartSkeleton height={300} />
                         ) : outstandingData.length > 0 ? (
-                            <div ref={outstandingChartRef} className="bg-white dark:bg-[#1a1a2e]">
-                                <DualAxisChart data={outstandingData} />
+                            <div
+                                ref={outstandingChartRef}
+                                className="bg-white dark:bg-[#1a1a2e]"
+                            >
+                                <DualAxisChart
+                                    data={outstandingData}
+                                    valueConvention={valueConvention}
+                                />
                             </div>
                         ) : (
                             <NoDataState message="No outstanding trend data available" />
