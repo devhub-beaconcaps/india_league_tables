@@ -26,16 +26,15 @@ interface ChartDataPoint {
 
 interface DualAxisChartProps {
   data?: ChartDataPoint[];
-  /** Rupee display unit — must match the parent page's valueConvention */
+  /** Rupee display unit — mirrors the parent page's valueConvention */
   valueConvention?: ValueConvention;
 }
 
 // ============================================================================
-// FORMATTERS (base data is assumed to be in Crores)
+// FORMATTERS (base data assumed to be in Crores)
 // ============================================================================
 
-/** Full value shown in tooltip — e.g. "1,234 Cr", "12.34B", "1,23,400 L" */
-const formatValueByConvention = (
+export const formatValueByConvention = (
   value: number,
   convention: ValueConvention
 ): string => {
@@ -44,8 +43,10 @@ const formatValueByConvention = (
   return `${(value * 100).toLocaleString()} L`;
 };
 
-/** Short tick label — e.g. "5k Cr", "2.5L Cr", "50L" */
-const formatYAxisTick = (value: number, convention: ValueConvention): string => {
+export const formatYAxisTick = (
+  value: number,
+  convention: ValueConvention
+): string => {
   if (convention === "Billions") {
     return value >= 100
       ? `${(value / 100).toFixed(0)}B`

@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import html2canvas from 'html2canvas-pro';
+import * as XLSX from 'xlsx';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, BarChart, Bar,
 } from 'recharts';
 import FinanceTable from '@/components/Financetable';
-import DualAxisChart from '@/components/charts/DualAxisChart';
+import DualAxisChart, { formatValueByConvention } from '@/components/charts/DualAxisChart';
 import {
     fetchCreditRatingsData,
     fetchCurrentYearRedemptionData,
@@ -235,17 +236,6 @@ const FilterGroup = ({
 
 // ─── Value Formatting Helpers ────────────────────────────────────────────────
 
-const formatValueByConvention = (value: number, convention: ValueConvention): string => {
-    if (convention === 'Billions') {
-        return `${(value / 100).toFixed(2)}B`;
-    }
-    if (convention === 'Crores') {
-        return `${value.toLocaleString()} Cr`;
-    }
-    // Lakhs
-    return `${(value * 100).toLocaleString()} L`;
-};
-
 const formatYAxisTick = (value: number, convention: ValueConvention): string => {
     if (convention === 'Billions') {
         return value >= 100 ? `${(value / 100).toFixed(0)}B` : `${(value / 100).toFixed(1)}B`;
@@ -274,8 +264,6 @@ const CustomTooltip = ({ active, payload, label, valueConvention = 'Crores' }: C
     return null;
 };
 
-
-
 const renderLabel = ({
     cx = 0,
     cy = 0,
@@ -285,7 +273,6 @@ const renderLabel = ({
     percent = 0,
 }: PieLabelProps) => {
 
-    // Hide labels for slices below 5%
     if (percent * 100 < 5) {
         return null;
     }
@@ -340,6 +327,8 @@ function ActiveFilterChip({ label, onRemove }: { label: string; onRemove: () => 
     );
 }
 
+// ─── Download Buttons ────────────────────────────────────────────────────────
+
 function DownloadPngButton({ onClick, label = 'Download PNG' }: { onClick: () => void; label?: string }) {
     return (
         <button
@@ -354,6 +343,56 @@ function DownloadPngButton({ onClick, label = 'Download PNG' }: { onClick: () =>
         </button>
     );
 }
+
+function DownloadExcelButton({
+    onClick,
+    label = 'Download Excel',
+    disabled = false,
+}: {
+    onClick: () => void;
+    label?: string;
+    disabled?: boolean;
+}) {
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            className="flex items-center cursor-pointer gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-3 h-7 text-[10px] font-medium transition-colors"
+            title={label}
+        >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Excel
+        </button>
+    );
+}
+
+// ─── Excel helper ────────────────────────────────────────────────────────────
+
+const downloadAsExcel = (
+    rows: Record<string, string | number>[],
+    filename: string,
+    sheetName = 'Sheet1'
+) => {
+    if (!rows.length) return;
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+
+    const headers = Object.keys(rows[0]);
+    worksheet['!cols'] = headers.map((h) => {
+        const maxLen = Math.max(
+            h.length,
+            ...rows.map((r) => String(r[h] ?? '').length)
+        );
+        return { wch: Math.min(maxLen + 2, 40) };
+    });
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.slice(0, 31));
+
+    XLSX.writeFile(workbook, `${filename}.xlsx`);
+};
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -605,6 +644,26 @@ export default function IssuerSummary() {
 
         URL.revokeObjectURL(url);
     }, [issueTableData, selectedFY, issueType]);
+
+    // ── Outstanding Trends → Excel ──
+    const handleOutstandingExcelExport = useCallback(() => {
+        if (!outstandingData.length) return;
+
+        const unit = valueConvention;
+
+        const rows = outstandingData.map((d) => ({
+            Month: d.month,
+            [`Issue (${unit})`]: Number(d.issue),
+            [`Redemption (${unit})`]: Number(d.redemption),
+            [`Outstanding (${unit})`]: Number(d.outstanding),
+        }));
+
+        downloadAsExcel(
+            rows,
+            `outstanding_trends_${selectedFY}_${unit}`,
+            `Outstanding ${selectedFY}`
+        );
+    }, [outstandingData, selectedFY, valueConvention]);
 
     // ── Active Filters Count ──
     const activeFilterCount = useMemo(() => {
@@ -1311,7 +1370,7 @@ export default function IssuerSummary() {
                     </div>
 
                     {/* ── Corporate Bond Trend ── */}
-                    <SectionCard className="my-3">
+                    <SectionCard className='my-3'>
                         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                                 Corporate Bond Outstanding Trends Analysis : {selectedFY}
@@ -1319,27 +1378,19 @@ export default function IssuerSummary() {
                                     (Rupees in {valueConvention})
                                 </span>
                             </h2>
-                            <DownloadPngButton
-                                onClick={() =>
-                                    downloadChartAsPng(
-                                        outstandingChartRef.current,
-                                        `outstanding_trends_${selectedFY}`
-                                    )
-                                }
-                            />
+                            <div className="flex items-center gap-2">
+                                <DownloadExcelButton
+                                    onClick={handleOutstandingExcelExport}
+                                    disabled={isOutstandingLoading || outstandingData.length === 0}
+                                />
+                                <DownloadPngButton onClick={() => downloadChartAsPng(outstandingChartRef.current, `outstanding_trends_${selectedFY}`)} />
+                            </div>
                         </div>
-
                         {isOutstandingLoading ? (
                             <ChartSkeleton height={300} />
                         ) : outstandingData.length > 0 ? (
-                            <div
-                                ref={outstandingChartRef}
-                                className="bg-white dark:bg-[#1a1a2e]"
-                            >
-                                <DualAxisChart
-                                    data={outstandingData}
-                                    valueConvention={valueConvention}
-                                />
+                            <div ref={outstandingChartRef} className="bg-white dark:bg-[#1a1a2e]">
+                                <DualAxisChart data={outstandingData} valueConvention={valueConvention} />
                             </div>
                         ) : (
                             <NoDataState message="No outstanding trend data available" />
