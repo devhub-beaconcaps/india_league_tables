@@ -289,12 +289,6 @@ function convertApiData(data: MonthlyApiData[], unit: SizeUnit): MonthlyApiData[
   }));
 }
 
-function filterZeroData(data: MonthlyApiData[]): MonthlyApiData[] {
-  return data.filter(
-    (item) => Number(item.noOfIssue) !== 0 || Number(item.issueSize) !== 0
-  );
-}
-
 function getComparisonData(
   primaryData: MonthlyApiData[],
   compareData: MonthlyApiData[]
@@ -715,7 +709,7 @@ export default function MonthlySummaryPage({
         const response = await fetchMonthlyData(payload);
         setPrimaryData(
           filterFutureMonths(
-            filterZeroData(response?.data || []),
+            response?.data,
             state.primaryStartDate
           )
         );
@@ -746,7 +740,7 @@ export default function MonthlySummaryPage({
         const response = await fetchMonthlyData(payload);
         setCompareData(
           filterFutureMonths(
-            filterZeroData(response?.data || []),
+            response?.data,
             state.compareStartDate
           )
         );

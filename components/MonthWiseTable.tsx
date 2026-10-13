@@ -2,17 +2,17 @@ import { useRouter } from "next/navigation";
 import Skeleton from "react-loading-skeleton";
 
 interface ChartData {
-  issueMonthNo?: number;
-  issueMonth?: string;
-  noOfIssue?: number;
-  issueSize?: number;
-  actualIssueSize?: number;
-  monthNumber?: number;
-  monthName?: string;
-  primaryIssueCount?: number;
-  compareIssueCount?: number;
-  primaryIssueSize?: number;
-  compareIssueSize?: number;
+    issueMonthNo?: number;
+    issueMonth?: string;
+    noOfIssue?: number;
+    issueSize?: number;
+    actualIssueSize?: number;
+    monthNumber?: number;
+    monthName?: string;
+    primaryIssueCount?: number;
+    compareIssueCount?: number;
+    primaryIssueSize?: number;
+    compareIssueSize?: number;
 }
 
 export interface SummaryFilterState {
@@ -208,6 +208,51 @@ function getDateRange(
     };
 }
 
+function buildFullYearData(
+    data: ChartData[],
+    primaryStartDate: string
+): ChartData[] {
+    const startYear = parseInt(primaryStartDate.split('-')[0], 10);
+    const endYear = startYear + 1;
+
+    // Financial year: April (startYear) → March (endYear)
+    const months: { monthNumber: number; monthName: string; year: number }[] = [];
+    for (let m = 4; m <= 12; m++) {
+        months.push({ monthNumber: m, monthName: getFullMonthName(m), year: startYear });
+    }
+    for (let m = 1; m <= 3; m++) {
+        months.push({ monthNumber: m, monthName: getFullMonthName(m), year: endYear });
+    }
+
+    // Index existing data by month number
+    const dataMap = new Map<number, ChartData>();
+    data.forEach((row) => {
+        if (row.monthNumber != null) {
+            dataMap.set(row.monthNumber, row);
+        }
+    });
+
+    // Clamp future months of the current FY
+    const today = new Date();
+    const currentYM = today.getFullYear() * 100 + (today.getMonth() + 1);
+
+    return months
+        .filter(({ monthNumber, year }) => year * 100 + monthNumber <= currentYM)
+        .map(({ monthNumber, monthName }) => {
+            const existing = dataMap.get(monthNumber);
+            return (
+                existing ?? {
+                    monthNumber,
+                    monthName,
+                    primaryIssueCount: 0,
+                    primaryIssueSize: 0,
+                    compareIssueCount: 0,
+                    compareIssueSize: 0,
+                }
+            );
+        });
+}
+
 export default function MonthWiseTable({
     data,
     enableCompare,
@@ -239,17 +284,8 @@ export default function MonthWiseTable({
         return <TableSkeleton rows={12} />;
     }
 
-    const filteredData = data.filter((row) => {
-        const primaryHasData =
-            row.primaryIssueCount !== 0 || row.primaryIssueSize !== 0;
-
-        const compareHasData =
-            row.compareIssueCount !== 0 || row.compareIssueSize !== 0;
-
-        return enableCompare
-            ? primaryHasData || compareHasData
-            : primaryHasData;
-    });
+    // Always render every month of the FY (Apr → Mar), including zero-value months
+    const filteredData = buildFullYearData(data, primaryStartDate);
 
     const primaryTotalCount = filteredData.reduce(
         (sum, r) => sum + r.primaryIssueCount,

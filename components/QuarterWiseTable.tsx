@@ -193,6 +193,54 @@ function getDateRange(
     };
 }
 
+function buildFullYearQuarters(
+    data: QuarterlyData[],
+    primaryStartDate: string
+): QuarterlyData[] {
+    const startYear = parseInt(primaryStartDate.split('-')[0], 10);
+    const endYear = startYear + 1;
+
+    // Financial year quarters (Apr–Mar)
+    // Q1: Apr–Jun, Q2: Jul–Sep, Q3: Oct–Dec, Q4: Jan–Mar
+    const quarters: {
+        label: string;          // canonical display label
+        endYear: number;        // calendar year the quarter ends in
+        endMonth: number;       // calendar month the quarter ends in (1-12)
+    }[] = [
+            { label: 'Q1', endYear: startYear, endMonth: 6 },
+            { label: 'Q2', endYear: startYear, endMonth: 9 },
+            { label: 'Q3', endYear: startYear, endMonth: 12 },
+            { label: 'Q4', endYear: endYear, endMonth: 3 },
+        ];
+
+    // Index existing data by normalized quarter label (q1, q2, q3, q4)
+    const dataMap = new Map<string, QuarterlyData>();
+    data.forEach((row) => {
+        if (row.quarter) {
+            dataMap.set(row.quarter.trim().toLowerCase(), row);
+        }
+    });
+
+    // Clamp quarters that haven't finished yet (current FY only)
+    const today = new Date();
+    const currentYM = today.getFullYear() * 100 + (today.getMonth() + 1);
+
+    return quarters
+        .filter(({ endYear, endMonth }) => endYear * 100 + endMonth <= currentYM)
+        .map(({ label }) => {
+            const existing = dataMap.get(label.toLowerCase());
+            return (
+                existing ?? {
+                    quarter: label,
+                    primaryIssueCount: 0,
+                    primaryIssueSize: 0,
+                    compareIssueCount: 0,
+                    compareIssueSize: 0,
+                }
+            );
+        });
+}
+
 export default function QuarterWiseTable({
     data,
     enableCompare,
@@ -224,17 +272,8 @@ export default function QuarterWiseTable({
         return <TableSkeleton rows={6} />;
     }
 
-    const filteredData = data.filter((row) => {
-        const primaryHasData =
-            row.primaryIssueCount !== 0 || row.primaryIssueSize !== 0;
-
-        const compareHasData =
-            row.compareIssueCount !== 0 || row.compareIssueSize !== 0;
-
-        return enableCompare
-            ? primaryHasData || compareHasData
-            : primaryHasData;
-    });
+    // Always render every quarter of the FY (Q1 → Q4), including zero-value quarters
+    const filteredData = buildFullYearQuarters(data, primaryStartDate);
 
     const primaryTotalCount = filteredData.reduce(
         (sum, r) => sum + r.primaryIssueCount,
