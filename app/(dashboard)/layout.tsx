@@ -77,7 +77,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             {/* Fixed Header */}
             <div
-                className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-[#1a1a2e] shadow-sm"
+                className="fixed top-0 left-0 right-0 z-70 bg-white dark:bg-[#1a1a2e] shadow-sm"
                 style={{ height: HEADER_HEIGHT }}
             >
                 <Header onMenuClick={() => setIsSidebarOpen(prev => !prev)} />
