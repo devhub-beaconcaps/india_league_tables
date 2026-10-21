@@ -3,8 +3,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Your App",
-  description: "Your app description",
+  title: "India League Tables",
+  description: "Empowering Your Financial Decisions",
 };
 
 export default function RootLayout({
