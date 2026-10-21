@@ -115,6 +115,8 @@ const navigation: NavItem[] = [
             // { name: 'Reissuance', href: '/admin/re-issuance' },
             { name: 'Arranger', href: '/admin/arrangers' },
             { name: 'Trustee', href: '/admin/trustees' },
+            { name: 'Agencies', href: '/admin/agencies' },
+            { name: 'Registrars', href: '/admin/registrars' },
             { name: 'Monthly Report', href: '/admin/monthly-report' },
             // { name: 'Issuers', href: '/admin/upload-issuers' },
         ],

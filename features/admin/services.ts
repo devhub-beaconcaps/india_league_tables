@@ -115,6 +115,88 @@ export const getAdminSimilarTrusteesData = async (trusteeId: unknown) => {
     }
 }
 
+export const getAdminAgenciesData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/admin-agencies`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching agencies data:", err.message);
+    }
+}
+
+export const mergeAgenciesData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/merge-agencies`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error merging agencies data:", err.message);
+    }
+}
+
+export const getAdminRegistrarsData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/admin-registrars`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching registrars data:", err.message);
+    }
+}
+
+export const mergeRegistrarsData = async (query: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/merge-registrars`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error merging registrars data:", err.message);
+    }
+}
+
+export const getAdminSimilarRegistrarsData = async (registrarId: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/registrars/similar/${registrarId}?threshold=50`, {
+            method: "GET",
+            headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching similar registrar data:", err.message);
+    }
+}
+
+export const getAdminSimilarAgenciesData = async (agencyId: unknown) => {
+    try {
+        const response = await fetch(`${backendURL}/agencies/similar/${agencyId}?threshold=50`, {
+            method: "GET",
+            headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await response.json();
+        return data;
+    } catch (err: any) {
+        console.error("Error fetching similar agency data:", err.message);
+    }
+}
+
 export const getMonthlyReportData = async (query: unknown) => {
     try {
         const response = await fetch(`${backendURL}/market-snapshot-data`, {
