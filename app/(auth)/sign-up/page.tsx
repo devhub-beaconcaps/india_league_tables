@@ -11,14 +11,24 @@ export default function SignUpPage() {
     const { isSignedIn } = useAuth();
     const router = useRouter();
 
+    // Sign-up form state
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
+    // Verification state
+    const [pendingVerification, setPendingVerification] = useState(false);
+    const [code, setCode] = useState('');
+
+    // Shared state
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    /* ------------------------------------------------------------------ */
+    /* Create account                                                      */
+    /* ------------------------------------------------------------------ */
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isLoaded) return;
@@ -33,6 +43,15 @@ export default function SignUpPage() {
                 password,
             });
 
+            // If Clerk requires email verification, send a code and show
+            // the verification form.
+            if (result.status === 'missing_requirements') {
+                await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+                setPendingVerification(true);
+                return;
+            }
+
+            // Email verification disabled → straight to dashboard
             if (result.status === 'complete') {
                 await setActive({ session: result.createdSessionId });
                 router.push('/dashboard');
@@ -45,6 +64,50 @@ export default function SignUpPage() {
         }
     };
 
+    /* ------------------------------------------------------------------ */
+    /* Verify email code                                                   */
+    /* ------------------------------------------------------------------ */
+    const handleVerify = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!isLoaded) return;
+        setLoading(true);
+        setError('');
+
+        try {
+            const result = await signUp.attemptEmailAddressVerification({ code });
+
+            if (result.status === 'complete') {
+                await setActive({ session: result.createdSessionId });
+                router.push('/dashboard');
+                return;
+            }
+
+            setError('Verification incomplete. Please check the code and try again.');
+        } catch (err: unknown) {
+            const error = err as { errors?: { message: string }[] };
+            setError(error.errors?.[0]?.message || 'Verification failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /* ------------------------------------------------------------------ */
+    /* Resend verification code                                            */
+    /* ------------------------------------------------------------------ */
+    const handleResend = async () => {
+        if (!isLoaded) return;
+        setError('');
+        try {
+            await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+        } catch (err: unknown) {
+            const error = err as { errors?: { message: string }[] };
+            setError(error.errors?.[0]?.message || 'Could not resend the code.');
+        }
+    };
+
+    /* ------------------------------------------------------------------ */
+    /* Google OAuth                                                        */
+    /* ------------------------------------------------------------------ */
     const handleGoogleSignUp = async () => {
         if (!isLoaded) return;
         try {
@@ -64,6 +127,88 @@ export default function SignUpPage() {
         return null;
     }
 
+    /* ------------------------------------------------------------------ */
+    /* Verification screen                                                 */
+    /* ------------------------------------------------------------------ */
+    if (pendingVerification) {
+        return (
+            <main className="min-h-screen flex items-center justify-center bg-[#F0F7FF] dark:bg-[#0f0f1a] px-4">
+                <div className="w-full max-w-md">
+                    <div className="bg-white dark:bg-[#1a1a2e] rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800 p-8">
+
+                        <div className="mb-8">
+                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                                Verify your email
+                            </h1>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                We sent a verification code to{' '}
+                                <span className="font-medium text-gray-700 dark:text-gray-300">{email}</span>.
+                                Enter it below to continue.
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleVerify} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                                    Verification code
+                                </label>
+                                <input
+                                    type="text"
+                                    value={code}
+                                    onChange={e => setCode(e.target.value)}
+                                    required
+                                    autoFocus
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                    placeholder="Enter the 6-digit code"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent transition tracking-widest text-center"
+                                />
+                            </div>
+
+                            {error && (
+                                <div className="px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400">
+                                    {error}
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={loading || !isLoaded}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                            >
+                                {loading ? 'Verifying...' : 'Verify email'}
+                            </button>
+
+                            <div className="flex items-center justify-between text-xs pt-1">
+                                <button
+                                    type="button"
+                                    onClick={handleResend}
+                                    className="text-[#7C3AED] font-medium hover:underline"
+                                >
+                                    Resend code
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setPendingVerification(false);
+                                        setCode('');
+                                        setError('');
+                                    }}
+                                    className="text-gray-500 dark:text-gray-400 hover:underline"
+                                >
+                                    Change email
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Sign-up form                                                        */
+    /* ------------------------------------------------------------------ */
     return (
         <main className="min-h-screen flex items-center justify-center bg-[#F0F7FF] dark:bg-[#0f0f1a] px-4">
             <div className="w-full max-w-md">
@@ -183,6 +328,9 @@ export default function SignUpPage() {
                                 {error}
                             </div>
                         )}
+
+                        {/* Clerk bot-protection widget (required when enabled in dashboard) */}
+                        <div id="clerk-captcha" />
 
                         <button
                             type="submit"
