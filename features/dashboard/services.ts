@@ -1,6 +1,8 @@
 const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ilt.debtcircle.in';
 
 console.log("ENV VALUE:", process.env.NEXT_PUBLIC_BACKEND_URL);
+console.log('backend Url: ', process.env.BACKEND_URL);
+
 
 export const fetchDashboardTablesData = async (query: unknown, endpoint: string) => {
     console.log(`Fetching data for endpoint: ${backendURL} with query:`, query);
