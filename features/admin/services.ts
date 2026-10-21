@@ -1,4 +1,4 @@
-const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ilt.debtcircle.in';
 
 // const backendURL = 'http://localhost:4000';
 
