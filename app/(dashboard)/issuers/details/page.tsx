@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import * as XLSX from 'xlsx';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import CustomDropdown from '@/components/CustomDropdown';
@@ -624,8 +623,8 @@ export default function DetailedAnalysis() {
         }).format(value);
     };
 
-    // ── Export ALL data (re-fetch with limit = total) ──
-    const handleExport = async () => {
+    // ── Export ALL data as CSV (re-fetch with limit = total) ──
+    const handleExport = useCallback(async () => {
         if (isExporting) return;
 
         try {
@@ -644,40 +643,71 @@ export default function DetailedAnalysis() {
             const exportData = mapApiDataToTableData(result.data);
 
             if (!exportData || exportData.length === 0) {
-                alert('No data to export');
+                console.warn('No data to export');
                 return;
             }
 
+            // Build CSV rows
             const headers = filteredColumns.map(col => col.header);
+
+            // Escape a CSV cell value (wrap in quotes if it contains comma, quote, or newline)
+            const escapeCsvCell = (value: string): string => {
+                const stringValue = String(value ?? '');
+                if (
+                    stringValue.includes(',') ||
+                    stringValue.includes('"') ||
+                    stringValue.includes('\n') ||
+                    stringValue.includes('\r')
+                ) {
+                    return `"${stringValue.replace(/"/g, '""')}"`;
+                }
+                return stringValue;
+            };
+
             const dataRows = exportData.map(row =>
                 filteredColumns.map(col => {
                     const value = (row as any)[col.accessor];
                     if (col.accessor === 'issueValue' || col.accessor === 'faceValue') {
-                        return typeof value === 'number' ? formatCurrency(value) : value;
+                        return typeof value === 'number' ? formatCurrency(value) : (value || '-');
                     }
                     return value || '-';
                 })
             );
 
-            const worksheetData = [headers, ...dataRows];
-            const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-            const columnWidths = headers.map(() => ({ wch: 15 }));
-            worksheet['!cols'] = columnWidths;
+            // Combine headers + rows, escaping each cell
+            const csvLines = [
+                headers.map(escapeCsvCell).join(','),
+                ...dataRows.map(row => row.map(escapeCsvCell).join(',')),
+            ];
 
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Issuer Details');
+            const csvContent = csvLines.join('\r\n');
+
+            // Add UTF-8 BOM so Excel opens special characters correctly
+            const blob = new Blob(['\uFEFF' + csvContent], {
+                type: 'text/csv;charset=utf-8;',
+            });
 
             const now = new Date();
-            const filename = `issuer-details-${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}.xlsx`;
+            const filename = `issuer-details-${now.getFullYear()}-${(now.getMonth() + 1)
+                .toString()
+                .padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}.csv`;
 
-            XLSX.writeFile(workbook, filename);
+            // Trigger download
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Export failed:', error);
             alert('Failed to export data');
         } finally {
             setIsExporting(false);
         }
-    };
+    }, [isExporting, totalCount, buildRequestBody, filteredColumns]);
 
     const renderCell = (row: TableDataItem, accessor: string) => {
         const value = row[accessor as keyof TableDataItem];
@@ -1060,24 +1090,6 @@ export default function DetailedAnalysis() {
                                                 </button>
 
                                                 <button
-                                                    onClick={handleExport}
-                                                    disabled={isExporting || isLoading}
-                                                    className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-                                                >
-                                                    {isExporting ? (
-                                                        <>
-                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                            Exporting...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Download className="w-3.5 h-3.5" />
-                                                            Export
-                                                        </>
-                                                    )}
-                                                </button>
-
-                                                <button
                                                     onClick={handleReset}
                                                     className="flex items-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
                                                 >
@@ -1108,6 +1120,26 @@ export default function DetailedAnalysis() {
                         </div>
 
                         <div className="flex items-center gap-2">
+                            {/* ── Export Button (left of search bar) ── */}
+                            <button
+                                onClick={handleExport}
+                                disabled={isExporting || isLoading}
+                                className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-3 h-7 text-xs font-medium transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                {isExporting ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        Exporting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download className="w-3.5 h-3.5" />
+                                        Export
+                                    </>
+                                )}
+                            </button>
+
+                            {/* ── Search Input ── */}
                             <div className="relative w-full sm:w-64">
                                 <input
                                     type="text"
@@ -1121,6 +1153,7 @@ export default function DetailedAnalysis() {
                                 />
                             </div>
 
+                            {/* ── Column Selector ── */}
                             <div className="relative" ref={dropdownRef}>
                                 <button
                                     onClick={() => setIsColumnMenuOpen(prev => !prev)}

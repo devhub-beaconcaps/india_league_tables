@@ -6,7 +6,6 @@ import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import CustomDropdown from '@/components/CustomDropdown';
 import { Search, Download, X, ChevronDown, ChevronUp, Calendar, SlidersHorizontal, Loader2 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 
 import { FilterOption, TableDataItem } from './types';
 import { fetchIssueDetailsFilterInputsData } from '@/features/issuers/services';
@@ -622,7 +621,7 @@ export default function DetailedAnalysis() {
         }).format(value);
     };
 
-    // ── Export ALL data (re-fetch with limit = total) ──
+    // ── Export ALL data as CSV (re-fetch with limit = total) ──
     const handleExport = useCallback(async () => {
         if (isExporting) return;
 
@@ -646,29 +645,58 @@ export default function DetailedAnalysis() {
                 return;
             }
 
-            const rows = exportData.map((row) => {
-                const newRow: Record<string, any> = {};
-                filteredColumns.forEach(col => {
+            // Build CSV rows
+            const headers = filteredColumns.map(col => col.header);
+
+            // Escape a CSV cell value (wrap in quotes if it contains comma, quote, or newline)
+            const escapeCsvCell = (value: string): string => {
+                const stringValue = String(value ?? '');
+                if (
+                    stringValue.includes(',') ||
+                    stringValue.includes('"') ||
+                    stringValue.includes('\n') ||
+                    stringValue.includes('\r')
+                ) {
+                    return `"${stringValue.replace(/"/g, '""')}"`;
+                }
+                return stringValue;
+            };
+
+            const dataRows = exportData.map(row =>
+                filteredColumns.map(col => {
                     const value = (row as any)[col.accessor];
                     if (col.accessor === 'issueValue' || col.accessor === 'faceValue') {
-                        newRow[col.header] = typeof value === 'number' ? formatCurrency(value) : value;
-                    } else {
-                        newRow[col.header] = value || '-';
+                        return typeof value === 'number' ? formatCurrency(value) : (value || '-');
                     }
-                });
-                return newRow;
+                    return value || '-';
+                })
+            );
+
+            // Combine headers + rows, escaping each cell
+            const csvLines = [
+                headers.map(escapeCsvCell).join(','),
+                ...dataRows.map(row => row.map(escapeCsvCell).join(',')),
+            ];
+
+            const csvContent = csvLines.join('\r\n');
+
+            // Add UTF-8 BOM so Excel opens special characters correctly
+            const blob = new Blob(['\uFEFF' + csvContent], {
+                type: 'text/csv;charset=utf-8;',
             });
 
-            const worksheet = XLSX.utils.json_to_sheet(rows);
-            const colWidths = filteredColumns.map(() => ({ wch: 15 }));
-            worksheet['!cols'] = colWidths;
-
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Rating Agency Analysis');
-
             const dateStr = new Date().toISOString().split('T')[0];
-            const filename = `rating-agency-detailed-analysis-${dateStr}.xlsx`;
-            XLSX.writeFile(workbook, filename);
+            const filename = `rating-agency-detailed-analysis-${dateStr}.csv`;
+
+            // Trigger download
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Export failed:', error);
             alert('Failed to export data');
@@ -1058,24 +1086,6 @@ export default function DetailedAnalysis() {
                                                 </button>
 
                                                 <button
-                                                    onClick={handleExport}
-                                                    disabled={isExporting || isLoading}
-                                                    className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-                                                >
-                                                    {isExporting ? (
-                                                        <>
-                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                            Exporting...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Download className="w-3.5 h-3.5" />
-                                                            Export
-                                                        </>
-                                                    )}
-                                                </button>
-
-                                                <button
                                                     onClick={handleReset}
                                                     className="flex items-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-lg px-5 h-6 text-xs font-medium transition-colors duration-150"
                                                 >
@@ -1106,6 +1116,26 @@ export default function DetailedAnalysis() {
                         </div>
 
                         <div className="flex items-center gap-2">
+                            {/* ── Export Button (left of search bar) ── */}
+                            <button
+                                onClick={handleExport}
+                                disabled={isExporting || isLoading}
+                                className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-3 h-7 text-xs font-medium transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                {isExporting ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        Exporting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download className="w-3.5 h-3.5" />
+                                        Export
+                                    </>
+                                )}
+                            </button>
+
+                            {/* ── Search Input ── */}
                             <div className="relative w-full sm:w-64">
                                 <input
                                     type="text"
@@ -1119,6 +1149,7 @@ export default function DetailedAnalysis() {
                                 />
                             </div>
 
+                            {/* ── Column Selector ── */}
                             <div className="relative" ref={dropdownRef}>
                                 <button
                                     onClick={() => setIsColumnMenuOpen(prev => !prev)}
