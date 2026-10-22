@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import CustomDropdown from '@/components/CustomDropdown';
+import MasterSearchInput from '@/components/MasterSearchInput';
 import { Search, Download, X, ChevronDown, ChevronUp, Calendar, SlidersHorizontal, Loader2 } from 'lucide-react';
 
 import { FilterOption, TableDataItem } from './types';
@@ -879,11 +880,11 @@ export default function DetailedAnalysis() {
                                             {/* Filter Grid */}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
                                                 <FilterGroup label="Arranger Name">
-                                                    <TextInput
+                                                    <MasterSearchInput
+                                                        masterTable="Arranger"
                                                         value={filters.arranger[0] || ''}
-                                                        onChange={(val) => updateFilter('arranger', val ? [val] : [])}
                                                         placeholder="Enter Arranger Name"
-                                                        type="text"
+                                                        onSelect={(val) => updateFilter('arranger', [val])}
                                                     />
                                                 </FilterGroup>
 
