@@ -1267,7 +1267,7 @@ export default function Summary() {
                                 (header) =>
                                     escapeCSV(
                                         row[
-                                            header as keyof typeof row
+                                        header as keyof typeof row
                                         ]
                                     )
                             )
@@ -1415,7 +1415,7 @@ export default function Summary() {
                                 (header) =>
                                     escapeCSV(
                                         row[
-                                            header as keyof typeof row
+                                        header as keyof typeof row
                                         ]
                                     )
                             )
@@ -1937,9 +1937,9 @@ export default function Summary() {
                                                             updatePageField(ARRANGERS_PAGE, 'period', h);
                                                         }}
                                                         className={`px-3 py-1 rounded-full text-xs ${period ===
-                                                                h
-                                                                ? 'bg-indigo-600 text-white'
-                                                                : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
+                                                            h
+                                                            ? 'bg-indigo-600 text-white'
+                                                            : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
                                                             }`}
                                                     >
                                                         {h}
@@ -1968,9 +1968,9 @@ export default function Summary() {
                                                             updatePageField(ARRANGERS_PAGE, 'period', q);
                                                         }}
                                                         className={`px-3 py-1 rounded-full text-xs ${period ===
-                                                                q
-                                                                ? 'bg-indigo-600 text-white'
-                                                                : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
+                                                            q
+                                                            ? 'bg-indigo-600 text-white'
+                                                            : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
                                                             }`}
                                                     >
                                                         {q}
@@ -2053,8 +2053,8 @@ export default function Summary() {
 
                         <ChevronDown
                             className={`w-5 h-5 transition-transform ${isFiltersExpanded
-                                    ? 'rotate-180'
-                                    : ''
+                                ? 'rotate-180'
+                                : ''
                                 }`}
                         />
                     </button>
@@ -2472,8 +2472,8 @@ export default function Summary() {
                                     updatePageField(ARRANGERS_PAGE, 'issueType', 'size');
                                 }}
                                 className={`px-5 py-1.5 text-xs font-medium rounded-full ${issueType === 'size'
-                                        ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
-                                        : 'text-gray-500'
+                                    ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
+                                    : 'text-gray-500'
                                     }`}
                             >
                                 ISSUE SIZE
@@ -2485,8 +2485,8 @@ export default function Summary() {
                                     updatePageField(ARRANGERS_PAGE, 'issueType', 'count');
                                 }}
                                 className={`px-5 py-1.5 text-xs font-medium rounded-full ${issueType === 'count'
-                                        ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
-                                        : 'text-gray-500'
+                                    ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
+                                    : 'text-gray-500'
                                     }`}
                             >
                                 NO. OF ISSUES
@@ -2506,6 +2506,8 @@ export default function Summary() {
                                 selectedFY={selectedFY}
                                 valueConvention={valueConvention}
                                 type="Arranger"
+                                startDate={selectedYearsDateRange?.startDate} 
+                                endDate={selectedYearsDateRange?.endDate}    
                             />
                         ) : (
                             <NoDataState

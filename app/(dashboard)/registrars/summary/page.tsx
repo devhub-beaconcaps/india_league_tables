@@ -1264,6 +1264,8 @@ export default function Summary() {
                                     selectedFY={selectedFY}
                                     valueConvention={valueConvention}
                                     type="Registrar"
+                                    startDate={selectedYearsDateRange?.startDate}
+                                    endDate={selectedYearsDateRange?.endDate}
                                 />
                             ) : (
                                 <NoDataState message="No registrar data available" subMessage="Try adjusting your filters or selecting a different financial year." />

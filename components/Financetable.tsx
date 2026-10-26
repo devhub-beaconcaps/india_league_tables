@@ -32,6 +32,8 @@ interface FinanceTableProps {
   selectedFY: string;
   valueConvention: "Lakhs" | "Crores" | "Billions" | string;
   type: string;
+  startDate?: string;   // ← ADD
+  endDate?: string;     // ← ADD
 }
 
 interface FinancialYearRanges {
@@ -49,18 +51,29 @@ const SUB_HEADERS: string[] = ["Rank", "Issue Size", "Deals", "Market Share (%)"
 // COMPONENTS
 // ============================================================================
 
-const InfoIcon = (): JSX.Element => (
-  <svg
-    className="inline-block ml-1 w-3.5 h-3.5 opacity-90"
-    viewBox="0 0 20 20"
-    fill="currentColor"
-  >
-    <path
-      fillRule="evenodd"
-      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-      clipRule="evenodd"
-    />
-  </svg>
+const InfoIcon = ({ tooltipText }: { tooltipText: string }): JSX.Element => (
+  <span className="relative inline-flex items-center group align-middle">
+    <svg
+      className="inline-block ml-1 w-3.5 h-3.5 opacity-90 cursor-help"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+    >
+      <path
+        fillRule="evenodd"
+        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+        clipRule="evenodd"
+      />
+    </svg>
+
+    {tooltipText && (
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-normal text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100"
+      >
+        {tooltipText}
+      </span>
+    )}
+  </span>
 );
 
 // ============================================================================
@@ -79,6 +92,37 @@ function getFinancialYearRanges(rangeStr: string): FinancialYearRanges {
   };
 }
 
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+function parseDate(str?: string): Date | null {
+  if (!str) return null;
+  // handles "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss…"
+  const parts = str.split("T")[0].split("-").map(Number);
+  if (parts.length !== 3 || parts.some((n) => isNaN(n))) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function formatDate(d: Date): string {
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${day}-${MONTHS[d.getMonth()]}-${d.getFullYear()}`;
+}
+
+function formatDateRange(start?: string, end?: string): string {
+  const s = parseDate(start);
+  const e = parseDate(end);
+  if (!s || !e) return "";
+  return `Dates: ${formatDate(s)} - ${formatDate(e)}`;
+}
+
+function shiftYear(d: Date, delta: number): Date {
+  const next = new Date(d);
+  next.setFullYear(next.getFullYear() + delta);
+  return next;
+}
+
 // function formatIssueSize(value: string | number | undefined, convention: string): string {
 //   const numValue: number = parseFloat(String(value || 0));
 //   const formatted = convention === "Lakhs"
@@ -92,7 +136,7 @@ function getFinancialYearRanges(rangeStr: string): FinancialYearRanges {
 function formatIssueSize(value: string | number | undefined, convention: string): string {
   // Ensure we have a valid number, default to 0
   const numValue: number = parseFloat(String(value)) || 0;
-  
+
   let scaledValue: number;
 
   switch (convention) {
@@ -133,35 +177,46 @@ export default function FinanceTable({
   selectedFY,
   valueConvention,
   type,
+  startDate,
+  endDate
 }: FinanceTableProps): JSX.Element {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
 
   console.log("selectedFY: ", selectedFY);
-  
+
   const result: FinancialYearRanges = getFinancialYearRanges(selectedFY);
+
+  const currentDatesText = formatDateRange(startDate, endDate);
+
+  const prevDatesText = (() => {
+    const s = parseDate(startDate);
+    const e = parseDate(endDate);
+    if (!s || !e) return "";
+    return `Dates: ${formatDate(shiftYear(s, -1))} - ${formatDate(shiftYear(e, -1))}`;
+  })();
 
   // Calculate totals
   const totalCurrentIssueSize: number = data.reduce(
     (acc: number, row: TableRowData) => acc + parseFloat(String(row?.issueSize || 0)),
     0
   );
-  
+
   const totalPreviousIssueSize: number = data.reduce(
     (acc: number, row: TableRowData) => acc + parseFloat(String(row?.prevSize || 0)),
     0
   );
-  
+
   const totalCurrentMktShare: number = data.reduce(
     (acc: number, row: TableRowData) => acc + parseFloat(String(row?.mktShare || 0)),
     0
   );
-  
+
   const totalPreviousMktShare: number = data.reduce(
     (acc: number, row: TableRowData) => acc + parseFloat(String(row?.prevMkt || 0)),
     0
   );
-  
-  const changeInMktShare: number = 
+
+  const changeInMktShare: number =
     totalPreviousMktShare !== 0
       ? ((totalPreviousMktShare - totalCurrentMktShare) / totalPreviousMktShare) * 100
       : 0;
@@ -191,7 +246,7 @@ export default function FinanceTable({
                   className="border border-gray-200 dark:border-gray-700 rounded-md py-2 text-center bg-gradient-to-r from-[#423CAB] to-[#653FD8]"
                 >
                   <span className="text-white font-semibold text-[12px]">
-                    FY {result?.currentYearRange} <InfoIcon />
+                    FY {result?.currentYearRange} <InfoIcon tooltipText={currentDatesText} />
                   </span>
                 </th>
 
@@ -200,7 +255,7 @@ export default function FinanceTable({
                   className="border border-gray-200 dark:border-gray-700 rounded-md py-2 text-center bg-gradient-to-r from-[#423CAB] to-[#653FD8]"
                 >
                   <span className="text-white font-semibold text-[12px]">
-                    FY {result?.previousYearRange} <InfoIcon />
+                    FY {result?.previousYearRange} <InfoIcon tooltipText={prevDatesText} />
                   </span>
                 </th>
 
@@ -242,13 +297,12 @@ export default function FinanceTable({
                   key={i}
                   onMouseEnter={() => setHoveredRow(i)}
                   onMouseLeave={() => setHoveredRow(null)}
-                  className={`transition-colors ${
-                    hoveredRow === i
-                      ? "bg-purple-50 dark:bg-purple-900/30"
-                      : i % 2 === 0
+                  className={`transition-colors ${hoveredRow === i
+                    ? "bg-purple-50 dark:bg-purple-900/30"
+                    : i % 2 === 0
                       ? "bg-white dark:bg-gray-900"
                       : "bg-gray-50 dark:bg-gray-800"
-                  }`}
+                    }`}
                 >
                   <td className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-3 font-medium break-words w-[420px] text-gray-800 dark:text-gray-200">
                     {row.name}

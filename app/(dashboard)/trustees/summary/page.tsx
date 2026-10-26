@@ -819,7 +819,7 @@ export default function Summary() {
                 startDate: selectedYearsDateRange.startDate,
                 endDate: selectedYearsDateRange.endDate,
             };
-                       const data: FilterInputsResponse = await fetchIssueDetailsFilterInputsData(query);
+            const data: FilterInputsResponse = await fetchIssueDetailsFilterInputsData(query);
             setFilterOptions(data);
         } catch (err) {
             console.error('Error fetching filter inputs:', err);
@@ -1293,6 +1293,8 @@ export default function Summary() {
                                     selectedFY={selectedFY}
                                     valueConvention={valueConvention}
                                     type="Trustee"
+                                    startDate={selectedYearsDateRange?.startDate}
+                                    endDate={selectedYearsDateRange?.endDate}
                                 />
                             ) : (
                                 <NoDataState message="No trustee data available" subMessage="Try adjusting your filters or selecting a different financial year." />

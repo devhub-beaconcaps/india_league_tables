@@ -1306,6 +1306,8 @@ export default function Summary() {
                                     selectedFY={selectedFY}
                                     valueConvention={valueConvention}
                                     type="Rating Agency"
+                                    startDate={selectedYearsDateRange?.startDate}
+                                    endDate={selectedYearsDateRange?.endDate}
                                 />
                             ) : (
                                 <NoDataState message="No rating agency data available" subMessage="Try adjusting your filters or selecting a different financial year." />

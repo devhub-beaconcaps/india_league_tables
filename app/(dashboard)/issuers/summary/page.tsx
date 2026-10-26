@@ -1235,6 +1235,8 @@ export default function IssuerSummary() {
                                     selectedFY={selectedFY}
                                     valueConvention={valueConvention}
                                     type="Issuer"
+                                    startDate={selectedYearsDateRange?.startDate}
+                                    endDate={selectedYearsDateRange?.endDate}
                                 />
                             ) : (
                                 <NoDataState message="No issuer data available" subMessage="Try adjusting your filters or selecting a different financial year." />
