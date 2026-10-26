@@ -22,6 +22,7 @@ interface CustomDropdownProps {
   menuClassName?: string;
   placeholder?: string;
   multiSelect?: boolean;
+  className?: string;
 }
 
 export default function CustomDropdown({
@@ -33,6 +34,7 @@ export default function CustomDropdown({
   menuClassName = "",
   placeholder = "Select",
   multiSelect = true,
+  className = "",
 }: CustomDropdownProps) {
   const [open, setOpen] = useState<boolean>(false);
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
@@ -105,7 +107,7 @@ export default function CustomDropdown({
   };
 
   return (
-    <div ref={dropdownRef} className="w-full sm:w-auto relative">
+    <div ref={dropdownRef} className={`${className || "w-full sm:w-auto"} relative`}>
       {label && (
         <label className="text-[10px] text-gray-400 text-center block mb-1">{label}</label>
       )}

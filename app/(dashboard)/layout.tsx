@@ -94,7 +94,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 {/* Mobile Overlay */}
                 {isSidebarOpen && (
                     <div
-                        className="fixed left-0 right-0 bottom-0 bg-black/50 z-30 md:hidden"
+                        className="fixed left-0 right-0 bottom-0 bg-black/50 z-40 md:hidden"
                         style={{ top: HEADER_HEIGHT }}
                         onClick={handleOverlayClick}
                     />
@@ -105,7 +105,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     className={`
                         fixed
                         left-0
-                        z-40
+                        z-50
                         transform transition-transform duration-300 ease-in-out
                         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                         md:relative md:translate-x-0 md:flex
