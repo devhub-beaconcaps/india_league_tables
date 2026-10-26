@@ -1936,12 +1936,11 @@ export default function Summary() {
                                                             ensureActive();
                                                             updatePageField(ARRANGERS_PAGE, 'period', h);
                                                         }}
-                                                        className={`px-3 py-1 rounded-full text-xs ${
-                                                            period ===
-                                                            h
+                                                        className={`px-3 py-1 rounded-full text-xs ${period ===
+                                                                h
                                                                 ? 'bg-indigo-600 text-white'
                                                                 : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {h}
                                                     </button>
@@ -1968,12 +1967,11 @@ export default function Summary() {
                                                             ensureActive();
                                                             updatePageField(ARRANGERS_PAGE, 'period', q);
                                                         }}
-                                                        className={`px-3 py-1 rounded-full text-xs ${
-                                                            period ===
-                                                            q
+                                                        className={`px-3 py-1 rounded-full text-xs ${period ===
+                                                                q
                                                                 ? 'bg-indigo-600 text-white'
                                                                 : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {q}
                                                     </button>
@@ -2054,11 +2052,10 @@ export default function Summary() {
                         </div>
 
                         <ChevronDown
-                            className={`w-5 h-5 transition-transform ${
-                                isFiltersExpanded
+                            className={`w-5 h-5 transition-transform ${isFiltersExpanded
                                     ? 'rotate-180'
                                     : ''
-                            }`}
+                                }`}
                         />
                     </button>
 
@@ -2100,8 +2097,8 @@ export default function Summary() {
                                                                 'arranger',
                                                                 val
                                                                     ? [
-                                                                          val,
-                                                                      ]
+                                                                        val,
+                                                                    ]
                                                                     : []
                                                             )
                                                         }
@@ -2437,13 +2434,10 @@ export default function Summary() {
                         <div className="flex items-center gap-3 flex-wrap">
 
                             <button
-                                onClick={
-                                    handleExportCSV
-                                }
+                                onClick={handleExportCSV}
                                 disabled={
                                     isTableLoading ||
-                                    issueTableData.length ===
-                                        0
+                                    issueTableData.length === 0
                                 }
                                 className="flex items-center gap-1.5 bg-green-600 disabled:opacity-50 text-white rounded-lg px-4 h-8 text-xs font-medium"
                             >
@@ -2452,28 +2446,21 @@ export default function Summary() {
 
                             <CustomDropdown
                                 label="Value Convention"
-                                options={
-                                    valueConventionOptions
-                                }
-                                value={
-                                    valueConvention
-                                }
+                                options={valueConventionOptions}
+                                value={valueConvention}
                                 onChange={(val) => {
                                     ensureActive();
                                     updatePageField(
                                         ARRANGERS_PAGE,
                                         'valueConvention',
-                                        val[0] as ValueConvention || 'Crores'
+                                        (val[0] as ValueConvention) || 'Crores'
                                     );
                                 }}
-                                multiSelect={
-                                    false
-                                }
+                                multiSelect={false}
                             />
 
                         </div>
                     </div>
-
 
                     <div className="flex justify-center mb-4">
 
@@ -2484,12 +2471,10 @@ export default function Summary() {
                                     ensureActive();
                                     updatePageField(ARRANGERS_PAGE, 'issueType', 'size');
                                 }}
-                                className={`px-5 py-1.5 text-xs font-medium rounded-full ${
-                                    issueType ===
-                                    'size'
+                                className={`px-5 py-1.5 text-xs font-medium rounded-full ${issueType === 'size'
                                         ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
                                         : 'text-gray-500'
-                                }`}
+                                    }`}
                             >
                                 ISSUE SIZE
                             </button>
@@ -2499,12 +2484,10 @@ export default function Summary() {
                                     ensureActive();
                                     updatePageField(ARRANGERS_PAGE, 'issueType', 'count');
                                 }}
-                                className={`px-5 py-1.5 text-xs font-medium rounded-full ${
-                                    issueType ===
-                                    'count'
+                                className={`px-5 py-1.5 text-xs font-medium rounded-full ${issueType === 'count'
                                         ? 'bg-gradient-to-r from-[#423CAB] to-[#653FD8] text-white'
                                         : 'text-gray-500'
-                                }`}
+                                    }`}
                             >
                                 NO. OF ISSUES
                             </button>
@@ -2512,26 +2495,16 @@ export default function Summary() {
                         </div>
                     </div>
 
-
                     <div className="overflow-x-auto">
 
                         {isTableLoading ? (
                             <TableSkeleton />
-                        ) : issueTableData.length >
-                          0 ? (
+                        ) : issueTableData.length > 0 ? (
                             <FinanceTable
-                                totalsData={
-                                    totalsData
-                                }
-                                data={
-                                    issueTableData
-                                }
-                                selectedFY={
-                                    selectedFY
-                                }
-                                valueConvention={
-                                    valueConvention
-                                }
+                                totalsData={totalsData}
+                                data={issueTableData}
+                                selectedFY={selectedFY}
+                                valueConvention={valueConvention}
                                 type="Arranger"
                             />
                         ) : (
@@ -2542,6 +2515,31 @@ export default function Summary() {
                         )}
 
                     </div>
+
+                    {/* ───── Methodology Sticky Note ───── */}
+                    <div className="mt-4 rounded-lg border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-[11px] leading-relaxed text-amber-900 dark:text-amber-200 shadow-sm">
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
+                            <p className="font-semibold text-amber-800 dark:text-amber-300 text-[11px] uppercase tracking-wider">
+                                Methodology
+                            </p>
+                        </div>
+                        <ul className="list-disc pl-5 space-y-0.5 marker:text-amber-500">
+                            <li>
+                                Rankings are based on the total number of issues facilitated during the period.
+                            </li>
+                            <li>
+                                Data is primarily sourced from GIDs and KIDs.
+                            </li>
+                            <li>
+                                In select cases, deal data submitted by arrangers has been incorporated.
+                            </li>
+                            <li>
+                                For transactions with multiple arrangers, 100% credit is assigned to each arranger.
+                            </li>
+                        </ul>
+                    </div>
+
                 </SectionCard>
 
 
@@ -2570,7 +2568,7 @@ export default function Summary() {
                         {isSectorsLoading ? (
                             <ChartSkeleton height={220} />
                         ) : topSectorsData.length >
-                          0 ? (
+                            0 ? (
                             <div className="w-full overflow-x-auto pb-2">
                                 <div
                                     ref={
@@ -2629,7 +2627,7 @@ export default function Summary() {
                         {isMarketShareLoading ? (
                             <PieChartSkeleton />
                         ) : marketShareData.length >
-                          0 ? (
+                            0 ? (
                             <div
                                 ref={
                                     marketShareChartRef
@@ -2762,7 +2760,7 @@ export default function Summary() {
                             disabled={
                                 isTableLoading ||
                                 listTableData.length ===
-                                    0
+                                0
                             }
                             className="flex items-center gap-1.5 bg-green-600 disabled:opacity-50 text-white rounded-lg px-4 h-8 text-xs font-medium"
                         >
