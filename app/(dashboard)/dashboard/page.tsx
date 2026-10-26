@@ -107,11 +107,6 @@ const handleFinancialYearSelection = (financialYear: string): DateRange => {
   return { startDate: startDateStr, endDate: endDateStr };
 };
 
-function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
-}
-
 // ─── Empty State Component ───────────────────────────────────────────────────
 
 function NoDataState({ message = "No data available", subMessage }: { message?: string; subMessage?: string }) {
@@ -148,7 +143,7 @@ function NoDataState({ message = "No data available", subMessage }: { message?: 
 
 function StatCardSkeleton() {
   return (
-    <div className="bg-white dark:bg-[#1a1a2e] border-l-4 border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2 flex items-start gap-3 flex-1 min-w-0 drop-shadow-md w-full sm:w-auto">
+    <div className="bg-white dark:bg-[#1a1a2e] border-l-4 border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2 flex items-start gap-3 drop-shadow-md w-full">
       <div className="min-w-0 w-full">
         <Skeleton circle width={24} height={24} className="mb-2" />
         <Skeleton width="60%" height={10} className="mb-1" />
@@ -204,7 +199,7 @@ function PieChartSkeleton() {
 function StatCard({ label, value, change, color, icon }: StatCardProps) {
   return (
     <div
-      className="bg-white dark:bg-[#1a1a2e] border-l-4 rounded-2xl px-4 py-2 flex items-start gap-3 flex-1 min-w-0 drop-shadow-md w-full sm:w-auto"
+      className="bg-white dark:bg-[#1a1a2e] border-l-4 rounded-2xl px-4 py-2 flex items-start gap-3 drop-shadow-md w-full"
       style={{ borderLeftColor: color }}
     >
       <div className="min-w-0 w-full">
@@ -214,8 +209,14 @@ function StatCard({ label, value, change, color, icon }: StatCardProps) {
         >
           <span>{icon}</span>
         </div>
-        <p className="text-[9px] mb-1 text-gray-400 dark:text-gray-500 font-medium truncate">{label}</p>
-        <p title={value} className="text-[14px] font-bold text-gray-800 dark:text-white leading-tight mt-0.5">{label === 'Top Issuer' ? truncateText(value, 7) : value}</p>
+        <p className="text-[9px] mb-1 text-gray-400 dark:text-gray-500 font-medium break-words">{label}</p>
+        {/* Truncate with ellipsis on sm+ (desktop); wrap freely on mobile. Title shows full value on hover. */}
+        <p
+          title={value}
+          className="text-[14px] font-bold text-gray-800 dark:text-white leading-tight mt-0.5 break-words sm:truncate"
+        >
+          {value}
+        </p>
       </div>
     </div>
   );
@@ -621,19 +622,26 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
 
         {/* ── Stats Row ── */}
-        <div className="flex flex-col sm:flex-row gap-3 overflow-x-auto pb-2 sm:pb-0">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {isStatsLoading ? (
             <>
               {[...Array(5)].map((_, i) => (
-                <StatCardSkeleton key={i} />
+                <div key={i} className={i === 4 ? 'col-span-2 sm:col-span-1' : ''}>
+                  <StatCardSkeleton />
+                </div>
               ))}
             </>
           ) : statsData && statsData.length > 0 ? (
             statsData.map((card, i) => (
-              <StatCard key={i} {...card} />
+              <div
+                key={i}
+                className={i === statsData.length - 1 ? 'col-span-2 sm:col-span-1' : ''}
+              >
+                <StatCard {...card} />
+              </div>
             ))
           ) : (
-            <div className="w-full">
+            <div className="col-span-2 sm:col-span-5 w-full">
               <NoDataState message="No statistics available" subMessage="Try selecting a different financial year or check back later." />
             </div>
           )}
@@ -652,43 +660,47 @@ export default function Dashboard() {
             {isIssueTrendsLoading ? (
               <ChartSkeleton height={240} />
             ) : sanitizedIssuersTrendsData && sanitizedIssuersTrendsData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <AreaChart data={sanitizedIssuersTrendsData} margin={{ top: 5, right: 10, left: 10, bottom: 20 }}>
-                  <defs>
-                    <linearGradient id="gradSize" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.05} />
-                    </linearGradient>
-                    <linearGradient id="gradIssue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#EC4899" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#EC4899" stopOpacity={0.05} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="years" angle={-30} tick={{ fontSize: 9 }} tickMargin={12} axisLine={false} tickLine={false} />
-                  <YAxis
-                    yAxisId="left"
-                    orientation="left"
-                    tick={{ fontSize: 9 }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={formatNumber}
-                  />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    tick={{ fontSize: 9 }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={formatNumber}
-                  />
-                  <Tooltip
-                    contentStyle={{ fontSize: 11, borderRadius: 8 }}
-                    formatter={(value) => formatNumber(value)}
-                  />
-                  <Area yAxisId="left" type="monotone" dataKey="total_issue_size_cr" stroke="#06B6D4" fill="url(#gradSize)" strokeWidth={2} />
-                  <Area yAxisId="right" type="monotone" dataKey="total_no_of_issues" stroke="#EC4899" fill="url(#gradIssue)" strokeWidth={2} />
-                </AreaChart>
-              </ResponsiveContainer>
+              <div className="w-full overflow-x-auto pb-2">
+                <div className="min-w-[700px] lg:min-w-full">
+                  <ResponsiveContainer width="100%" height={280}>
+                    <AreaChart data={sanitizedIssuersTrendsData} margin={{ top: 5, right: 10, left: 10, bottom: 20 }}>
+                      <defs>
+                        <linearGradient id="gradSize" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.05} />
+                        </linearGradient>
+                        <linearGradient id="gradIssue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#EC4899" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#EC4899" stopOpacity={0.05} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="years" angle={-30} tick={{ fontSize: 9 }} tickMargin={12} axisLine={false} tickLine={false} />
+                      <YAxis
+                        yAxisId="left"
+                        orientation="left"
+                        tick={{ fontSize: 9 }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={formatNumber}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        tick={{ fontSize: 9 }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={formatNumber}
+                      />
+                      <Tooltip
+                        contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                        formatter={(value) => formatNumber(value)}
+                      />
+                      <Area yAxisId="left" type="monotone" dataKey="total_issue_size_cr" stroke="#06B6D4" fill="url(#gradSize)" strokeWidth={2} />
+                      <Area yAxisId="right" type="monotone" dataKey="total_no_of_issues" stroke="#EC4899" fill="url(#gradIssue)" strokeWidth={2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             ) : (
               <NoDataState message="No trend data available" subMessage="Historical issue volume data will appear here once available." />
             )}
@@ -712,14 +724,16 @@ export default function Dashboard() {
                 Top {activeTab}
               </h2>
 
-              <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
-                <SingleSelectionDropdown
-                  label="Value Convention"
-                  options={valueConventionOptions}
-                  value={valueConvention}
-                  onChange={(val: string) => setValueConvention(val as 'Crores' | 'Lakhs' | 'Billions')}
-                />
-                <div className='flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4'>
+              <div className="flex flex-row flex-wrap items-end gap-2 sm:gap-3 mb-4">
+                <div className="flex-1 min-w-[110px]">
+                  <SingleSelectionDropdown
+                    label="Value Convention"
+                    options={valueConventionOptions}
+                    value={valueConvention}
+                    onChange={(val: string) => setValueConvention(val as 'Crores' | 'Lakhs' | 'Billions')}
+                  />
+                </div>
+                <div className="flex-1 min-w-[110px]">
                   <SingleSelectionDropdown
                     label="Financial Year"
                     options={fyOptions}
@@ -729,23 +743,23 @@ export default function Dashboard() {
                       handleSelectDate({ target: { value: val } } as React.ChangeEvent<HTMLSelectElement>);
                     }}
                   />
-                  <button
-                    onClick={() => {
-                      const defaultFY = fyOptions[0]?.value || '';
-                      setSelectedFY(defaultFY);
-                      setSelectedYearsDateRange(handleFinancialYearSelection(defaultFY));
-                      setValueConvention('Crores');
-                      setActiveTab('issuers');
-                    }}
-                    className="mt-0 sm:mt-4 flex items-center justify-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-[9px] font-medium px-4 py-1.5 rounded-[12px] transition-colors w-full sm:w-auto"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="1 4 1 10 7 10" />
-                      <path d="M3.51 15a9 9 0 1 0 .49-3.5" />
-                    </svg>
-                    Reset
-                  </button>
                 </div>
+                <button
+                  onClick={() => {
+                    const defaultFY = fyOptions[0]?.value || '';
+                    setSelectedFY(defaultFY);
+                    setSelectedYearsDateRange(handleFinancialYearSelection(defaultFY));
+                    setValueConvention('Crores');
+                    setActiveTab('issuers');
+                  }}
+                  className="shrink-0 flex items-center justify-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-[9px] font-medium px-4 py-1.5 rounded-[12px] transition-colors"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="1 4 1 10 7 10" />
+                    <path d="M3.51 15a9 9 0 1 0 .49-3.5" />
+                  </svg>
+                  Reset
+                </button>
               </div>
 
               {/* Tabs */}

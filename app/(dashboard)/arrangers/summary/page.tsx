@@ -1700,7 +1700,7 @@ export default function Summary() {
                     true
                 );
 
-                const query = {
+                const Listquery = {
                     startDate:
                         selectedYearsDateRange.startDate,
 
@@ -1708,8 +1708,6 @@ export default function Summary() {
                         selectedYearsDateRange.endDate,
 
                     issueType,
-
-                    limit: 10,
 
                     arranger:
                         filters.arranger,
@@ -1745,8 +1743,9 @@ export default function Summary() {
                         filters.listingStatus,
                 };
 
-                const listQuery = {
-                    ...query,
+                const TopTenQuery = {
+                    ...Listquery,
+                    limit: 10
                 };
 
                 try {
@@ -1756,13 +1755,17 @@ export default function Summary() {
                         lists,
                     ] = await Promise.all([
                         fetchArrangerPageArrangersData(
-                            query
+                            TopTenQuery
                         ),
 
                         fetchArrangerPageArrangersData(
-                            listQuery
+                            Listquery
                         ),
                     ]);
+
+                    console.log('fetchedData: ',fetchedData.length);
+                    console.log('lists: ',lists.length);
+                    
 
                     const marketShare =
                         formatMarketShareData(
