@@ -826,44 +826,48 @@ export default function IssuerSummary() {
             <div className="min-h-full p-4 md:p-6 space-y-4 font-sans text-gray-800 dark:text-gray-100">
 
                 {/* ── Sticky Financial Year Filter ── */}
-                <div className="sticky top-0 z-[60] pb-2 bg-[#F0F7FF] dark:bg-[var(--color-background)]">
+                {/* FIX #3: lowered z-index from z-[60] to z-20 so the sidebar renders above this sticky bar */}
+                <div className="sticky top-0 z-20 pb-2 bg-[#F0F7FF] dark:bg-[var(--color-background)]">
                     <SectionCard>
                         <div className="flex items-center justify-between flex-wrap gap-3">
 
                             {/* ── Page Title ── */}
-                            <div className="">
+                            <div>
                                 <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Issuer Summary</h1>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 mt-1">Issuer &gt; Summary</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 sm:mb-6 mt-1">Issuer &gt; Summary</p>
                             </div>
+
                             <div>
                                 <h2 className="text-md font-semibold text-gray-800 dark:text-gray-100">
                                     Financial Year
                                 </h2>
-                                <p className="text-xs text-center text-gray-500 dark:text-gray-400 mb-6 mt-1">{selectedFY}</p>
+                                <p className="text-xs text-center text-gray-500 dark:text-gray-400 mb-2 sm:mb-6 mt-1">{selectedFY}</p>
                             </div>
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
-                                <div className="w-full sm:w-auto">
-                                    <CustomDropdown
-                                        label="Financial Year"
-                                        options={fyOptions}
-                                        value={selectedFY}
-                                        onChange={(val) => handleFYChange(val[0] || fyOptions[0]?.value)}
-                                        multiSelect={false}
-                                    />
-                                </div>
 
-                                <div className="flex flex-col gap-1 w-full sm:w-auto">
-                                    <CustomDropdown
-                                        label="Frequency"
-                                        options={frequencyOptions}
-                                        value={frequency}
-                                        onChange={(val) => handleFrequencyChange(val[0] || 'Yearly')}
-                                        multiSelect={false}
-                                    />
-                                </div>
+                            {/* FIX #1: row layout with flex-wrap so FY + Frequency sit side-by-side on mobile */}
+                            <div className="flex flex-row flex-wrap items-end sm:items-end gap-2 sm:gap-3 mb-2 sm:mb-4 w-full sm:w-auto">
+
+                                <CustomDropdown
+                                    label="Financial Year"
+                                    className="flex-1 min-w-[110px] sm:w-auto sm:flex-initial"
+                                    options={fyOptions}
+                                    value={selectedFY}
+                                    onChange={(val) => handleFYChange(val[0] || fyOptions[0]?.value)}
+                                    multiSelect={false}
+                                />
+
+                                <CustomDropdown
+                                    label="Frequency"
+                                    className="flex-1 min-w-[110px] sm:w-auto sm:flex-initial"
+                                    menuClassName="right-0 sm:right-auto sm:left-0"
+                                    options={frequencyOptions}
+                                    value={frequency}
+                                    onChange={(val) => handleFrequencyChange(val[0] || 'Yearly')}
+                                    multiSelect={false}
+                                />
 
                                 {frequency === 'Half-Yearly' && (
-                                    <div className="flex gap-2 mt-2">
+                                    <div className="flex gap-2 sm:mt-2">
                                         {(['H1', 'H2'] as HalfYearlyPeriod[]).map((h) => (
                                             <button
                                                 key={h}
@@ -883,7 +887,7 @@ export default function IssuerSummary() {
                                 )}
 
                                 {frequency === 'Quarterly' && (
-                                    <div className="flex gap-2 mt-2 flex-wrap">
+                                    <div className="flex gap-2 sm:mt-2 flex-wrap">
                                         {(['Q1', 'Q2', 'Q3', 'Q4'] as QuarterlyPeriod[]).map((q) => (
                                             <button
                                                 key={q}
@@ -903,39 +907,25 @@ export default function IssuerSummary() {
                                 )}
 
                                 {frequency === 'Monthly' && (
-                                    <div className="flex flex-col gap-1 w-full sm:w-auto">
-                                        <CustomDropdown
-                                            label="Months"
-                                            options={monthOptions}
-                                            value={period as number}
-                                            onChange={(val) => {
-                                                ensureActive();
-                                                updatePageField(ISSUERS_PAGE, 'period', Number(val[0]) || 3);
-                                            }}
-                                            multiSelect={false}
-                                        />
-                                    </div>
+                                    <CustomDropdown
+                                        label="Months"
+                                        className="flex-1 min-w-[110px] sm:w-auto sm:flex-initial"
+                                        options={monthOptions}
+                                        value={period as number}
+                                        onChange={(val) => {
+                                            ensureActive();
+                                            updatePageField(ISSUERS_PAGE, 'period', Number(val[0]) || 3);
+                                        }}
+                                        multiSelect={false}
+                                    />
                                 )}
 
-                                <div className="flex flex-col gap-0.5">
-                                    <label className="text-[10px] text-transparent">.</label>
-                                    <button
-                                        onClick={handleReset}
-                                        className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-[12px] px-5 h-10 md:h-6 text-xs md:text-[9px] transition-colors duration-150 cursor-pointer w-full sm:w-auto"
-                                    >
-                                        <svg
-                                            className="w-4 h-4 md:w-3.5 md:h-3.5"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2.2"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                                            <path d="M3 3v5h5" />
-                                        </svg>
-                                        Reset
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={handleReset}
+                                    className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white rounded-[12px] px-4 md:px-5 h-[31px] md:h-7 text-xs md:text-[10px] cursor-pointer shrink-0"
+                                >
+                                    Reset
+                                </button>
                             </div>
                         </div>
                     </SectionCard>
@@ -1197,7 +1187,7 @@ export default function IssuerSummary() {
                         </div>
 
                         <div className="flex flex-row justify-center items-center">
-                            <div className="flex flex-row justify-center mb-4 rounded-full border border-gray-300 dark:border-gray-600 p-2 bg-gray-100 dark:bg-gray-800 p-0.5 w-fit">
+                            <div className="flex flex-row justify-center mb-4 rounded-full border border-gray-300 dark:border-gray-600 p-0.5 bg-gray-100 dark:bg-gray-800 w-fit">
                                 <button
                                     onClick={() => {
                                         ensureActive();
@@ -1256,61 +1246,67 @@ export default function IssuerSummary() {
                             {isSectorsLoading ? (
                                 <ChartSkeleton height={300} />
                             ) : topSectorsData.length > 0 ? (
-                                <div ref={sectorChartRef} className="bg-white dark:bg-[#1a1a2e]">
-                                    <ResponsiveContainer width="100%" height={340}>
-                                        <AreaChart data={topSectorsData} margin={{ top: 5, right: 30, left: 10, bottom: 40 }}>
-                                            <defs>
-                                                <linearGradient id="cyGrad" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#423CAB" stopOpacity={0.3} />
-                                                    <stop offset="95%" stopColor="#423CAB" stopOpacity={0.02} />
-                                                </linearGradient>
-                                                <linearGradient id="pyGrad" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3} />
-                                                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0.02} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.6} vertical={false} />
-                                            <XAxis
-                                                dataKey="sector"
-                                                tick={<VerticalXAxisTick />}
-                                                tickMargin={12}
-                                                interval={0}
-                                                height={60}
-                                            />
-                                            <YAxis
-                                                tick={{ fontSize: 9, fill: '#9ca3af' }}
-                                                tickFormatter={(v: number) => formatYAxisTick(v, valueConvention)}
-                                            />
-                                            <Tooltip content={<CustomTooltip valueConvention={valueConvention} />} />
-                                            <Area
-                                                type="monotone"
-                                                dataKey="cy"
-                                                name={issueType === 'count' ? 'CY Issue Count' : 'CY Issue Size'}
-                                                stroke="#7c3aed"
-                                                strokeWidth={2}
-                                                fill="url(#cyGrad)"
-                                                dot={{ r: 3, fill: '#7c3aed' }}
-                                            />
-                                            <Area
-                                                type="monotone"
-                                                dataKey="py"
-                                                name={issueType === 'count' ? 'PY Issue Count' : 'PY Issue Size'}
-                                                stroke="#ec4899"
-                                                strokeWidth={2}
-                                                fill="url(#pyGrad)"
-                                                dot={{ r: 3, fill: '#ec4899' }}
-                                            />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                    <div className="flex items-center gap-4 justify-center mt-1">
-                                        <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                                            <span className="w-3 h-3 rounded-full bg-[#7c3aed] inline-block" />
-                                            CY Issue Size
-                                        </span>
-                                        <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                                            <span className="w-3 h-3 rounded-full bg-[#ec4899] inline-block" />
-                                            PY Issue Size
-                                        </span>
+                                // FIX #2: horizontal scroll wrapper + min-width so the sector chart isn't squished on mobile
+                                <div className="w-full overflow-x-auto pb-2">
+                                    <div
+                                        ref={sectorChartRef}
+                                        className="bg-white dark:bg-[#1a1a2e] min-w-[700px] lg:min-w-full"
+                                    >
+                                        <ResponsiveContainer width="100%" height={340}>
+                                            <AreaChart data={topSectorsData} margin={{ top: 5, right: 30, left: 10, bottom: 40 }}>
+                                                <defs>
+                                                    <linearGradient id="cyGrad" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#423CAB" stopOpacity={0.3} />
+                                                        <stop offset="95%" stopColor="#423CAB" stopOpacity={0.02} />
+                                                    </linearGradient>
+                                                    <linearGradient id="pyGrad" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3} />
+                                                        <stop offset="95%" stopColor="#ec4899" stopOpacity={0.02} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.6} vertical={false} />
+                                                <XAxis
+                                                    dataKey="sector"
+                                                    tick={<VerticalXAxisTick />}
+                                                    tickMargin={12}
+                                                    interval={0}
+                                                    height={60}
+                                                />
+                                                <YAxis
+                                                    tick={{ fontSize: 9, fill: '#9ca3af' }}
+                                                    tickFormatter={(v: number) => formatYAxisTick(v, valueConvention)}
+                                                />
+                                                <Tooltip content={<CustomTooltip valueConvention={valueConvention} />} />
+                                                <Area
+                                                    type="monotone"
+                                                    dataKey="cy"
+                                                    name={issueType === 'count' ? 'CY Issue Count' : 'CY Issue Size'}
+                                                    stroke="#7c3aed"
+                                                    strokeWidth={2}
+                                                    fill="url(#cyGrad)"
+                                                    dot={{ r: 3, fill: '#7c3aed' }}
+                                                />
+                                                <Area
+                                                    type="monotone"
+                                                    dataKey="py"
+                                                    name={issueType === 'count' ? 'PY Issue Count' : 'PY Issue Size'}
+                                                    stroke="#ec4899"
+                                                    strokeWidth={2}
+                                                    fill="url(#pyGrad)"
+                                                    dot={{ r: 3, fill: '#ec4899' }}
+                                                />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                        <div className="flex items-center gap-4 justify-center mt-1">
+                                            <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                                <span className="w-3 h-3 rounded-full bg-[#7c3aed] inline-block" />
+                                                CY Issue Size
+                                            </span>
+                                            <span className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                                <span className="w-3 h-3 rounded-full bg-[#ec4899] inline-block" />
+                                                PY Issue Size
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
