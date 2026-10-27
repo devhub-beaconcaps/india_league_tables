@@ -20,13 +20,6 @@ import Link from 'next/link';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Notification {
-    id: number;
-    title: string;
-    time: string;
-    isNew: boolean;
-}
-
 interface HeaderProps {
     onMenuClick: () => void;
 }
@@ -34,13 +27,21 @@ interface HeaderProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function Header({ onMenuClick }: HeaderProps) {
-    const { isSignedIn, user, isLoaded } = useUser();
+    const { user } = useUser();
     const { signOut } = useClerk();
     const router = useRouter();
     const { theme, toggleTheme } = useThemeStore();
     const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
-    const isAdmin = user?.publicMetadata?.role === "admin";
 
+    const isAdmin = user?.publicMetadata?.role === 'admin';
+
+    const displayName = user?.firstName ?? user?.username ?? 'User';
+    const userEmail = user?.primaryEmailAddress?.emailAddress ?? '';
+    const initial = (
+        user?.firstName?.[0] ??
+        user?.username?.[0] ??
+        'U'
+    ).toUpperCase();
 
     const handleLogout = async () => {
         await signOut(); // clears session cleanly first
@@ -85,14 +86,29 @@ export function Header({ onMenuClick }: HeaderProps) {
                         onClick={() => setIsProfileOpen(prev => !prev)}
                         className="flex items-center gap-3 p-1.5 pr-3 rounded-xl hover:bg-[var(--color-accent)] dark:hover:bg-gray-800 transition-all duration-200 border border-transparent hover:border-[var(--color-border)] dark:hover:border-gray-700"
                     >
-                        <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-blue-500/30 dark:shadow-blue-900/40">
-                            <User className="w-4 h-4 text-[var(--color-muted)] dark:text-gray-400" />
+                        {/* Avatar: photo if uploaded, otherwise first letter */}
+                        <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-blue-500/30 dark:shadow-blue-900/40 overflow-hidden">
+                            {user?.hasImage ? (
+                                <Image
+                                    src={user.imageUrl}
+                                    alt={displayName}
+                                    width={36}
+                                    height={36}
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <span className="text-sm font-bold text-white select-none">
+                                    {initial}
+                                </span>
+                            )}
                         </div>
                         <div className="hidden md:block text-left">
                             <p className="text-sm font-semibold text-[var(--color-foreground)] dark:text-white leading-tight">
-                                {user.firstName ?? 'User'}
+                                {displayName}
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{isAdmin ? 'Admin': 'User'}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {isAdmin ? 'Admin' : 'User'}
+                            </p>
                         </div>
                         <ChevronDown
                             className={cn(
@@ -112,21 +128,29 @@ export function Header({ onMenuClick }: HeaderProps) {
                             <div className="absolute right-0 top-full mt-3 w-64 bg-white dark:bg-gray-900 border border-black dark:border-gray-700 rounded-2xl shadow-2xl z-50 animate-fade-in-scale overflow-hidden">
                                 <div className="p-4 border-b border-black dark:border-gray-700">
                                     <p className="font-semibold text-[var(--color-foreground)] dark:text-white">
-                                        {user.firstName ?? 'User'}
+                                        {displayName}
                                     </p>
                                     <p className="text-sm text-[var(--color-muted)] dark:text-gray-400">
-                                        {user.firstName ?? 'user@example.com'}
+                                        {userEmail}
                                     </p>
                                 </div>
                                 <div className="p-2">
-                                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--color-accent)] dark:hover:bg-gray-800 text-sm text-[var(--color-foreground)] dark:text-gray-200 transition-colors duration-150">
+                                    <Link
+                                        href="/profile"
+                                        onClick={() => setIsProfileOpen(false)}
+                                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--color-accent)] dark:hover:bg-gray-800 text-sm text-[var(--color-foreground)] dark:text-gray-200 transition-colors duration-150"
+                                    >
                                         <User className="w-4 h-4 text-[var(--color-muted)] dark:text-gray-400" />
-                                        <Link href="/profile">Profile</Link>
-                                    </button>
-                                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--color-accent)] dark:hover:bg-gray-800 text-sm text-[var(--color-foreground)] dark:text-gray-200 transition-colors duration-150">
+                                        Profile
+                                    </Link>
+                                    <Link
+                                        href="/settings"
+                                        onClick={() => setIsProfileOpen(false)}
+                                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--color-accent)] dark:hover:bg-gray-800 text-sm text-[var(--color-foreground)] dark:text-gray-200 transition-colors duration-150"
+                                    >
                                         <Settings className="w-4 h-4 text-[var(--color-muted)] dark:text-gray-400" />
-                                        <Link href="/settings">Settings</Link>
-                                    </button>
+                                        Settings
+                                    </Link>
                                     <div className="h-px bg-[var(--color-border)] dark:bg-gray-700 my-1" />
                                     <button
                                         onClick={handleLogout}
