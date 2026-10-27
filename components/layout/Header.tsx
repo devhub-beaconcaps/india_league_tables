@@ -39,6 +39,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     const router = useRouter();
     const { theme, toggleTheme } = useThemeStore();
     const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
+    const isAdmin = user?.publicMetadata?.role === "admin";
 
 
     const handleLogout = async () => {
@@ -91,7 +92,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                             <p className="text-sm font-semibold text-[var(--color-foreground)] dark:text-white leading-tight">
                                 {user.firstName ?? 'User'}
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Admin</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{isAdmin ? 'Admin': 'User'}</p>
                         </div>
                         <ChevronDown
                             className={cn(
