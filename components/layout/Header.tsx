@@ -94,6 +94,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                                     alt={displayName}
                                     width={36}
                                     height={36}
+                                    unoptimized   // ← add this
                                     className="w-full h-full object-cover"
                                 />
                             ) : (
