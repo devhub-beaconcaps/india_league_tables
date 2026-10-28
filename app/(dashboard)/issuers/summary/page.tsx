@@ -1387,8 +1387,14 @@ export default function IssuerSummary() {
                         {isOutstandingLoading ? (
                             <ChartSkeleton height={300} />
                         ) : outstandingData.length > 0 ? (
-                            <div ref={outstandingChartRef} className="bg-white dark:bg-[#1a1a2e]">
-                                <DualAxisChart data={outstandingData} valueConvention={valueConvention} />
+                            // FIX: horizontal scroll wrapper + min-width so the outstanding chart isn't squished on mobile
+                            <div className="w-full overflow-x-auto pb-2">
+                                <div
+                                    ref={outstandingChartRef}
+                                    className="bg-white dark:bg-[#1a1a2e] min-w-[700px] lg:min-w-full"
+                                >
+                                    <DualAxisChart data={outstandingData} valueConvention={valueConvention} />
+                                </div>
                             </div>
                         ) : (
                             <NoDataState message="No outstanding trend data available" />
