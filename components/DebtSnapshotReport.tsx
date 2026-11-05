@@ -551,9 +551,9 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
   const PAGE_HEIGHT = 1622;
   const PAGE_MAX_WIDTH = '1152px';
 
-  const previousDateFullName = 'August';
-  const currentDateFullName = 'September';
-  const firstPageDisplayDate = 'September 2026';
+  const previousDateFullName = 'September';
+  const currentDateFullName = 'October';
+  const firstPageDisplayDate = 'October 2026';
 
 
   const measurementRef = useRef<HTMLDivElement>(null);
@@ -721,12 +721,12 @@ const DebtSnapshotReport: React.FC<DebtSnapshotReportProps> = ({ data = defaultD
       id: 'key-takeaways',
       type: 'bulletPoints',
       data: [
-        'Debt-market activity remained substantial in September 2026, with 539 ISINs worth ₹1,40,355 crore across 284 issuers. Issue value increased 57.88% YoY, while issuer participation declined 9.27%, indicating higher issuance value despite fewer participating issuers.',
+        'Debt-market activity remained substantial in October 2026, with 539 ISINs worth ₹1,40,355 crore across 284 issuers. Issue value increased 57.88% YoY, while issuer participation declined 9.27%, indicating higher issuance value despite fewer participating issuers.',
         'Issuance remained concentrated among large borrowers, particularly REC Limited, Reliance Industries Limited.',
         'NBFCs and the Others category recorded the highest issuance values at ₹53,054 crore and ₹48,633 crore, respectively, highlighting the significant contribution of financial-sector and other borrowers to the debt market.',
         'NBFCs recorded 247 issuances, while the Others category recorded 258 issuances, indicating that issuance activity was concentrated across these two categories.',
         'Reliance Industries Limited emerged as the largest issuer by issue size at ₹12,000 crore, followed by REC Limited at ₹8,100 crore and Bank of India at ₹5,889 crore.',
-        'Investor preference and credit quality varied across rating categories, with AAA accounting for 6.71% of total issue size and AA+ accounting for 10.57% in September 2026. The A & below category also represented a substantial share of issuance.',
+        'Investor preference and credit quality varied across rating categories, with AAA accounting for 6.71% of total issue size and AA+ accounting for 10.57% in October 2026. The A & below category also represented a substantial share of issuance.',
         'Issuance coupons varied across sectors and borrowers, reflecting differences in credit profiles, funding requirements and market conditions.',
         'Despite a 57.88% YoY increase in issue value, the number of issuers declined by 9.27% and ISINs declined by 2.71%, indicating that overall issuance value increased despite lower issuer and instrument participation.',
         "Elevated inflation risks, global commodity prices and uncertainty around the RBI's policy trajectory could keep borrowing costs high and limit demand for longer-duration debt securities.",
